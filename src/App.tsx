@@ -29,6 +29,13 @@ import { Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-rou
 import { BrandMark } from './components/BrandMark'
 import { ProfilePreview } from './components/ProfilePreview'
 import { capabilitiesForTier, FREE_CAPABILITIES } from './config/capabilities'
+import {
+  buildPlatformUrl,
+  getLinkPlatform,
+  inferLinkLabel,
+  LINK_PLATFORMS,
+  platformUsernameFromUrl,
+} from './config/linkPlatforms'
 import { supabase } from './lib/supabase'
 import { isValidHandle, isValidHttpUrl, normalizeHandle, normalizeUrl } from './lib/validation'
 import type { EditableLink, LinkIcon as LinkIconName, Profile, ProfileLink } from './types'
@@ -62,16 +69,6 @@ const sampleLinks: EditableLink[] = [
   { localId: 'sample-1', label: 'Instagram', url: 'https://instagram.com/mylinks.bar', icon_key: 'instagram', position: 0, is_visible: true },
   { localId: 'sample-2', label: 'Telegram', url: 'https://t.me', icon_key: 'telegram', position: 1, is_visible: true },
   { localId: 'sample-3', label: 'Мой сайт', url: 'https://mylinks.bar', icon_key: 'website', position: 2, is_visible: true },
-]
-
-const iconOptions: Array<{ value: LinkIconName; label: string }> = [
-  { value: 'link', label: 'Ссылка' },
-  { value: 'instagram', label: 'Instagram' },
-  { value: 'telegram', label: 'Telegram' },
-  { value: 'youtube', label: 'YouTube' },
-  { value: 'tiktok', label: 'TikTok' },
-  { value: 'website', label: 'Сайт' },
-  { value: 'email', label: 'Email' },
 ]
 
 const toEditable = (link: ProfileLink): EditableLink => ({
@@ -206,7 +203,7 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
       if (mode === 'register') {
         const safeHandle = normalizeHandle(handle)
         if (!isValidHandle(safeHandle)) throw new Error('Имя ссылки: 3–30 латинских символов, цифр или дефисов.')
-        if (password.length < 8) throw new Error('Пароль должен содержать не менее 8 символов.')
+        if (password.length < 6) throw new Error('Пароль должен содержать не менее 6 символов.')
 
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
@@ -254,7 +251,7 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
             </>
           )}
           <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required /></label>
-          <label>Пароль<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Минимум 8 символов" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} required /></label>
+          <label>Пароль<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === 'register' ? 'Минимум 6 символов' : 'Ваш пароль'} minLength={mode === 'register' ? 6 : undefined} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} required /></label>
 
           {error && <div className="form-message form-message--error">{error}</div>}
           {message && <div className="form-message form-message--success">{message}</div>}
@@ -346,9 +343,11 @@ function Dashboard({ user }: { user: User }) {
 
     try {
       if (!isValidHandle(profile.handle)) throw new Error('Адрес мастер‑ссылки должен содержать 3–30 латинских символов, цифр или дефисов.')
-      const readyLinks = links.filter((link) => link.label.trim() || link.url.trim())
-      const invalidLink = readyLinks.find((link) => !link.label.trim() || !isValidHttpUrl(link.url))
-      if (invalidLink) throw new Error('У каждой добавленной ссылки должны быть название и корректный адрес.')
+      const readyLinks = links
+        .filter((link) => link.label.trim() || link.url.trim())
+        .map((link) => ({ ...link, label: link.label.trim() || inferLinkLabel(link.url) }))
+      const invalidLink = readyLinks.find((link) => !link.url.trim() || !isValidHttpUrl(link.url))
+      if (invalidLink) throw new Error('Проверьте адрес ссылки. Можно вводить без https:// — мы добавим его сами.')
 
       const { error: profileError } = await supabase.from('profiles').update({
         handle: profile.handle,
@@ -482,6 +481,21 @@ interface ContentEditorProps {
 }
 
 function ContentEditor({ profile, setProfile, links, addLink, updateLink, removeLink, moveLink }: ContentEditorProps) {
+  const changePlatform = (link: EditableLink, nextValue: LinkIconName) => {
+    const currentPlatform = getLinkPlatform(link.icon_key)
+    const nextPlatform = getLinkPlatform(nextValue)
+    const currentUsername = currentPlatform.baseUrl
+      ? platformUsernameFromUrl(currentPlatform, link.url)
+      : platformUsernameFromUrl(nextPlatform, link.url)
+    const labelWasAutomatic = !link.label.trim() || link.label === currentPlatform.label
+
+    updateLink(link.localId, {
+      icon_key: nextValue,
+      url: nextPlatform.baseUrl ? buildPlatformUrl(nextPlatform, currentUsername) : link.url,
+      label: labelWasAutomatic ? (nextValue === 'link' ? '' : nextPlatform.label) : link.label,
+    })
+  }
+
   return (
     <div className="editor-stack">
       <section className="settings-card">
@@ -509,12 +523,35 @@ function ContentEditor({ profile, setProfile, links, addLink, updateLink, remove
               <div className="link-editor__grip"><GripVertical size={18} /></div>
               <div className="link-editor__body">
                 <div className="link-editor__row">
-                  <select aria-label="Тип ссылки" value={link.icon_key} onChange={(event) => updateLink(link.localId, { icon_key: event.target.value as LinkIconName })}>
-                    {iconOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  <select aria-label="Площадка" value={LINK_PLATFORMS.some((platform) => platform.value === link.icon_key) ? link.icon_key : 'link'} onChange={(event) => changePlatform(link, event.target.value as LinkIconName)}>
+                    {LINK_PLATFORMS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                   <input aria-label="Название ссылки" value={link.label} onChange={(event) => updateLink(link.localId, { label: event.target.value })} placeholder="Название" maxLength={80} />
                 </div>
-                <input aria-label="Адрес ссылки" value={link.url} onChange={(event) => updateLink(link.localId, { url: event.target.value })} placeholder="https://…" />
+                {(() => {
+                  const platform = getLinkPlatform(link.icon_key)
+                  if (!platform.baseUrl) {
+                    return <input aria-label="Адрес ссылки" value={link.url} onChange={(event) => updateLink(link.localId, { url: event.target.value })} placeholder={platform.placeholder} inputMode="url" autoCapitalize="none" />
+                  }
+
+                  return (
+                    <div className="input-prefix input-prefix--compact">
+                      <span>{platform.inputPrefix}</span>
+                      <input
+                        aria-label={`Имя пользователя в ${platform.label}`}
+                        value={platformUsernameFromUrl(platform, link.url)}
+                        onChange={(event) => updateLink(link.localId, {
+                          url: buildPlatformUrl(platform, event.target.value),
+                          label: link.label.trim() ? link.label : platform.label,
+                        })}
+                        placeholder={platform.placeholder}
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                      />
+                    </div>
+                  )
+                })()}
+                <small className="link-editor__hint">{getLinkPlatform(link.icon_key).baseUrl ? 'Введите только имя после адреса площадки' : 'Можно без https:// · логотип подтянется автоматически'}</small>
               </div>
               <div className="link-editor__actions">
                 <button className="icon-button" onClick={() => updateLink(link.localId, { is_visible: !link.is_visible })} aria-label={link.is_visible ? 'Скрыть' : 'Показать'}>{link.is_visible ? <Eye size={17} /> : <EyeOff size={17} />}</button>

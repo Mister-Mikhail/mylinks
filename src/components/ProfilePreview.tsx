@@ -40,7 +40,7 @@ export function ProfilePreview({ profile, links, interactive = false, showPrivac
         {visibleLinks.length > 0 ? visibleLinks.map((link) => {
           const content = (
             <>
-              <span className="profile-link__icon"><LinkIcon name={link.icon_key} /></span>
+              <span className="profile-link__icon"><LinkIcon name={link.icon_key} url={link.url} /></span>
               <span>{link.label}</span>
               <ArrowUpRight className="profile-link__arrow" size={17} />
             </>

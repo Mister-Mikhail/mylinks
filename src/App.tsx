@@ -150,7 +150,29 @@ function LoadingScreen() {
 
 function AuthConfirmation({ session }: { session: Session | null }) {
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
-  const errorCode = hash.get('error_code')
+  const search = new URLSearchParams(window.location.search)
+  const errorCode = hash.get('error_code') ?? search.get('error_code')
+  const [email, setEmail] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  const resendConfirmation = async (event: FormEvent) => {
+    event.preventDefault()
+    setBusy(true)
+    setError('')
+    setMessage('')
+
+    const { error: resendError } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim(),
+      options: { emailRedirectTo: `${window.location.origin}/auth/confirmed` },
+    })
+
+    if (resendError) setError(resendError.message)
+    else setMessage('Новое письмо отправлено. Используйте самую свежую ссылку из почты.')
+    setBusy(false)
+  }
 
   return (
     <main className="private-access-page">
@@ -158,8 +180,19 @@ function AuthConfirmation({ session }: { session: Session | null }) {
       <div className="private-access-card">
         {session ? <Check size={28} /> : <Mail size={28} />}
         <h1>{session ? 'Почта подтверждена' : errorCode === 'otp_expired' ? 'Ссылка уже недействительна' : 'Подтверждаем почту'}</h1>
-        <p>{session ? 'Аккаунт готов. Можно перейти в личный кабинет.' : errorCode === 'otp_expired' ? 'Запросите новое письмо при следующей регистрации или входе.' : 'Если страница не обновилась, вернитесь на главную и войдите с указанными данными.'}</p>
-        <Link className="button button--primary" to="/">Перейти в mylinks.bar</Link>
+        <p>{session ? 'Аккаунт готов. Можно перейти в личный кабинет.' : errorCode === 'otp_expired' ? 'Введите адрес регистрации — мы отправим новую ссылку подтверждения.' : 'Если подтверждение не завершилось, запросите новое письмо или вернитесь на главную.'}</p>
+        {!session && (
+          <form className="confirmation-resend" onSubmit={resendConfirmation}>
+            <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required /></label>
+            {error && <div className="form-message form-message--error">{error}</div>}
+            {message && <div className="form-message form-message--success">{message}</div>}
+            <button className="button button--primary button--full" type="submit" disabled={busy || Boolean(message)}>
+              {busy ? <LoaderCircle className="spin" size={18} /> : <Mail size={17} />}
+              {busy ? 'Отправляем…' : 'Отправить письмо ещё раз'}
+            </button>
+          </form>
+        )}
+        <Link className={`button ${session ? 'button--primary' : 'button--ghost'}`} to="/">Перейти в mylinks.bar</Link>
       </div>
     </main>
   )

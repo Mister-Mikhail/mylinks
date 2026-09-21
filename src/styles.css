@@ -1718,6 +1718,18 @@ select:focus {
   line-height: 1.7;
 }
 
+.confirmation-resend {
+  display: grid;
+  width: 100%;
+  gap: 11px;
+  margin-bottom: 13px;
+  text-align: left;
+}
+
+.confirmation-resend + .button {
+  width: 100%;
+}
+
 .public-preview-page {
   position: relative;
   display: grid;

@@ -4,10 +4,11 @@ Private MVP of a link-in-bio service. A user creates one master profile, adds so
 
 ## Current scope
 
-- Email/password registration and sign-in with Supabase Auth (minimum 6 characters)
-- Profile editor: name, handle, bio, avatar URL
+- Email/password registration and sign-in with Supabase Auth, including a password visibility toggle
+- Profile editor: name, handle, bio, and private avatar upload (JPG, PNG, or WebP up to 5 MB)
 - Link editor: choose a platform and enter only the username, or paste any custom address without `https://`
 - Automatic domain favicon for custom links
+- Unlimited address, phone, and email contact cards with device-native actions
 - Three restrained visual themes and three card styles
 - Private owner-only preview route at `/p/:handle`
 - Free-only capability layer prepared for future feature tiers
@@ -43,5 +44,5 @@ The initial migration enables RLS and grants access only to the authenticated ow
 
 - `src/components` — reusable UI and profile preview
 - `src/config/capabilities.ts` — product capability boundary for future tiers
-- `src/lib` — Supabase client and validation
+- `src/lib` — Supabase client, contact actions, and validation
 - `supabase/migrations` — reviewed database migrations

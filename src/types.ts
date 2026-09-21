@@ -3,6 +3,7 @@ export type CardPreset = 'glass' | 'solid' | 'outline'
 export type AvatarShape = 'round' | 'square'
 export type AvatarSize = 'small' | 'medium' | 'large'
 export type LinkIcon = 'instagram' | 'telegram' | 'youtube' | 'tiktok' | 'website' | 'email' | 'link'
+export type ContactKind = 'address' | 'phone' | 'email'
 
 export interface Profile {
   id: string
@@ -10,6 +11,8 @@ export interface Profile {
   display_name: string
   bio: string
   avatar_url: string | null
+  avatar_path: string | null
+  avatar_preview_url?: string | null
   background_preset: BackgroundPreset
   card_preset: CardPreset
   avatar_shape: AvatarShape
@@ -32,6 +35,24 @@ export interface ProfileLink {
 }
 
 export interface EditableLink extends Omit<ProfileLink, 'id' | 'profile_id'> {
+  id?: string
+  profile_id?: string
+  localId: string
+}
+
+export interface ProfileContact {
+  id: string
+  profile_id: string
+  kind: ContactKind
+  label: string
+  value: string
+  position: number
+  is_visible: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface EditableContact extends Omit<ProfileContact, 'id' | 'profile_id'> {
   id?: string
   profile_id?: string
   localId: string

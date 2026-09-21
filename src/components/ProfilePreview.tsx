@@ -1,18 +1,20 @@
 import { ArrowUpRight, LockKeyhole, MoreHorizontal } from 'lucide-react'
-import type { EditableLink, Profile } from '../types'
+import type { EditableContact, EditableLink, Profile } from '../types'
 import { BrandMark } from './BrandMark'
 import { LinkIcon } from './LinkIcon'
+import { ProfileContacts } from './ProfileContacts'
 
 interface ProfilePreviewProps {
   profile: Profile
   links: EditableLink[]
+  contacts?: EditableContact[]
   interactive?: boolean
   showPrivacy?: boolean
 }
 
 const initials = (name: string) => name.trim().slice(0, 2).toUpperCase() || 'ML'
 
-export function ProfilePreview({ profile, links, interactive = false, showPrivacy = true }: ProfilePreviewProps) {
+export function ProfilePreview({ profile, links, contacts = [], interactive = false, showPrivacy = true }: ProfilePreviewProps) {
   const visibleLinks = links.filter((link) => link.is_visible && link.label && link.url)
 
   return (
@@ -29,12 +31,14 @@ export function ProfilePreview({ profile, links, interactive = false, showPrivac
 
       <div className="profile-card__identity">
         <div className={`avatar avatar--${profile.avatar_shape} avatar--${profile.avatar_size}`}>
-          {profile.avatar_url ? <img src={profile.avatar_url} alt="" /> : <span>{initials(profile.display_name)}</span>}
+          {profile.avatar_preview_url || profile.avatar_url ? <img src={profile.avatar_preview_url || profile.avatar_url || ''} alt="" /> : <span>{initials(profile.display_name)}</span>}
         </div>
         <h1>{profile.display_name || 'Ваше имя'}</h1>
         <p className="profile-card__handle">@{profile.handle || 'username'}</p>
         <p className="profile-card__bio">{profile.bio || 'Коротко расскажите о себе и о том, чем делитесь.'}</p>
       </div>
+
+      <ProfileContacts contacts={contacts} cardPreset={profile.card_preset} interactive={interactive} />
 
       <div className="profile-card__links">
         {visibleLinks.length > 0 ? visibleLinks.map((link) => {

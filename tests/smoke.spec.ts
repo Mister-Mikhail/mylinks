@@ -12,6 +12,12 @@ test('landing presents the private MVP and registration flow', async ({ page }) 
   const handleInput = page.getByPlaceholder('mikhail')
   await handleInput.fill('Mikhail Studio!')
   await expect(handleInput).toHaveValue('mikhail-studio')
+
+  const passwordInput = page.getByPlaceholder('Минимум 5 символов')
+  await expect(passwordInput).toHaveAttribute('type', 'password')
+  await expect(passwordInput).toHaveAttribute('autocomplete', 'off')
+  await page.getByRole('button', { name: 'Показать пароль' }).click()
+  await expect(passwordInput).toHaveAttribute('type', 'text')
 })
 
 test('landing stays usable at narrow viewport', async ({ page }, testInfo) => {

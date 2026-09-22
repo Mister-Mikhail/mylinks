@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUpRight, LockKeyhole, MoreHorizontal, ShieldAlert, X } from 'lucide-react'
+import { ArrowUpRight, LockKeyhole, ShieldAlert, X } from 'lucide-react'
 import type { EditableContact, EditableLink, Profile } from '../types'
 import { isKnownSensitiveUrl } from '../lib/sensitiveLinks'
 import { BrandMark } from './BrandMark'
@@ -40,10 +40,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
       <div className="profile-card__topline">
         {showPrivacy ? (
           <span className="privacy-pill"><LockKeyhole size={12} /> Закрытый просмотр</span>
-        ) : <span />}
-        <button className="icon-button icon-button--glass" type="button" aria-label="Дополнительные действия">
-          <MoreHorizontal size={18} />
-        </button>
+        ) : null}
       </div>
 
       <div className="profile-card__identity">

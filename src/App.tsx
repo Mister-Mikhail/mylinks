@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import {
   ArrowDown,
@@ -9,7 +9,6 @@ import {
   Copy,
   Eye,
   EyeOff,
-  GripVertical,
   LayoutGrid,
   Link2,
   LoaderCircle,
@@ -28,7 +27,7 @@ import {
   UserRound,
   X,
 } from 'lucide-react'
-import { Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { BrandMark } from './components/BrandMark'
 import { AvatarEditor } from './components/AvatarEditor'
 import { ProfilePreview } from './components/ProfilePreview'
@@ -48,6 +47,21 @@ import type { ContactKind, EditableContact, EditableLink, LinkIcon as LinkIconNa
 
 type AuthMode = 'login' | 'register'
 type EditorSection = 'links' | 'design'
+
+interface EditorSnapshot {
+  userId: string
+  profile: Profile
+  links: EditableLink[]
+  contacts: EditableContact[]
+}
+
+interface PreviewLocationState {
+  profile: Profile
+  links: EditableLink[]
+  contacts: EditableContact[]
+}
+
+let editorSnapshot: EditorSnapshot | null = null
 
 const emptyProfile = (id = ''): Profile => ({
   id,
@@ -140,11 +154,18 @@ function App() {
   return (
     <Routes>
       <Route path="/auth/confirmed" element={<AuthConfirmation session={session} />} />
-      <Route path="/p/:handle" element={<PrivateProfilePage session={session} />} />
+      <Route path="/p/:handle" element={<LegacyProfileRedirect />} />
       <Route path="/" element={session ? <Dashboard user={session.user} /> : <Landing />} />
+      <Route path="/:handle" element={<PrivateProfilePage session={session} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
+}
+
+function LegacyProfileRedirect() {
+  const { handle = '' } = useParams()
+  const location = useLocation()
+  return <Navigate to={`/${handle}`} replace state={location.state} />
 }
 
 function LoadingScreen() {
@@ -359,13 +380,15 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
 
 function Dashboard({ user }: { user: User }) {
   const navigate = useNavigate()
-  const [profile, setProfile] = useState<Profile>(emptyProfile(user.id))
-  const [links, setLinks] = useState<EditableLink[]>([])
-  const [contacts, setContacts] = useState<EditableContact[]>([])
-  const [originalLinkIds, setOriginalLinkIds] = useState<string[]>([])
-  const [originalContactIds, setOriginalContactIds] = useState<string[]>([])
+  const cachedSnapshot = editorSnapshot?.userId === user.id ? editorSnapshot : null
+  const skipInitialLoad = useRef(Boolean(cachedSnapshot))
+  const [profile, setProfile] = useState<Profile>(cachedSnapshot?.profile ?? emptyProfile(user.id))
+  const [links, setLinks] = useState<EditableLink[]>(cachedSnapshot?.links ?? [])
+  const [contacts, setContacts] = useState<EditableContact[]>(cachedSnapshot?.contacts ?? [])
+  const [originalLinkIds, setOriginalLinkIds] = useState<string[]>(cachedSnapshot?.links.flatMap((link) => link.id ? [link.id] : []) ?? [])
+  const [originalContactIds, setOriginalContactIds] = useState<string[]>(cachedSnapshot?.contacts.flatMap((contact) => contact.id ? [contact.id] : []) ?? [])
   const [section, setSection] = useState<EditorSection>('links')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!cachedSnapshot)
   const [saving, setSaving] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [notice, setNotice] = useState('')
@@ -395,23 +418,32 @@ function Dashboard({ user }: { user: User }) {
         : queryErrors[0]?.message ?? 'Не удалось загрузить данные профиля.')
     }
 
-    if (!profileResult.error) setProfile(await withAvatarPreview(profileResult.data as Profile))
+    const nextProfile = !profileResult.error ? await withAvatarPreview(profileResult.data as Profile) : null
+    const nextLinks = !linksResult.error ? (linksResult.data as ProfileLink[]).map(toEditable) : null
+    const nextContacts = !contactsResult.error ? (contactsResult.data as ProfileContact[]).map(toEditableContact) : null
 
-    if (!linksResult.error) {
-      const nextLinks = (linksResult.data as ProfileLink[]).map(toEditable)
+    if (nextProfile) setProfile(nextProfile)
+
+    if (nextLinks) {
       setLinks(nextLinks)
       setOriginalLinkIds(nextLinks.flatMap((link) => link.id ? [link.id] : []))
     }
 
-    if (!contactsResult.error) {
-      const nextContacts = (contactsResult.data as ProfileContact[]).map(toEditableContact)
+    if (nextContacts) {
       setContacts(nextContacts)
       setOriginalContactIds(nextContacts.flatMap((contact) => contact.id ? [contact.id] : []))
+    }
+    if (nextProfile && nextLinks && nextContacts) {
+      editorSnapshot = { userId: user.id, profile: nextProfile, links: nextLinks, contacts: nextContacts }
     }
     setLoading(false)
   }
 
   useEffect(() => {
+    if (skipInitialLoad.current) {
+      skipInitialLoad.current = false
+      return
+    }
     void loadData()
     // The active user id is the stable key for this dashboard instance.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -628,7 +660,14 @@ function Dashboard({ user }: { user: User }) {
   }
 
   const signOut = async () => {
+    editorSnapshot = null
     await supabase.auth.signOut()
+  }
+
+  const openProfilePreview = () => {
+    const state: PreviewLocationState = { profile, links, contacts }
+    editorSnapshot = { userId: user.id, ...state }
+    navigate(`/${profile.handle}`, { state })
   }
 
   if (loading) return <LoadingScreen />
@@ -639,7 +678,7 @@ function Dashboard({ user }: { user: User }) {
         <BrandMark />
         <div className="dashboard-topbar__meta">
           <span className="status-chip"><span /> Закрытая версия</span>
-          <button className="button button--ghost button--small" onClick={() => navigate(`/p/${profile.handle}`)}><Eye size={16} /> Открыть страницу</button>
+          <button className="button button--ghost button--small" onClick={openProfilePreview}><Eye size={16} /> Открыть страницу</button>
           <button className="button button--primary button--small" onClick={save} disabled={saving}>
             {saving ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} Сохранить
           </button>
@@ -696,13 +735,13 @@ function Dashboard({ user }: { user: User }) {
         <aside className="preview-panel">
           <div className="preview-panel__heading">
             <div><MonitorSmartphone size={17} /><span>Предпросмотр</span></div>
-            <button className="button button--icon-text" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/p/${profile.handle}`)}><Copy size={14} /> Скопировать</button>
+            <button className="button button--icon-text" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/${profile.handle}`)}><Copy size={14} /> Скопировать</button>
           </div>
           <div className="device-frame">
             <div className="device-frame__speaker" />
             <ProfilePreview profile={profile} links={links} contacts={contacts} />
           </div>
-          <div className="privacy-note"><ShieldCheck size={17} /><div><strong>Публичный доступ выключен</strong><span>Страница доступна только владельцу MVP.</span></div></div>
+          <div className="privacy-note"><ShieldCheck size={17} /><div><strong>Профиль пока закрыт</strong><span>Регистрация открыта, но данные страницы доступны только владельцу.</span></div></div>
         </aside>
       </div>
     </div>
@@ -738,6 +777,11 @@ function ContentEditor({
   removeContact,
   moveContact,
 }: ContentEditorProps) {
+  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null)
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
+  const selectedLinkIndex = links.findIndex((link) => link.localId === selectedLinkId)
+  const selectedContactIndex = contacts.findIndex((contact) => contact.localId === selectedContactId)
+
   const changePlatform = (link: EditableLink, nextValue: LinkIconName) => {
     const currentPlatform = getLinkPlatform(link.icon_key)
     const nextPlatform = getLinkPlatform(nextValue)
@@ -767,16 +811,29 @@ function ContentEditor({
       <section className="settings-card">
         <div className="settings-card__title settings-card__title--action">
           <div className="settings-card__title-copy"><Link2 size={18} /><div><h2>Ссылки</h2><p>{links.length} из {FREE_CAPABILITIES.maxLinks}</p></div></div>
-          <button className="button button--secondary button--small" onClick={addLink} disabled={links.length >= FREE_CAPABILITIES.maxLinks}><Plus size={16} /> Добавить</button>
+          <div className="settings-card__actions">
+            <div className="reorder-controls" aria-label="Порядок выбранной ссылки">
+              <button className="icon-button" type="button" onClick={() => moveLink(selectedLinkIndex, -1)} disabled={selectedLinkIndex <= 0} aria-label="Переместить выбранную ссылку выше"><ArrowUp size={16} /></button>
+              <button className="icon-button" type="button" onClick={() => moveLink(selectedLinkIndex, 1)} disabled={selectedLinkIndex < 0 || selectedLinkIndex === links.length - 1} aria-label="Переместить выбранную ссылку ниже"><ArrowDown size={16} /></button>
+            </div>
+            <button className="button button--secondary button--small" onClick={addLink} disabled={links.length >= FREE_CAPABILITIES.maxLinks}><Plus size={16} /> Добавить</button>
+          </div>
         </div>
+        {links.length > 1 && <p className="reorder-hint">Отметьте карточку галочкой и перемещайте её двумя стрелками.</p>}
 
         <div className="links-editor">
           {links.length === 0 && (
             <button className="empty-links" onClick={addLink}><span><Plus size={21} /></span><strong>Добавьте первую ссылку</strong><p>Instagram, Telegram, сайт или любой другой адрес.</p></button>
           )}
-          {links.map((link, index) => (
-            <article className="link-editor" key={link.localId}>
-              <div className="link-editor__grip"><GripVertical size={18} /></div>
+          {links.map((link) => (
+            <article className={`link-editor ${selectedLinkId === link.localId ? 'link-editor--selected' : ''}`} key={link.localId}>
+              <button
+                className={`selection-check ${selectedLinkId === link.localId ? 'selection-check--selected' : ''}`}
+                type="button"
+                aria-pressed={selectedLinkId === link.localId}
+                aria-label={selectedLinkId === link.localId ? 'Снять выбор ссылки' : 'Выбрать ссылку для перемещения'}
+                onClick={() => setSelectedLinkId((current) => current === link.localId ? null : link.localId)}
+              >{selectedLinkId === link.localId && <Check size={15} />}</button>
               <div className="link-editor__body">
                 <div className="link-editor__row">
                   <select aria-label="Площадка" value={LINK_PLATFORMS.some((platform) => platform.value === link.icon_key) ? link.icon_key : 'link'} onChange={(event) => changePlatform(link, event.target.value as LinkIconName)}>
@@ -821,9 +878,7 @@ function ContentEditor({
               </div>
               <div className="link-editor__actions">
                 <button className="icon-button" onClick={() => updateLink(link.localId, { is_visible: !link.is_visible })} aria-label={link.is_visible ? 'Скрыть' : 'Показать'}>{link.is_visible ? <Eye size={17} /> : <EyeOff size={17} />}</button>
-                <button className="icon-button" onClick={() => moveLink(index, -1)} disabled={index === 0} aria-label="Переместить выше"><ArrowUp size={16} /></button>
-                <button className="icon-button" onClick={() => moveLink(index, 1)} disabled={index === links.length - 1} aria-label="Переместить ниже"><ArrowDown size={16} /></button>
-                <button className="icon-button icon-button--danger" onClick={() => removeLink(link.localId)} aria-label="Удалить"><Trash2 size={16} /></button>
+                <button className="icon-button icon-button--danger" onClick={() => { removeLink(link.localId); if (selectedLinkId === link.localId) setSelectedLinkId(null) }} aria-label="Удалить"><Trash2 size={16} /></button>
               </div>
             </article>
           ))}
@@ -833,16 +888,29 @@ function ContentEditor({
       <section className="settings-card">
         <div className="settings-card__title settings-card__title--action">
           <div className="settings-card__title-copy"><MapPin size={18} /><div><h2>Контакты</h2><p>Адреса, телефоны и почта · без ограничений</p></div></div>
-          <button className="button button--secondary button--small" type="button" onClick={addContact}><Plus size={16} /> Добавить</button>
+          <div className="settings-card__actions">
+            <div className="reorder-controls" aria-label="Порядок выбранного контакта">
+              <button className="icon-button" type="button" onClick={() => moveContact(selectedContactIndex, -1)} disabled={selectedContactIndex <= 0} aria-label="Переместить выбранный контакт выше"><ArrowUp size={16} /></button>
+              <button className="icon-button" type="button" onClick={() => moveContact(selectedContactIndex, 1)} disabled={selectedContactIndex < 0 || selectedContactIndex === contacts.length - 1} aria-label="Переместить выбранный контакт ниже"><ArrowDown size={16} /></button>
+            </div>
+            <button className="button button--secondary button--small" type="button" onClick={addContact}><Plus size={16} /> Добавить</button>
+          </div>
         </div>
+        {contacts.length > 1 && <p className="reorder-hint">Отметьте карточку галочкой и перемещайте её двумя стрелками.</p>}
 
         <div className="links-editor">
           {contacts.length === 0 && (
             <button className="empty-links" type="button" onClick={addContact}><span><Plus size={21} /></span><strong>Добавьте контакты</strong><p>Адрес, телефон или электронную почту.</p></button>
           )}
-          {contacts.map((contact, index) => (
-            <article className="link-editor contact-editor" key={contact.localId}>
-              <div className="link-editor__grip"><GripVertical size={18} /></div>
+          {contacts.map((contact) => (
+            <article className={`link-editor contact-editor ${selectedContactId === contact.localId ? 'link-editor--selected' : ''}`} key={contact.localId}>
+              <button
+                className={`selection-check ${selectedContactId === contact.localId ? 'selection-check--selected' : ''}`}
+                type="button"
+                aria-pressed={selectedContactId === contact.localId}
+                aria-label={selectedContactId === contact.localId ? 'Снять выбор контакта' : 'Выбрать контакт для перемещения'}
+                onClick={() => setSelectedContactId((current) => current === contact.localId ? null : contact.localId)}
+              >{selectedContactId === contact.localId && <Check size={15} />}</button>
               <div className="link-editor__body">
                 <div className="link-editor__row">
                   <select aria-label="Тип контакта" value={contact.kind} onChange={(event) => updateContact(contact.localId, { kind: event.target.value as ContactKind })}>
@@ -862,9 +930,7 @@ function ContentEditor({
               </div>
               <div className="link-editor__actions">
                 <button className="icon-button" type="button" onClick={() => updateContact(contact.localId, { is_visible: !contact.is_visible })} aria-label={contact.is_visible ? 'Скрыть' : 'Показать'}>{contact.is_visible ? <Eye size={17} /> : <EyeOff size={17} />}</button>
-                <button className="icon-button" type="button" onClick={() => moveContact(index, -1)} disabled={index === 0} aria-label="Переместить выше"><ArrowUp size={16} /></button>
-                <button className="icon-button" type="button" onClick={() => moveContact(index, 1)} disabled={index === contacts.length - 1} aria-label="Переместить ниже"><ArrowDown size={16} /></button>
-                <button className="icon-button icon-button--danger" type="button" onClick={() => removeContact(contact.localId)} aria-label="Удалить"><Trash2 size={16} /></button>
+                <button className="icon-button icon-button--danger" type="button" onClick={() => { removeContact(contact.localId); if (selectedContactId === contact.localId) setSelectedContactId(null) }} aria-label="Удалить"><Trash2 size={16} /></button>
               </div>
             </article>
           ))}
@@ -926,13 +992,18 @@ function DesignEditor({
 function PrivateProfilePage({ session }: { session: Session | null }) {
   const { handle = '' } = useParams()
   const navigate = useNavigate()
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [links, setLinks] = useState<EditableLink[]>([])
-  const [contacts, setContacts] = useState<EditableContact[]>([])
-  const [loading, setLoading] = useState(Boolean(session))
+  const location = useLocation()
+  const navigationState = location.state as PreviewLocationState | null
+  const instantPreview = navigationState?.profile.handle === handle && navigationState.profile.id === session?.user.id
+    ? navigationState
+    : null
+  const [profile, setProfile] = useState<Profile | null>(instantPreview?.profile ?? null)
+  const [links, setLinks] = useState<EditableLink[]>(instantPreview?.links ?? [])
+  const [contacts, setContacts] = useState<EditableContact[]>(instantPreview?.contacts ?? [])
+  const [loading, setLoading] = useState(Boolean(session && !instantPreview))
 
   useEffect(() => {
-    if (!session) return
+    if (!session || instantPreview) return
 
     const load = async () => {
       const { data: profileData } = await supabase.from('profiles').select('*').eq('handle', handle).eq('id', session.user.id).maybeSingle()
@@ -952,7 +1023,7 @@ function PrivateProfilePage({ session }: { session: Session | null }) {
     }
 
     void load()
-  }, [handle, session])
+  }, [handle, instantPreview, session])
 
   if (!session) {
     return (

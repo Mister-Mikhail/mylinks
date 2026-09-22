@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent } from 'react'
-import { Camera, Check, LoaderCircle, Move, RotateCcw, X, ZoomIn } from 'lucide-react'
+import { Camera, Check, Crop, LoaderCircle, Move, RotateCcw, X, ZoomIn } from 'lucide-react'
 import type { Profile } from '../types'
 
 interface AvatarEditorProps {
@@ -51,6 +51,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload }: Avata
   const [zoom, setZoom] = useState(1)
   const [offset, setOffset] = useState<Point>(DEFAULT_OFFSET)
   const [error, setError] = useState('')
+  const [preparing, setPreparing] = useState(false)
 
   useEffect(() => {
     if (!source || !viewportRef.current) return
@@ -73,6 +74,14 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload }: Avata
     setError('')
   }
 
+  const openEditor = (nextSource: string) => {
+    if (source) URL.revokeObjectURL(source)
+    setSource(nextSource)
+    setImageSize({ width: 0, height: 0 })
+    setZoom(1)
+    setOffset(DEFAULT_OFFSET)
+  }
+
   const selectFile = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -88,11 +97,24 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload }: Avata
       return
     }
 
-    if (source) URL.revokeObjectURL(source)
-    setSource(URL.createObjectURL(file))
-    setImageSize({ width: 0, height: 0 })
-    setZoom(1)
-    setOffset(DEFAULT_OFFSET)
+    openEditor(URL.createObjectURL(file))
+  }
+
+  const editCurrentAvatar = async () => {
+    const currentAvatar = profile.avatar_preview_url || profile.avatar_url
+    if (!currentAvatar) return
+
+    setPreparing(true)
+    setError('')
+    try {
+      const response = await fetch(currentAvatar)
+      if (!response.ok) throw new Error('Не удалось загрузить текущее фото для кадрирования.')
+      openEditor(URL.createObjectURL(await response.blob()))
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Не удалось открыть редактор изображения.')
+    } finally {
+      setPreparing(false)
+    }
   }
 
   const updateZoom = (nextZoom: number) => {
@@ -165,11 +187,19 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload }: Avata
         </div>
         <div className="avatar-settings__upload">
           <strong>Фотография профиля</strong>
-          <span>JPG, PNG или WebP · до 5 МБ</span>
-          <button className="button button--secondary button--small" type="button" onClick={() => inputRef.current?.click()} disabled={uploading}>
-            {uploading ? <LoaderCircle className="spin" size={16} /> : <Camera size={16} />}
-            {uploading ? 'Загружаем…' : profile.avatar_path ? 'Заменить фото' : 'Выбрать фото'}
-          </button>
+          <span>После выбора откроется редактор кадра · JPG, PNG или WebP до 5 МБ</span>
+          <div className="avatar-settings__upload-actions">
+            <button className="button button--secondary button--small" type="button" onClick={() => inputRef.current?.click()} disabled={uploading || preparing}>
+              {uploading ? <LoaderCircle className="spin" size={16} /> : <Camera size={16} />}
+              {uploading ? 'Загружаем…' : profile.avatar_path ? 'Заменить фото' : 'Выбрать фото'}
+            </button>
+            {(profile.avatar_preview_url || profile.avatar_url) && (
+              <button className="button button--ghost button--small" type="button" onClick={editCurrentAvatar} disabled={uploading || preparing}>
+                {preparing ? <LoaderCircle className="spin" size={16} /> : <Crop size={16} />}
+                {preparing ? 'Открываем…' : 'Изменить кадр'}
+              </button>
+            )}
+          </div>
           <input ref={inputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={selectFile} />
         </div>
       </div>

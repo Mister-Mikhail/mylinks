@@ -1,6 +1,6 @@
-import { useState, type CSSProperties, type MouseEvent } from 'react'
+import { useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUpRight, LockKeyhole, ShieldAlert, X } from 'lucide-react'
+import { Check, Copy, LockKeyhole, ShieldAlert, X } from 'lucide-react'
 import type { EditableContact, EditableLink, Profile } from '../types'
 import { isKnownSensitiveUrl } from '../lib/sensitiveLinks'
 import { BrandMark } from './BrandMark'
@@ -20,8 +20,38 @@ const initials = (name: string) => name.trim().slice(0, 2).toUpperCase() || 'ML'
 export function ProfilePreview({ profile, links, contacts = [], interactive = false, showPrivacy = true }: ProfilePreviewProps) {
   const visibleLinks = links.filter((link) => link.is_visible && link.label && link.url)
   const [sensitiveLink, setSensitiveLink] = useState<EditableLink | null>(null)
+  const [profileLinkCopied, setProfileLinkCopied] = useState(false)
+  const clickAudio = useRef<HTMLAudioElement | null>(null)
+
+  const playClickSound = () => {
+    if (!interactive) return
+    const audio = clickAudio.current ?? new Audio('/sounds/link-click.mp3')
+    clickAudio.current = audio
+    audio.volume = 0.55
+    audio.currentTime = 0
+    void audio.play().catch(() => undefined)
+  }
+
+  const copyProfileLink = async () => {
+    const profileUrl = `${window.location.origin}/${profile.handle}`
+    try {
+      await navigator.clipboard.writeText(profileUrl)
+    } catch {
+      const input = document.createElement('textarea')
+      input.value = profileUrl
+      input.style.position = 'fixed'
+      input.style.opacity = '0'
+      document.body.appendChild(input)
+      input.select()
+      document.execCommand('copy')
+      input.remove()
+    }
+    setProfileLinkCopied(true)
+    window.setTimeout(() => setProfileLinkCopied(false), 1800)
+  }
 
   const openLink = (event: MouseEvent<HTMLAnchorElement>, link: EditableLink) => {
+    playClickSound()
     if (!link.is_sensitive && !isKnownSensitiveUrl(link.url)) return
     event.preventDefault()
     setSensitiveLink(link)
@@ -48,11 +78,15 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
           {profile.avatar_preview_url || profile.avatar_url ? <img src={profile.avatar_preview_url || profile.avatar_url || ''} alt="" /> : <span>{initials(profile.display_name)}</span>}
         </div>
         <h1>{profile.display_name || 'Ваше имя'}</h1>
-        <p className="profile-card__handle">@{profile.handle || 'username'}</p>
+        <button className="profile-card__handle" type="button" onClick={() => void copyProfileLink()} aria-label="Скопировать ссылку на профиль">
+          {profileLinkCopied ? <Check size={11} /> : <Copy size={10} />}
+          <span>@{profile.handle || 'username'}</span>
+        </button>
         <p className="profile-card__bio">{profile.bio || 'Коротко расскажите о себе и о том, чем делитесь.'}</p>
+        <span className={`profile-card__copy-toast ${profileLinkCopied ? 'profile-card__copy-toast--visible' : ''}`} aria-live="polite">Ссылка скопирована</span>
       </div>
 
-      <ProfileContacts contacts={contacts} cardPreset={profile.card_preset} interactive={interactive} />
+      <ProfileContacts contacts={contacts} cardPreset={profile.card_preset} interactive={interactive} onActivate={playClickSound} />
 
       <div className="profile-card__links">
         {visibleLinks.length > 0 ? visibleLinks.map((link) => {
@@ -60,7 +94,6 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
             <>
               <span className="profile-link__icon"><LinkIcon name={link.icon_key} url={link.url} /></span>
               <span className="profile-link__label">{link.label}{(link.is_sensitive || isKnownSensitiveUrl(link.url)) && <small>18+</small>}</span>
-              <ArrowUpRight className="profile-link__arrow" size={17} />
             </>
           )
           return interactive ? (

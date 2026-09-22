@@ -1,5 +1,5 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { Copy, ExternalLink, Mail, MapPin, Phone } from 'lucide-react'
+import { Mail, MapPin, Phone } from 'lucide-react'
 import { addressHref, contactKindLabel, emailHref, phoneHref } from '../lib/contacts'
 import type { CardPreset, EditableContact } from '../types'
 
@@ -7,16 +7,17 @@ interface ProfileContactsProps {
   contacts: EditableContact[]
   cardPreset: CardPreset
   interactive: boolean
+  onActivate?: () => void
 }
 
-const ContactCopy = ({ contact }: { contact: EditableContact }) => (
+const ContactCopy = ({ contact, status }: { contact: EditableContact; status?: string }) => (
   <span className="profile-contact__copy">
     <strong>{contact.label.trim() || contactKindLabel(contact.kind)}</strong>
-    <small>{contact.value}</small>
+    <small>{status || contact.value}</small>
   </span>
 )
 
-function EmailContact({ contact, cardPreset }: { contact: EditableContact; cardPreset: CardPreset }) {
+function EmailContact({ contact, cardPreset, onActivate }: { contact: EditableContact; cardPreset: CardPreset; onActivate?: () => void }) {
   const timer = useRef<number | null>(null)
   const longPressed = useRef(false)
   const [copied, setCopied] = useState(false)
@@ -40,6 +41,7 @@ function EmailContact({ contact, cardPreset }: { contact: EditableContact; cardP
       longPressed.current = false
       return
     }
+    onActivate?.()
     await navigator.clipboard.writeText(contact.value.trim())
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1800)
@@ -65,13 +67,12 @@ function EmailContact({ contact, cardPreset }: { contact: EditableContact; cardP
       aria-label={`${copied ? 'Скопировано' : 'Скопировать email'} ${contact.value}. Удерживайте, чтобы написать письмо.`}
     >
       <span className="profile-link__icon"><Mail size={18} /></span>
-      <ContactCopy contact={contact} />
-      {copied ? <span className="profile-contact__status">Скопировано</span> : <Copy className="profile-link__arrow" size={16} />}
+      <ContactCopy contact={contact} status={copied ? 'Скопировано' : undefined} />
     </button>
   )
 }
 
-export function ProfileContacts({ contacts, cardPreset, interactive }: ProfileContactsProps) {
+export function ProfileContacts({ contacts, cardPreset, interactive, onActivate }: ProfileContactsProps) {
   const visible = contacts.filter((contact) => contact.is_visible && contact.value.trim())
   if (!visible.length) return null
 
@@ -79,7 +80,7 @@ export function ProfileContacts({ contacts, cardPreset, interactive }: ProfileCo
     <div className="profile-card__contacts" aria-label="Контакты">
       {visible.map((contact) => {
         if (interactive && contact.kind === 'email') {
-          return <EmailContact contact={contact} cardPreset={cardPreset} key={contact.localId} />
+          return <EmailContact contact={contact} cardPreset={cardPreset} onActivate={onActivate} key={contact.localId} />
         }
 
         const icon = contact.kind === 'address' ? <MapPin size={18} /> : contact.kind === 'phone' ? <Phone size={18} /> : <Mail size={18} />
@@ -88,12 +89,11 @@ export function ProfileContacts({ contacts, cardPreset, interactive }: ProfileCo
           <>
             <span className="profile-link__icon">{icon}</span>
             <ContactCopy contact={contact} />
-            <ExternalLink className="profile-link__arrow" size={16} />
           </>
         )
 
         return interactive ? (
-          <a className={`profile-link profile-contact card-${cardPreset}`} href={href} key={contact.localId}>
+          <a className={`profile-link profile-contact card-${cardPreset}`} href={href} key={contact.localId} onClick={onActivate}>
             {content}
           </a>
         ) : (

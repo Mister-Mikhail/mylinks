@@ -2,7 +2,7 @@ export type BackgroundPreset = 'midnight' | 'mist' | 'cobalt'
 export type CardPreset = 'glass' | 'solid' | 'outline'
 export type AvatarShape = 'round' | 'square'
 export type AvatarSize = 'small' | 'medium' | 'large'
-export type LinkIcon = 'instagram' | 'telegram' | 'youtube' | 'tiktok' | 'website' | 'email' | 'link'
+export type LinkIcon = 'instagram' | 'telegram' | 'youtube' | 'tiktok' | 'whatsapp' | 'onlyfans' | 'vk' | 'facebook' | 'x' | 'website' | 'email' | 'link'
 export type ContactKind = 'address' | 'phone' | 'email'
 
 export interface Profile {

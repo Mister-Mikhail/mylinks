@@ -156,7 +156,7 @@ function App() {
       <Route path="/auth/confirmed" element={<AuthConfirmation session={session} />} />
       <Route path="/p/:handle" element={<LegacyProfileRedirect />} />
       <Route path="/" element={session ? <Dashboard user={session.user} /> : <Landing />} />
-      <Route path="/:handle" element={<PrivateProfilePage session={session} />} />
+      <Route path="/:handle" element={<ProfilePage session={session} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
@@ -243,7 +243,7 @@ function Landing() {
       <main>
         <section className="hero container">
           <div className="hero__copy">
-            <span className="eyebrow"><span /> Бесплатный приватный MVP</span>
+            <span className="eyebrow"><span /> Бесплатный MVP</span>
             <h1>Одна ссылка.<br /><em>Вся ваша история.</em></h1>
             <p>Соберите соцсети, проекты и контакты в персональном профиле, которым удобно делиться.</p>
             <div className="hero__actions">
@@ -255,7 +255,7 @@ function Landing() {
             <div className="trust-row">
               <span><Check size={15} /> Бесплатно</span>
               <span><Check size={15} /> Без рекламы</span>
-              <span><LockKeyhole size={14} /> Пока доступно только вам</span>
+              <span><LockKeyhole size={14} /> Вы сами решаете, когда публиковать</span>
             </div>
           </div>
           <div className="hero__visual">
@@ -273,14 +273,14 @@ function Landing() {
           <div className="container value-strip__grid">
             <article><span>01</span><h2>Быстро собрать</h2><p>Добавляйте и упорядочивайте ссылки без лишних настроек.</p></article>
             <article><span>02</span><h2>Сделать своим</h2><p>Выберите фон, рамки и форму аватара — всё сразу видно справа.</p></article>
-            <article><span>03</span><h2>Поделиться позже</h2><p>Профиль уже готов к мастер‑ссылке, но остаётся закрытым до вашего решения.</p></article>
+            <article><span>03</span><h2>Поделиться по готовности</h2><p>Сначала настройте страницу, затем откройте её друзьям одним переключателем.</p></article>
           </div>
         </section>
       </main>
 
       <footer className="landing-footer container">
         <BrandMark />
-        <p>Private preview · 2026</p>
+        <p>Free MVP · 2026</p>
       </footer>
 
       {authMode && <AuthDialog initialMode={authMode} onClose={() => setAuthMode(null)} />}
@@ -574,6 +574,7 @@ function Dashboard({ user }: { user: User }) {
         avatar_shape: profile.avatar_shape,
         avatar_size: profile.avatar_size,
         avatar_scale: profile.avatar_scale,
+        is_published: profile.is_published,
       }).eq('id', user.id)
       if (profileError) throw profileError
 
@@ -677,10 +678,10 @@ function Dashboard({ user }: { user: User }) {
       <header className="dashboard-topbar">
         <BrandMark />
         <div className="dashboard-topbar__meta">
-          <span className="status-chip"><span /> Закрытая версия</span>
-          <button className="button button--ghost button--small" onClick={openProfilePreview}><Eye size={16} /> Открыть страницу</button>
+          <span className={`status-chip ${profile.is_published ? 'status-chip--published' : ''}`}><span /> {profile.is_published ? 'Опубликован' : 'Черновик'}</span>
+          <button className="button button--ghost button--small dashboard-action" onClick={openProfilePreview} aria-label="Открыть страницу"><Eye size={16} /> <span className="button__label">Открыть страницу</span></button>
           <button className="button button--primary button--small" onClick={save} disabled={saving}>
-            {saving ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} Сохранить
+            {saving ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} <span className="button__label">Сохранить</span>
           </button>
           <button className="icon-button" onClick={signOut} aria-label="Выйти"><LogOut size={18} /></button>
         </div>
@@ -690,8 +691,8 @@ function Dashboard({ user }: { user: User }) {
         <aside className="editor-nav">
           <div>
             <p className="editor-nav__label">Редактор</p>
-            <button className={section === 'links' ? 'active' : ''} onClick={() => setSection('links')}><Link2 size={18} /> Ссылки</button>
-            <button className={section === 'design' ? 'active' : ''} onClick={() => setSection('design')}><Palette size={18} /> Оформление</button>
+            <button className={section === 'links' ? 'active' : ''} onClick={() => setSection('links')}><Link2 size={18} /> <span>Ссылки</span></button>
+            <button className={section === 'design' ? 'active' : ''} onClick={() => setSection('design')}><Palette size={18} /> <span>Оформление</span></button>
           </div>
           <div className="editor-nav__account">
             <div className="avatar avatar--small">
@@ -739,9 +740,9 @@ function Dashboard({ user }: { user: User }) {
           </div>
           <div className="device-frame">
             <div className="device-frame__speaker" />
-            <ProfilePreview profile={profile} links={links} contacts={contacts} />
+            <ProfilePreview profile={profile} links={links} contacts={contacts} showPrivacy={!profile.is_published} />
           </div>
-          <div className="privacy-note"><ShieldCheck size={17} /><div><strong>Профиль пока закрыт</strong><span>Регистрация открыта, но данные страницы доступны только владельцу.</span></div></div>
+          <div className="privacy-note"><ShieldCheck size={17} /><div><strong>{profile.is_published ? 'Профиль опубликован' : 'Профиль пока закрыт'}</strong><span>{profile.is_published ? `Страница mylinks.bar/${profile.handle} доступна всем по ссылке.` : 'Данные страницы доступны только владельцу, пока вы не включите публикацию.'}</span></div></div>
         </aside>
       </div>
     </div>
@@ -806,6 +807,11 @@ function ContentEditor({
           <label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandle(event.target.value) })} /></div></label>
           <label className="field-grid__full">О себе<textarea value={profile.bio} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} maxLength={160} rows={3} placeholder="Чем вы занимаетесь?" /><small>{profile.bio.length}/160</small></label>
         </div>
+        <label className="publish-setting">
+          <input type="checkbox" checked={profile.is_published} onChange={(event) => setProfile({ ...profile, is_published: event.target.checked })} />
+          <span className="publish-setting__switch"><i /></span>
+          <span><strong>Публичная страница</strong><small>{profile.is_published ? `Сейчас mylinks.bar/${profile.handle} доступна всем по ссылке.` : 'Включите, когда захотите поделиться профилем.'}</small></span>
+        </label>
       </section>
 
       <section className="settings-card">
@@ -989,7 +995,7 @@ function DesignEditor({
   )
 }
 
-function PrivateProfilePage({ session }: { session: Session | null }) {
+function ProfilePage({ session }: { session: Session | null }) {
   const { handle = '' } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
@@ -1000,14 +1006,16 @@ function PrivateProfilePage({ session }: { session: Session | null }) {
   const [profile, setProfile] = useState<Profile | null>(instantPreview?.profile ?? null)
   const [links, setLinks] = useState<EditableLink[]>(instantPreview?.links ?? [])
   const [contacts, setContacts] = useState<EditableContact[]>(instantPreview?.contacts ?? [])
-  const [loading, setLoading] = useState(Boolean(session && !instantPreview))
+  const [loading, setLoading] = useState(!instantPreview)
 
   useEffect(() => {
-    if (!session || instantPreview) return
+    if (instantPreview) return
 
     const load = async () => {
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('handle', handle).eq('id', session.user.id).maybeSingle()
+      setLoading(true)
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('handle', handle).maybeSingle()
       if (!profileData) {
+        setProfile(null)
         setLoading(false)
         return
       }
@@ -1025,22 +1033,20 @@ function PrivateProfilePage({ session }: { session: Session | null }) {
     void load()
   }, [handle, instantPreview, session])
 
-  if (!session) {
-    return (
-      <main className="private-access-page">
-        <BrandMark />
-        <div className="private-access-card"><LockKeyhole size={28} /><h1>Страница пока закрыта</h1><p>Этот MVP доступен только владельцу. Публичный просмотр будет включён после отдельного подтверждения.</p><Link className="button button--primary" to="/">Вернуться на главную</Link></div>
-      </main>
-    )
-  }
-
   if (loading) return <LoadingScreen />
-  if (!profile) return <Navigate to="/" replace />
+  if (!profile) return (
+    <main className="private-access-page">
+      <BrandMark />
+      <div className="private-access-card"><LockKeyhole size={28} /><h1>Страница не опубликована</h1><p>Владелец ещё не открыл этот профиль или адрес указан неверно.</p><Link className="button button--primary" to="/">Перейти на mylinks.bar</Link></div>
+    </main>
+  )
+
+  const isOwner = session?.user.id === profile.id
 
   return (
     <main className={`public-preview-page theme-${profile.background_preset}`}>
-      <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> В редактор</button>
-      <div className="public-preview-page__content"><ProfilePreview profile={profile} links={links} contacts={contacts} interactive /></div>
+      {isOwner && <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> В редактор</button>}
+      <div className="public-preview-page__content"><ProfilePreview profile={profile} links={links} contacts={contacts} interactive showPrivacy={!profile.is_published} /></div>
     </main>
   )
 }

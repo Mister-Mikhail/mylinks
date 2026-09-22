@@ -16,6 +16,11 @@ export const LINK_PLATFORMS: LinkPlatform[] = [
   { value: 'youtube', label: 'YouTube', inputPrefix: 'youtube.com/@', placeholder: 'user', baseUrl: 'https://youtube.com/', usernamePrefix: '@' },
   { value: 'telegram', label: 'Telegram', inputPrefix: 't.me/', placeholder: 'user', baseUrl: 'https://t.me/' },
   { value: 'tiktok', label: 'TikTok', inputPrefix: 'tiktok.com/@', placeholder: 'user', baseUrl: 'https://tiktok.com/', usernamePrefix: '@' },
+  { value: 'whatsapp', label: 'WhatsApp', inputPrefix: 'wa.me/', placeholder: '79990000000', baseUrl: 'https://wa.me/' },
+  { value: 'vk', label: 'VK', inputPrefix: 'vk.com/', placeholder: 'user', baseUrl: 'https://vk.com/' },
+  { value: 'facebook', label: 'Facebook', inputPrefix: 'facebook.com/', placeholder: 'user', baseUrl: 'https://facebook.com/' },
+  { value: 'x', label: 'X', inputPrefix: 'x.com/', placeholder: 'user', baseUrl: 'https://x.com/' },
+  { value: 'onlyfans', label: 'OnlyFans', inputPrefix: 'onlyfans.com/', placeholder: 'user', baseUrl: 'https://onlyfans.com/' },
 ]
 
 export const getLinkPlatform = (value: LinkIcon) =>

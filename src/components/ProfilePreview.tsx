@@ -1,5 +1,8 @@
-import { ArrowUpRight, LockKeyhole, MoreHorizontal } from 'lucide-react'
+import { useState, type CSSProperties, type MouseEvent } from 'react'
+import { createPortal } from 'react-dom'
+import { ArrowUpRight, LockKeyhole, MoreHorizontal, ShieldAlert, X } from 'lucide-react'
 import type { EditableContact, EditableLink, Profile } from '../types'
+import { isKnownSensitiveUrl } from '../lib/sensitiveLinks'
 import { BrandMark } from './BrandMark'
 import { LinkIcon } from './LinkIcon'
 import { ProfileContacts } from './ProfileContacts'
@@ -16,6 +19,20 @@ const initials = (name: string) => name.trim().slice(0, 2).toUpperCase() || 'ML'
 
 export function ProfilePreview({ profile, links, contacts = [], interactive = false, showPrivacy = true }: ProfilePreviewProps) {
   const visibleLinks = links.filter((link) => link.is_visible && link.label && link.url)
+  const [sensitiveLink, setSensitiveLink] = useState<EditableLink | null>(null)
+
+  const openLink = (event: MouseEvent<HTMLAnchorElement>, link: EditableLink) => {
+    if (!link.is_sensitive && !isKnownSensitiveUrl(link.url)) return
+    event.preventDefault()
+    setSensitiveLink(link)
+  }
+
+  const confirmSensitiveLink = () => {
+    if (!sensitiveLink) return
+    const popup = window.open(sensitiveLink.url, '_blank', 'noopener,noreferrer')
+    if (popup) popup.opener = null
+    setSensitiveLink(null)
+  }
 
   return (
     <section className={`profile-card theme-${profile.background_preset}`} aria-label={`Профиль ${profile.display_name}`}>
@@ -30,7 +47,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
       </div>
 
       <div className="profile-card__identity">
-        <div className={`avatar avatar--${profile.avatar_shape} avatar--${profile.avatar_size}`}>
+        <div className={`avatar avatar--${profile.avatar_shape}`} style={{ '--avatar-size': `${Math.round(42 + (profile.avatar_scale || 28) * 2.1)}px` } as CSSProperties}>
           {profile.avatar_preview_url || profile.avatar_url ? <img src={profile.avatar_preview_url || profile.avatar_url || ''} alt="" /> : <span>{initials(profile.display_name)}</span>}
         </div>
         <h1>{profile.display_name || 'Ваше имя'}</h1>
@@ -45,12 +62,12 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
           const content = (
             <>
               <span className="profile-link__icon"><LinkIcon name={link.icon_key} url={link.url} /></span>
-              <span>{link.label}</span>
+              <span className="profile-link__label">{link.label}{(link.is_sensitive || isKnownSensitiveUrl(link.url)) && <small>18+</small>}</span>
               <ArrowUpRight className="profile-link__arrow" size={17} />
             </>
           )
           return interactive ? (
-            <a className={`profile-link card-${profile.card_preset}`} href={link.url} target="_blank" rel="noreferrer" key={link.localId}>
+            <a className={`profile-link card-${profile.card_preset}`} href={link.url} target="_blank" rel="noreferrer" key={link.localId} onClick={(event) => openLink(event, link)}>
               {content}
             </a>
           ) : (
@@ -66,6 +83,21 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
       <div className="profile-card__footer">
         <BrandMark light />
       </div>
+
+      {sensitiveLink && createPortal(
+        <div className="sensitive-dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setSensitiveLink(null)}>
+          <section className="sensitive-dialog" role="dialog" aria-modal="true" aria-labelledby="sensitive-dialog-title">
+            <button className="sensitive-dialog__close" type="button" onClick={() => setSensitiveLink(null)} aria-label="Закрыть предупреждение"><X size={17} /></button>
+            <span className="sensitive-dialog__icon"><ShieldAlert size={25} /></span>
+            <span className="eyebrow">Предупреждение 18+</span>
+            <h2 id="sensitive-dialog-title">Возможен контент для взрослых</h2>
+            <p>Ссылка «{sensitiveLink.label}» может вести на материалы, предназначенные только для совершеннолетних.</p>
+            <button className="button button--primary button--full" type="button" onClick={confirmSensitiveLink}>Мне есть 18 — продолжить</button>
+            <button className="button button--ghost button--full" type="button" onClick={() => setSensitiveLink(null)}>Вернуться</button>
+          </section>
+        </div>,
+        document.body,
+      )}
     </section>
   )
 }

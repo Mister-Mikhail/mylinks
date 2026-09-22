@@ -5,9 +5,10 @@ Private MVP of a link-in-bio service. A user creates one master profile, adds so
 ## Current scope
 
 - Email/password registration and sign-in with Supabase Auth, including a password visibility toggle
-- Profile editor: name, handle, bio, and private avatar upload (JPG, PNG, or WebP up to 5 MB)
+- Profile editor: name, handle, bio, and private avatar upload with crop, reposition, zoom, shape, and continuous size control
 - Link editor: choose a platform and enter only the username, or paste any custom address without `https://`
 - Automatic domain favicon for custom links
+- Manual 18+ warnings with automatic enforcement for known adult-platform domains
 - Unlimited address, phone, and email contact cards with device-native actions
 - Three restrained visual themes and three card styles
 - Private owner-only preview route at `/p/:handle`

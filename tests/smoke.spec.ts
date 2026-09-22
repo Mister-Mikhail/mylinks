@@ -13,7 +13,7 @@ test('landing presents the private MVP and registration flow', async ({ page }) 
   await handleInput.fill('Mikhail Studio!')
   await expect(handleInput).toHaveValue('mikhail-studio')
 
-  const passwordInput = page.getByPlaceholder('Минимум 5 символов')
+  const passwordInput = page.getByPlaceholder('Минимум 6 символов')
   await expect(passwordInput).toHaveAttribute('type', 'password')
   await expect(passwordInput).toHaveAttribute('autocomplete', 'off')
   await page.getByRole('button', { name: 'Показать пароль' }).click()

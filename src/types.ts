@@ -17,6 +17,7 @@ export interface Profile {
   card_preset: CardPreset
   avatar_shape: AvatarShape
   avatar_size: AvatarSize
+  avatar_scale: number
   is_published: boolean
   created_at: string
   updated_at: string
@@ -30,6 +31,7 @@ export interface ProfileLink {
   icon_key: LinkIcon
   position: number
   is_visible: boolean
+  is_sensitive: boolean
   created_at?: string
   updated_at?: string
 }

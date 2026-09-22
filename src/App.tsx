@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import {
   ArrowDown,
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  Camera,
   Check,
   Copy,
   Eye,
@@ -22,6 +21,7 @@ import {
   Palette,
   Plus,
   Save,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Trash2,
@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import { BrandMark } from './components/BrandMark'
+import { AvatarEditor } from './components/AvatarEditor'
 import { ProfilePreview } from './components/ProfilePreview'
 import { capabilitiesForTier, FREE_CAPABILITIES } from './config/capabilities'
 import {
@@ -41,6 +42,7 @@ import {
 } from './config/linkPlatforms'
 import { supabase } from './lib/supabase'
 import { CONTACT_OPTIONS, contactPlaceholder, isValidContactValue } from './lib/contacts'
+import { isKnownSensitiveUrl } from './lib/sensitiveLinks'
 import { isValidHandle, isValidHttpUrl, normalizeHandle, normalizeUrl } from './lib/validation'
 import type { ContactKind, EditableContact, EditableLink, LinkIcon as LinkIconName, Profile, ProfileContact, ProfileLink } from './types'
 
@@ -59,6 +61,7 @@ const emptyProfile = (id = ''): Profile => ({
   card_preset: 'glass',
   avatar_shape: 'round',
   avatar_size: 'medium',
+  avatar_scale: 28,
   is_published: false,
   created_at: '',
   updated_at: '',
@@ -72,9 +75,9 @@ const sampleProfile: Profile = {
 }
 
 const sampleLinks: EditableLink[] = [
-  { localId: 'sample-1', label: 'Instagram', url: 'https://instagram.com/mylinks.bar', icon_key: 'instagram', position: 0, is_visible: true },
-  { localId: 'sample-2', label: 'Telegram', url: 'https://t.me', icon_key: 'telegram', position: 1, is_visible: true },
-  { localId: 'sample-3', label: 'Мой сайт', url: 'https://mylinks.bar', icon_key: 'website', position: 2, is_visible: true },
+  { localId: 'sample-1', label: 'Instagram', url: 'https://instagram.com/mylinks.bar', icon_key: 'instagram', position: 0, is_visible: true, is_sensitive: false },
+  { localId: 'sample-2', label: 'Telegram', url: 'https://t.me', icon_key: 'telegram', position: 1, is_visible: true, is_sensitive: false },
+  { localId: 'sample-3', label: 'Мой сайт', url: 'https://mylinks.bar', icon_key: 'website', position: 2, is_visible: true, is_sensitive: false },
 ]
 
 const toEditable = (link: ProfileLink): EditableLink => ({
@@ -86,6 +89,7 @@ const toEditable = (link: ProfileLink): EditableLink => ({
   icon_key: link.icon_key,
   position: link.position,
   is_visible: link.is_visible,
+  is_sensitive: link.is_sensitive ?? false,
   created_at: link.created_at,
   updated_at: link.updated_at,
 })
@@ -104,9 +108,13 @@ const toEditableContact = (contact: ProfileContact): EditableContact => ({
 })
 
 const withAvatarPreview = async (profile: Profile) => {
-  if (!profile.avatar_path) return { ...profile, avatar_preview_url: null }
+  const normalizedProfile = {
+    ...profile,
+    avatar_scale: Number(profile.avatar_scale) || ({ small: 12, medium: 28, large: 40 }[profile.avatar_size] ?? 28),
+  }
+  if (!profile.avatar_path) return { ...normalizedProfile, avatar_preview_url: null }
   const { data } = await supabase.storage.from('avatars').createSignedUrl(profile.avatar_path, 60 * 60)
-  return { ...profile, avatar_preview_url: data?.signedUrl ?? null }
+  return { ...normalizedProfile, avatar_preview_url: data?.signedUrl ?? null }
 }
 
 function App() {
@@ -280,7 +288,7 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
       if (mode === 'register') {
         const safeHandle = normalizeHandle(handle)
         if (!isValidHandle(safeHandle)) throw new Error('Имя ссылки: 3–30 латинских символов, цифр или дефисов.')
-        if (password.length < 5) throw new Error('Пароль должен содержать не менее 5 символов.')
+        if (password.length < 6) throw new Error('Пароль должен содержать не менее 6 символов.')
 
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
@@ -291,6 +299,9 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
           },
         })
         if (signUpError) throw signUpError
+        if (!data.session && data.user?.identities?.length === 0) {
+          throw new Error('Этот email уже зарегистрирован. Переключитесь на вход и используйте прежний пароль.')
+        }
         if (!data.session) setMessage('Проверьте почту и подтвердите адрес. После этого вернитесь и войдите.')
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
@@ -329,7 +340,7 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
             </>
           )}
           <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required /></label>
-          <label>Пароль<div className="password-field"><input type={showPassword ? 'text' : 'password'} name={mode === 'register' ? 'mylinks-registration-password' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === 'register' ? 'Минимум 5 символов' : 'Ваш пароль'} minLength={mode === 'register' ? 5 : undefined} autoComplete={mode === 'register' ? 'off' : 'current-password'} data-form-type={mode === 'register' ? 'other' : undefined} data-lpignore={mode === 'register' ? 'true' : undefined} data-1p-ignore={mode === 'register' ? 'true' : undefined} data-bwignore={mode === 'register' ? 'true' : undefined} required /><button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
+          <label>Пароль<div className="password-field"><input type={showPassword ? 'text' : 'password'} name={mode === 'register' ? 'mylinks-registration-password' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === 'register' ? 'Минимум 6 символов' : 'Ваш пароль'} minLength={mode === 'register' ? 6 : undefined} autoComplete={mode === 'register' ? 'off' : 'current-password'} data-form-type={mode === 'register' ? 'other' : undefined} data-lpignore={mode === 'register' ? 'true' : undefined} data-1p-ignore={mode === 'register' ? 'true' : undefined} data-bwignore={mode === 'register' ? 'true' : undefined} required /><button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
 
           {error && <div className="form-message form-message--error">{error}</div>}
           {message && <div className="form-message form-message--success">{message}</div>}
@@ -361,7 +372,7 @@ function Dashboard({ user }: { user: User }) {
   const [error, setError] = useState('')
   const capabilities = capabilitiesForTier('free')
 
-  const loadData = async () => {
+  const loadData = async (jwtRetry = 0) => {
     setLoading(true)
     setError('')
     const [profileResult, linksResult, contactsResult] = await Promise.all([
@@ -370,18 +381,29 @@ function Dashboard({ user }: { user: User }) {
       supabase.from('profile_contacts').select('*').eq('profile_id', user.id).order('position'),
     ])
 
-    if (profileResult.error) setError(profileResult.error.message)
-    else setProfile(await withAvatarPreview(profileResult.data as Profile))
+    const queryErrors = [profileResult.error, linksResult.error, contactsResult.error].filter(Boolean)
+    const jwtTimingError = queryErrors.some((queryError) => queryError?.message.toLowerCase().includes('jwt issued at future'))
+    if (jwtTimingError && jwtRetry < 2) {
+      await new Promise((resolve) => window.setTimeout(resolve, 1500 * (jwtRetry + 1)))
+      await supabase.auth.refreshSession()
+      return loadData(jwtRetry + 1)
+    }
 
-    if (linksResult.error) setError(linksResult.error.message)
-    else {
+    if (queryErrors.length) {
+      setError(jwtTimingError
+        ? 'Время авторизации ещё синхронизируется. Проверьте автоматическую дату и время на устройстве и войдите снова.'
+        : queryErrors[0]?.message ?? 'Не удалось загрузить данные профиля.')
+    }
+
+    if (!profileResult.error) setProfile(await withAvatarPreview(profileResult.data as Profile))
+
+    if (!linksResult.error) {
       const nextLinks = (linksResult.data as ProfileLink[]).map(toEditable)
       setLinks(nextLinks)
       setOriginalLinkIds(nextLinks.flatMap((link) => link.id ? [link.id] : []))
     }
 
-    if (contactsResult.error) setError(contactsResult.error.message)
-    else {
+    if (!contactsResult.error) {
       const nextContacts = (contactsResult.data as ProfileContact[]).map(toEditableContact)
       setContacts(nextContacts)
       setOriginalContactIds(nextContacts.flatMap((contact) => contact.id ? [contact.id] : []))
@@ -404,6 +426,7 @@ function Dashboard({ user }: { user: User }) {
       icon_key: 'link',
       position: current.length,
       is_visible: true,
+      is_sensitive: false,
     }])
   }
 
@@ -454,25 +477,18 @@ function Dashboard({ user }: { user: User }) {
     })
   }
 
-  const uploadAvatar = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file) return
-
+  const uploadAvatar = async (blob: Blob) => {
     setAvatarUploading(true)
     setError('')
     setNotice('')
 
     try {
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
-      if (!allowedTypes.includes(file.type)) throw new Error('Выберите изображение JPG, PNG или WebP.')
-      if (file.size > 5 * 1024 * 1024) throw new Error('Размер изображения не должен превышать 5 МБ.')
-
-      const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
+      const contentType = ['image/jpeg', 'image/png', 'image/webp'].includes(blob.type) ? blob.type : 'image/webp'
+      const extension = contentType === 'image/png' ? 'png' : contentType === 'image/jpeg' ? 'jpg' : 'webp'
       const nextPath = `${user.id}/avatar-${crypto.randomUUID()}.${extension}`
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(nextPath, file, {
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(nextPath, blob, {
         cacheControl: '3600',
-        contentType: file.type,
+        contentType,
         upsert: false,
       })
       if (uploadError) throw uploadError
@@ -490,8 +506,10 @@ function Dashboard({ user }: { user: User }) {
       setProfile({ ...profile, avatar_url: null, avatar_path: nextPath, avatar_preview_url: signedData?.signedUrl ?? null })
       setNotice('Аватар обновлён')
       window.setTimeout(() => setNotice(''), 2600)
+      return true
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Не удалось загрузить аватар.')
+      return false
     } finally {
       setAvatarUploading(false)
     }
@@ -523,6 +541,7 @@ function Dashboard({ user }: { user: User }) {
         card_preset: profile.card_preset,
         avatar_shape: profile.avatar_shape,
         avatar_size: profile.avatar_size,
+        avatar_scale: profile.avatar_scale,
       }).eq('id', user.id)
       if (profileError) throw profileError
 
@@ -542,6 +561,7 @@ function Dashboard({ user }: { user: User }) {
         icon_key: link.icon_key,
         position,
         is_visible: link.is_visible,
+        is_sensitive: link.is_sensitive,
       }))
       if (existing.length) {
         const { error: updateError } = await supabase.from('profile_links').upsert(existing)
@@ -555,6 +575,7 @@ function Dashboard({ user }: { user: User }) {
         icon_key: link.icon_key,
         position,
         is_visible: link.is_visible,
+        is_sensitive: link.is_sensitive,
       }))
       if (fresh.length) {
         const { error: insertError } = await supabase.from('profile_links').insert(fresh)
@@ -666,11 +687,9 @@ function Dashboard({ user }: { user: User }) {
               updateContact={updateContact}
               removeContact={removeContact}
               moveContact={moveContact}
-              avatarUploading={avatarUploading}
-              onAvatarUpload={uploadAvatar}
             />
           ) : (
-            <DesignEditor profile={profile} setProfile={setProfile} />
+            <DesignEditor profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} />
           )}
         </main>
 
@@ -703,8 +722,6 @@ interface ContentEditorProps {
   updateContact: (localId: string, patch: Partial<EditableContact>) => void
   removeContact: (localId: string) => void
   moveContact: (index: number, direction: -1 | 1) => void
-  avatarUploading: boolean
-  onAvatarUpload: (event: ChangeEvent<HTMLInputElement>) => void
 }
 
 function ContentEditor({
@@ -720,10 +737,7 @@ function ContentEditor({
   updateContact,
   removeContact,
   moveContact,
-  avatarUploading,
-  onAvatarUpload,
 }: ContentEditorProps) {
-  const avatarInputRef = useRef<HTMLInputElement>(null)
   const changePlatform = (link: EditableLink, nextValue: LinkIconName) => {
     const currentPlatform = getLinkPlatform(link.icon_key)
     const nextPlatform = getLinkPlatform(nextValue)
@@ -743,22 +757,6 @@ function ContentEditor({
     <div className="editor-stack">
       <section className="settings-card">
         <div className="settings-card__title"><UserRound size={18} /><div><h2>Профиль</h2><p>Имя, описание и адрес вашей страницы.</p></div></div>
-        <div className="profile-avatar-editor">
-          <div className={`avatar avatar--medium avatar--${profile.avatar_shape}`}>
-            {profile.avatar_preview_url || profile.avatar_url
-              ? <img src={profile.avatar_preview_url || profile.avatar_url || ''} alt="Текущий аватар" />
-              : <span>{profile.display_name.slice(0, 2).toUpperCase() || 'ML'}</span>}
-          </div>
-          <div className="profile-avatar-editor__copy">
-            <strong>Аватар профиля</strong>
-            <span>JPG, PNG или WebP · до 5 МБ</span>
-            <button className="button button--secondary button--small" type="button" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading}>
-              {avatarUploading ? <LoaderCircle className="spin" size={16} /> : <Camera size={16} />}
-              {avatarUploading ? 'Загружаем…' : 'Выбрать фото'}
-            </button>
-            <input ref={avatarInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={onAvatarUpload} />
-          </div>
-        </div>
         <div className="field-grid">
           <label>Отображаемое имя<input value={profile.display_name} onChange={(event) => setProfile({ ...profile, display_name: event.target.value })} maxLength={60} /></label>
           <label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandle(event.target.value) })} /></div></label>
@@ -810,6 +808,16 @@ function ContentEditor({
                   )
                 })()}
                 <small className="link-editor__hint">{getLinkPlatform(link.icon_key).baseUrl ? 'Введите только имя после адреса площадки' : 'Можно без https:// · логотип подтянется автоматически'}</small>
+                <label className={`sensitive-toggle ${isKnownSensitiveUrl(link.url) ? 'sensitive-toggle--forced' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={isKnownSensitiveUrl(link.url) || link.is_sensitive}
+                    disabled={isKnownSensitiveUrl(link.url)}
+                    onChange={(event) => updateLink(link.localId, { is_sensitive: event.target.checked })}
+                  />
+                  <span className="sensitive-toggle__switch"><i /></span>
+                  <span><ShieldAlert size={14} /><strong>Предупреждение 18+</strong><small>{isKnownSensitiveUrl(link.url) ? 'Включено автоматически для этой площадки' : 'Включите, если по ссылке возможен контент для взрослых'}</small></span>
+                </label>
               </div>
               <div className="link-editor__actions">
                 <button className="icon-button" onClick={() => updateLink(link.localId, { is_visible: !link.is_visible })} aria-label={link.is_visible ? 'Скрыть' : 'Показать'}>{link.is_visible ? <Eye size={17} /> : <EyeOff size={17} />}</button>
@@ -866,9 +874,21 @@ function ContentEditor({
   )
 }
 
-function DesignEditor({ profile, setProfile }: { profile: Profile; setProfile: (profile: Profile) => void }) {
+function DesignEditor({
+  profile,
+  setProfile,
+  avatarUploading,
+  onAvatarUpload,
+}: {
+  profile: Profile
+  setProfile: (profile: Profile) => void
+  avatarUploading: boolean
+  onAvatarUpload: (blob: Blob) => Promise<boolean>
+}) {
   return (
     <div className="editor-stack">
+      <AvatarEditor profile={profile} setProfile={setProfile} uploading={avatarUploading} onUpload={onAvatarUpload} />
+
       <section className="settings-card">
         <div className="settings-card__title"><Palette size={18} /><div><h2>Фон</h2><p>Выберите настроение профиля.</p></div></div>
         <div className="theme-picker">
@@ -892,14 +912,6 @@ function DesignEditor({ profile, setProfile }: { profile: Profile; setProfile: (
             ['solid', 'Плотные'],
             ['outline', 'Контур'],
           ] as const).map(([value, label]) => <button className={profile.card_preset === value ? 'selected' : ''} onClick={() => setProfile({ ...profile, card_preset: value })} key={value}>{label}</button>)}
-        </div>
-      </section>
-
-      <section className="settings-card">
-        <div className="settings-card__title"><UserRound size={18} /><div><h2>Аватар</h2><p>Форма и размер фотографии.</p></div></div>
-        <div className="design-row">
-          <div><span className="field-caption">Форма</span><div className="segmented-picker segmented-picker--small"><button className={profile.avatar_shape === 'round' ? 'selected' : ''} onClick={() => setProfile({ ...profile, avatar_shape: 'round' })}>Круг</button><button className={profile.avatar_shape === 'square' ? 'selected' : ''} onClick={() => setProfile({ ...profile, avatar_shape: 'square' })}>Квадрат</button></div></div>
-          <div><span className="field-caption">Размер</span><div className="segmented-picker segmented-picker--small"><button className={profile.avatar_size === 'small' ? 'selected' : ''} onClick={() => setProfile({ ...profile, avatar_size: 'small' })}>S</button><button className={profile.avatar_size === 'medium' ? 'selected' : ''} onClick={() => setProfile({ ...profile, avatar_size: 'medium' })}>M</button><button className={profile.avatar_size === 'large' ? 'selected' : ''} onClick={() => setProfile({ ...profile, avatar_size: 'large' })}>L</button></div></div>
         </div>
       </section>
 

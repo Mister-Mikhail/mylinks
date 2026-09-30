@@ -59,3 +59,12 @@ export interface EditableContact extends Omit<ProfileContact, 'id' | 'profile_id
   profile_id?: string
   localId: string
 }
+
+/** Temporary local crop presentation; never stored as profile data. */
+export interface AvatarDraft {
+  src: string
+  aspectRatio: number
+  zoom: number
+  x: number
+  y: number
+}

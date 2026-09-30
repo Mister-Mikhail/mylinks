@@ -1,7 +1,7 @@
 import { useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, Copy, LockKeyhole, ShieldAlert, X } from 'lucide-react'
-import type { EditableContact, EditableLink, Profile } from '../types'
+import type { AvatarDraft, EditableContact, EditableLink, Profile } from '../types'
 import { isKnownSensitiveUrl } from '../lib/sensitiveLinks'
 import { BrandMark } from './BrandMark'
 import { LinkIcon } from './LinkIcon'
@@ -12,12 +12,13 @@ interface ProfilePreviewProps {
   links: EditableLink[]
   contacts?: EditableContact[]
   interactive?: boolean
+  avatarDraft?: AvatarDraft | null
   showPrivacy?: boolean
 }
 
 const initials = (name: string) => name.trim().slice(0, 2).toUpperCase() || 'ML'
 
-export function ProfilePreview({ profile, links, contacts = [], interactive = false, showPrivacy = true }: ProfilePreviewProps) {
+export function ProfilePreview({ profile, links, contacts = [], interactive = false, showPrivacy = true, avatarDraft = null }: ProfilePreviewProps) {
   const visibleLinks = links.filter((link) => link.is_visible && link.label && link.url)
   const [sensitiveLink, setSensitiveLink] = useState<EditableLink | null>(null)
   const [profileLinkCopied, setProfileLinkCopied] = useState(false)
@@ -75,7 +76,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
 
       <div className="profile-card__identity">
         <div className={`avatar avatar--${profile.avatar_shape}`} style={{ '--avatar-size': `${Math.round(42 + (profile.avatar_scale || 28) * 2.1)}px` } as CSSProperties}>
-          {profile.avatar_preview_url || profile.avatar_url ? <img src={profile.avatar_preview_url || profile.avatar_url || ''} alt="" /> : <span>{initials(profile.display_name)}</span>}
+          {avatarDraft ? <img className="avatar__draft" src={avatarDraft.src} alt="" style={{ position: 'absolute', width: `${Math.max(1, avatarDraft.aspectRatio) * avatarDraft.zoom * 100}%`, height: `${Math.max(1, 1 / avatarDraft.aspectRatio) * avatarDraft.zoom * 100}%`, left: `${50 + avatarDraft.x * 100}%`, top: `${50 + avatarDraft.y * 100}%`, maxWidth: 'none', transform: 'translate(-50%, -50%)' }} /> : profile.avatar_preview_url || profile.avatar_url ? <img src={profile.avatar_preview_url || profile.avatar_url || ''} alt="" /> : <span>{initials(profile.display_name)}</span>}
         </div>
         <h1>{profile.display_name || 'Ваше имя'}</h1>
         <button className="profile-card__handle" type="button" onClick={() => void copyProfileLink()} aria-label="Скопировать ссылку на профиль">
@@ -86,6 +87,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
         <span className={`profile-card__copy-toast ${profileLinkCopied ? 'profile-card__copy-toast--visible' : ''}`} aria-live="polite">Ссылка скопирована</span>
       </div>
 
+      <div className="profile-card__body">
       <ProfileContacts contacts={contacts} cardPreset={profile.card_preset} interactive={interactive} onActivate={playClickSound} />
 
       <div className="profile-card__links">
@@ -108,6 +110,8 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
             <span>Здесь появятся ваши ссылки</span>
           </div>
         )}
+      </div>
+
       </div>
 
       <div className="profile-card__footer">

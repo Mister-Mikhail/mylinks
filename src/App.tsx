@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import {
   ArrowDown,
@@ -40,12 +40,14 @@ import {
   platformUsernameFromUrl,
 } from './config/linkPlatforms'
 import { supabase } from './lib/supabase'
+import { useStaffRole } from './lib/useStaffRole'
 import { CONTACT_OPTIONS, contactPlaceholder, isValidContactValue } from './lib/contacts'
 import { isKnownSensitiveUrl } from './lib/sensitiveLinks'
 import { isValidHandle, isValidHttpUrl, normalizeHandle, normalizeUrl } from './lib/validation'
 import type { ContactKind, EditableContact, EditableLink, LinkIcon as LinkIconName, Profile, ProfileContact, ProfileLink } from './types'
 
 type AuthMode = 'login' | 'register'
+const AdminPanel = lazy(() => import('./components/AdminPanel'))
 type EditorSection = 'links' | 'design'
 
 interface EditorSnapshot {
@@ -154,6 +156,7 @@ function App() {
   return (
     <Routes>
       <Route path="/auth/confirmed" element={<AuthConfirmation session={session} />} />
+      <Route path="/admin/*" element={<Suspense fallback={<LoadingScreen />}><AdminPanel session={session} /></Suspense>} />
       <Route path="/p/:handle" element={<LegacyProfileRedirect />} />
       <Route path="/" element={session ? <Dashboard user={session.user} /> : <Landing />} />
       <Route path="/:handle" element={<ProfilePage session={session} />} />
@@ -308,7 +311,7 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
     try {
       if (mode === 'register') {
         const safeHandle = normalizeHandle(handle)
-        if (!isValidHandle(safeHandle)) throw new Error('Имя ссылки: 3–30 латинских символов, цифр или дефисов.')
+        if (!isValidHandle(safeHandle)) throw new Error('Имя ссылки: 3–30 латинских символов, цифр или дефисов. Имена admin и auth зарезервированы.')
         if (password.length < 6) throw new Error('Пароль должен содержать не менее 6 символов.')
 
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -380,6 +383,7 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
 
 function Dashboard({ user }: { user: User }) {
   const navigate = useNavigate()
+  const { role: staffRole } = useStaffRole(user.id)
   const cachedSnapshot = editorSnapshot?.userId === user.id ? editorSnapshot : null
   const skipInitialLoad = useRef(Boolean(cachedSnapshot))
   const [profile, setProfile] = useState<Profile>(cachedSnapshot?.profile ?? emptyProfile(user.id))
@@ -693,6 +697,7 @@ function Dashboard({ user }: { user: User }) {
             <p className="editor-nav__label">Редактор</p>
             <button className={section === 'links' ? 'active' : ''} onClick={() => setSection('links')}><Link2 size={18} /> <span>Ссылки</span></button>
             <button className={section === 'design' ? 'active' : ''} onClick={() => setSection('design')}><Palette size={18} /> <span>Оформление</span></button>
+            {staffRole && <Link className="editor-nav__staff-link" to="/admin"><ShieldCheck size={18} /><span>{staffRole === 'admin' ? 'Администрирование' : 'Модерация'}</span></Link>}
           </div>
           <div className="editor-nav__account">
             <div className="avatar avatar--small">

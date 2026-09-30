@@ -6,7 +6,7 @@ export const normalizeHandle = (value: string) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 30)
 
-export const isValidHandle = (value: string) => /^[a-z0-9][a-z0-9-]{2,29}$/.test(value)
+export const isValidHandle = (value: string) => /^[a-z0-9][a-z0-9-]{2,29}$/.test(value) && !['admin', 'auth', 'p'].includes(value)
 
 export const normalizeUrl = (value: string) => {
   const trimmed = value.trim()

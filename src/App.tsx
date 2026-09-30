@@ -44,7 +44,7 @@ import { useStaffRole } from './lib/useStaffRole'
 import { CONTACT_OPTIONS, contactPlaceholder, isValidContactValue } from './lib/contacts'
 import { isKnownSensitiveUrl } from './lib/sensitiveLinks'
 import { isValidHandle, isValidHttpUrl, normalizeHandle, normalizeUrl } from './lib/validation'
-import type { ContactKind, EditableContact, EditableLink, LinkIcon as LinkIconName, Profile, ProfileContact, ProfileLink } from './types'
+import type { AvatarDraft, ContactKind, EditableContact, EditableLink, LinkIcon as LinkIconName, Profile, ProfileContact, ProfileLink } from './types'
 
 type AuthMode = 'login' | 'register'
 const AdminPanel = lazy(() => import('./components/AdminPanel'))
@@ -395,6 +395,7 @@ function Dashboard({ user }: { user: User }) {
   const [loading, setLoading] = useState(!cachedSnapshot)
   const [saving, setSaving] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarDraft, setAvatarDraft] = useState<AvatarDraft | null>(null)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const capabilities = capabilitiesForTier('free')
@@ -539,7 +540,7 @@ function Dashboard({ user }: { user: User }) {
       const previousPath = profile.avatar_path
       if (previousPath && previousPath !== nextPath) await supabase.storage.from('avatars').remove([previousPath])
 
-      setProfile({ ...profile, avatar_url: null, avatar_path: nextPath, avatar_preview_url: signedData?.signedUrl ?? null })
+      setProfile(current => ({ ...current, avatar_url: null, avatar_path: nextPath, avatar_preview_url: signedData?.signedUrl ?? null }))
       setNotice('Аватар обновлён')
       window.setTimeout(() => setNotice(''), 2600)
       return true
@@ -678,13 +679,14 @@ function Dashboard({ user }: { user: User }) {
   if (loading) return <LoadingScreen />
 
   return (
-    <div className="dashboard-shell">
+    <div className={`dashboard-shell ${section === 'design' ? 'dashboard-shell--design' : ''} ${avatarDraft ? 'dashboard-shell--cropping' : ''}`}>
       <header className="dashboard-topbar">
         <BrandMark />
+        {section === 'design' && <span className="appearance-topbar-title">Оформление</span>}
         <div className="dashboard-topbar__meta">
           <span className={`status-chip ${profile.is_published ? 'status-chip--published' : ''}`}><span /> {profile.is_published ? 'Опубликован' : 'Черновик'}</span>
-          <button className="button button--ghost button--small dashboard-action" onClick={openProfilePreview} aria-label="Открыть страницу"><Eye size={16} /> <span className="button__label">Открыть страницу</span></button>
-          <button className="button button--primary button--small" onClick={save} disabled={saving}>
+          <button className="button button--ghost button--small dashboard-action" onClick={openProfilePreview} disabled={avatarUploading || Boolean(avatarDraft)} aria-label="Открыть страницу"><Eye size={16} /> <span className="button__label">Открыть страницу</span></button>
+          <button className="button button--primary button--small" onClick={save} aria-label="Сохранить" disabled={saving || avatarUploading || Boolean(avatarDraft)} title={avatarDraft ? 'Сначала примените фото или отмените кадрирование' : undefined}>
             {saving ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} <span className="button__label">Сохранить</span>
           </button>
           <button className="icon-button" onClick={signOut} aria-label="Выйти"><LogOut size={18} /></button>
@@ -695,7 +697,7 @@ function Dashboard({ user }: { user: User }) {
         <aside className="editor-nav">
           <div>
             <p className="editor-nav__label">Редактор</p>
-            <button className={section === 'links' ? 'active' : ''} onClick={() => setSection('links')}><Link2 size={18} /> <span>Ссылки</span></button>
+            <button className={section === 'links' ? 'active' : ''} onClick={() => setSection('links')} disabled={avatarUploading || Boolean(avatarDraft)}><Link2 size={18} /> <span>Ссылки</span></button>
             <button className={section === 'design' ? 'active' : ''} onClick={() => setSection('design')}><Palette size={18} /> <span>Оформление</span></button>
             {staffRole && <Link className="editor-nav__staff-link" to="/admin"><ShieldCheck size={18} /><span>{staffRole === 'admin' ? 'Администрирование' : 'Модерация'}</span></Link>}
           </div>
@@ -734,7 +736,7 @@ function Dashboard({ user }: { user: User }) {
               moveContact={moveContact}
             />
           ) : (
-            <DesignEditor profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} />
+            <DesignEditor profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} onAvatarDraft={setAvatarDraft} />
           )}
         </main>
 
@@ -745,7 +747,7 @@ function Dashboard({ user }: { user: User }) {
           </div>
           <div className="device-frame">
             <div className="device-frame__speaker" />
-            <ProfilePreview profile={profile} links={links} contacts={contacts} showPrivacy={!profile.is_published} />
+            <ProfilePreview profile={profile} links={links} contacts={contacts} showPrivacy={!profile.is_published} avatarDraft={avatarDraft} />
           </div>
           <div className="privacy-note"><ShieldCheck size={17} /><div><strong>{profile.is_published ? 'Профиль опубликован' : 'Профиль пока закрыт'}</strong><span>{profile.is_published ? `Страница mylinks.bar/${profile.handle} доступна всем по ссылке.` : 'Данные страницы доступны только владельцу, пока вы не включите публикацию.'}</span></div></div>
         </aside>
@@ -956,15 +958,16 @@ function DesignEditor({
   setProfile,
   avatarUploading,
   onAvatarUpload,
+  onAvatarDraft,
 }: {
   profile: Profile
   setProfile: (profile: Profile) => void
   avatarUploading: boolean
   onAvatarUpload: (blob: Blob) => Promise<boolean>
+  onAvatarDraft: (draft: AvatarDraft | null) => void
 }) {
   return (
-    <div className="editor-stack">
-      <AvatarEditor profile={profile} setProfile={setProfile} uploading={avatarUploading} onUpload={onAvatarUpload} />
+    <div className="editor-stack appearance-settings">
 
       <section className="settings-card">
         <div className="settings-card__title"><Palette size={18} /><div><h2>Фон</h2><p>Выберите настроение профиля.</p></div></div>
@@ -974,7 +977,7 @@ function DesignEditor({
             ['mist', 'Туман'],
             ['cobalt', 'Кобальт'],
           ] as const).map(([value, label]) => (
-            <button className={`theme-option theme-option--${value} ${profile.background_preset === value ? 'selected' : ''}`} onClick={() => setProfile({ ...profile, background_preset: value })} key={value}>
+            <button aria-pressed={profile.background_preset === value} className={`theme-option theme-option--${value} ${profile.background_preset === value ? 'selected' : ''}`} onClick={() => setProfile({ ...profile, background_preset: value })} key={value}>
               <span className="theme-option__swatch"><i /><i /></span><strong>{label}</strong>{profile.background_preset === value && <Check size={16} />}
             </button>
           ))}
@@ -988,14 +991,11 @@ function DesignEditor({
             ['glass', 'Стекло'],
             ['solid', 'Плотные'],
             ['outline', 'Контур'],
-          ] as const).map(([value, label]) => <button className={profile.card_preset === value ? 'selected' : ''} onClick={() => setProfile({ ...profile, card_preset: value })} key={value}>{label}</button>)}
+          ] as const).map(([value, label]) => <button aria-pressed={profile.card_preset === value} className={profile.card_preset === value ? 'selected' : ''} onClick={() => setProfile({ ...profile, card_preset: value })} key={value}>{label}</button>)}
         </div>
       </section>
 
-      <section className="future-card">
-        <div><Sparkles size={19} /><span>Подготовлено к расширению</span></div>
-        <p>Собственные фоны и расширенная аналитика смогут подключаться через capabilities без переделки редактора.</p>
-      </section>
+      <AvatarEditor profile={profile} setProfile={setProfile} uploading={avatarUploading} onUpload={onAvatarUpload} onDraftChange={onAvatarDraft} />
     </div>
   )
 }

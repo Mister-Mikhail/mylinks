@@ -1,0 +1,156 @@
+import { expect, test, type Page } from '@playwright/test'
+
+export async function mockAppearance(page: Page, failUpload = false) {
+  const id = '00000000-0000-4000-8000-000000000001'
+  const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: id, exp: 2100000000, role: 'authenticated' })).toString('base64url')}.signature`
+  await page.addInitScript(({ id, token }) => localStorage.setItem('sb-loykiawbqdkitndqkegk-auth-token', JSON.stringify({ access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user: { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' } })), { id, token })
+  let profile = { id, handle: 'sample-user', display_name: 'Тестовый профиль', bio: 'Мои проекты', avatar_url: null, avatar_path: null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
+  const patches: Record<string, unknown>[] = []
+  const uploads: Buffer[] = []
+  let savedImage: Buffer | null = null
+  const pageErrors: string[] = []
+  page.on('pageerror', error => pageErrors.push(error.message))
+  await page.route('**/rest/v1/**', async route => {
+    const request = route.request()
+    const name = new URL(request.url()).pathname.split('/').pop()
+    if (name === 'staff_role') return route.fulfill({ contentType: 'application/json', body: 'null' })
+    if (name === 'profiles' && request.method() === 'PATCH') {
+      const patch = request.postDataJSON()
+      patches.push(patch); profile = { ...profile, ...patch }
+      return route.fulfill({ status: 204 })
+    }
+    const data = name === 'profiles' ? profile : name === 'profile_links' ? [{ id: 'link-test', profile_id: id, label: 'Мой сайт', url: 'https://example.com', icon_key: 'website', position: 0, is_visible: true, is_sensitive: false }] : []
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(data) })
+  })
+  await page.route('**/storage/v1/**', async route => {
+    const req = route.request()
+    if (req.method() === 'GET' && savedImage) return route.fulfill({ contentType: 'image/webp', body: savedImage })
+    if (req.url().includes('/object/sign/')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ signedURL: '/object/sign/avatars/test.webp?token=test' }) })
+    if (req.method() === 'POST') {
+      const body = req.postDataBuffer()!
+      uploads.push(body)
+      const start = body.indexOf(Buffer.from('RIFF'))
+      savedImage = body.subarray(start, start + body.readUInt32LE(start + 4) + 8)
+      await new Promise(resolve => setTimeout(resolve, 200))
+      if (failUpload) return route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ message: 'Upload failed' }) })
+    }
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ Key: 'avatars/test.webp' }) })
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Оформление', exact: true }).click()
+  return { patches, uploads, pageErrors }
+}
+
+async function selectPhoto(page: Page) {
+  const png = await page.evaluate(() => {
+    const canvas = document.createElement('canvas'); canvas.width = 320; canvas.height = 160
+    const ctx = canvas.getContext('2d')!; ctx.fillStyle = '#ef4444'; ctx.fillRect(0, 0, 160, 160); ctx.fillStyle = '#22c55e'; ctx.fillRect(160, 0, 160, 160)
+    return canvas.toDataURL('image/png').split(',')[1]
+  })
+  await page.locator('input[type=file]').setInputFiles({ name: 'test.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') })
+  await expect(page.getByRole('heading', { name: 'Настройте кадр' })).toBeVisible()
+}
+
+test('appearance changes are visible in place and survive saving', async ({ page }) => {
+  const { patches, pageErrors } = await mockAppearance(page)
+  await page.screenshot({ path: `/tmp/appearance-default-${test.info().project.name}.png` })
+  const preview = page.locator('.preview-panel .profile-card')
+  await expect(preview).toBeVisible()
+  await page.getByRole('button', { name: 'Туман', exact: true }).click()
+  await page.getByRole('button', { name: 'Контур', exact: true }).click()
+  await page.getByRole('button', { name: 'Квадрат', exact: true }).click()
+  await page.getByLabel('Размер аватара', { exact: true }).fill('65')
+  await expect(preview).toHaveClass(/theme-mist/)
+  await expect(preview.locator('.profile-link').first()).toHaveClass(/card-outline/)
+  await expect(preview.locator('.avatar')).toHaveClass(/avatar--square/)
+  const before = await preview.boundingBox()
+  await page.locator('.editor-panel').evaluate(el => { el.scrollTop = el.scrollHeight })
+  if (test.info().project.name.includes('mobile')) {
+    const after = await preview.boundingBox()
+    expect(after!.y).toBe(before!.y)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
+  }
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+  await expect(page.getByText('Изменения сохранены')).toBeVisible()
+  expect(patches.at(-1)).toMatchObject({ background_preset: 'mist', card_preset: 'outline', avatar_shape: 'square', avatar_scale: 65 })
+  await page.reload(); await page.getByRole('button', { name: 'Оформление', exact: true }).click()
+  await expect(preview).toHaveClass(/theme-mist/)
+  await expect(preview.locator('.avatar')).toHaveClass(/avatar--square/)
+  expect(pageErrors).toEqual([])
+})
+
+test('inline crop supports positioning, zoom and cancelling without uploading', async ({ page }) => {
+  const { uploads, pageErrors } = await mockAppearance(page)
+  await selectPhoto(page)
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Сохранить', exact: true })).toBeDisabled()
+  const previewImage = page.locator('.preview-panel .avatar img')
+  await expect(previewImage).toHaveAttribute('src', /^blob:/)
+  await page.getByLabel('Масштаб фото', { exact: true }).fill('2')
+  const viewport = page.locator('.avatar-cropper__viewport')
+  await viewport.scrollIntoViewIfNeeded()
+  const box = (await viewport.boundingBox())!
+  const initialLeft = await previewImage.evaluate(el => (el as HTMLElement).style.left)
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2 + 20, box.y + box.height / 2 + 10, { steps: 4 })
+  await page.mouse.up()
+  await expect.poll(() => previewImage.evaluate(el => (el as HTMLElement).style.left)).not.toBe(initialLeft)
+  if (test.info().project.name.includes('mobile')) {
+    const header = (await page.locator('.dashboard-topbar').boundingBox())!
+    expect(header.y).toBe(0)
+  }
+  await page.screenshot({ path: `/tmp/appearance-crop-${test.info().project.name}.png` })
+  await expect(page.locator('.preview-panel')).toBeVisible()
+  await page.getByRole('button', { name: 'Отмена', exact: true }).click()
+  await expect(viewport).toHaveCount(0)
+  await expect(previewImage).toHaveCount(0)
+  expect(uploads).toHaveLength(0)
+  expect(pageErrors).toEqual([])
+})
+
+test('crop applies a real image and preserves settings changed during upload', async ({ page }) => {
+  const { patches, uploads, pageErrors } = await mockAppearance(page)
+  await selectPhoto(page)
+  await page.getByLabel('Масштаб фото', { exact: true }).fill('1.5')
+  await page.getByRole('button', { name: 'Применить фото' }).click()
+  await page.getByRole('button', { name: 'Кобальт', exact: true }).click()
+  await expect(page.getByText('Аватар обновлён')).toBeVisible()
+  await expect(page.locator('.preview-panel .profile-card')).toHaveClass(/theme-cobalt/)
+  expect(uploads).toHaveLength(1)
+  expect(uploads[0].includes(Buffer.from('WEBP'))).toBeTruthy()
+  expect(patches[0]).toHaveProperty('avatar_path')
+  expect(pageErrors).toEqual([])
+  await expect(page.locator('.avatar-cropper__viewport')).toHaveCount(0)
+  await expect(page.locator('.preview-panel .avatar img')).toHaveJSProperty('naturalWidth', 1024)
+  await page.getByRole('button', { name: 'Изменить кадр' }).click()
+  await expect(page.getByRole('heading', { name: 'Настройте кадр' })).toBeVisible()
+  await page.getByRole('button', { name: 'Отмена', exact: true }).click()
+  expect(uploads).toHaveLength(1)
+})
+
+
+test('failed upload keeps crop editable and does not change stored avatar', async ({ page }) => {
+  const { patches } = await mockAppearance(page, true)
+  await selectPhoto(page)
+  await page.getByRole('button', { name: 'Применить фото' }).click()
+  await expect(page.getByText('Не удалось сохранить фото. Попробуйте ещё раз.')).toBeVisible()
+  await expect(page.locator('.avatar-cropper__viewport')).toBeVisible()
+  await expect(page.getByLabel('Масштаб фото', { exact: true })).toBeEnabled()
+  expect(patches).toHaveLength(0)
+  await page.getByRole('button', { name: 'Отмена', exact: true }).click()
+})
+
+test('preview stays pinned on small portrait and landscape phones', async ({ page }) => {
+  await mockAppearance(page)
+  for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport)
+    const panel = page.locator('.preview-panel')
+    const first = (await panel.boundingBox())!
+    await page.locator('.editor-panel').evaluate(el => { el.scrollTop = el.scrollHeight })
+    expect((await panel.boundingBox())!.y).toBe(first.y)
+    expect(first.y + first.height).toBeLessThan(viewport.height - 64)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
+    await expect(page.getByRole('button', { name: 'Сохранить', exact: true })).toBeVisible()
+  }
+})

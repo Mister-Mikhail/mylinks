@@ -55,3 +55,9 @@ Staff sign in with their existing Supabase account at `/admin`. Roles are assign
 Restrictions hide content from visitors while preserving the owner's editor access. Every moderation action requires a reason and creates a server-side audit entry. Staff RPCs check the current database role on every request. Apply both `20260930033033_admin_moderation.sql` and `20260930034130_staff_detail_and_audit_labels.sql`; initial administrator assignment is a separate privileged operation.
 
 Run the focused desktop/mobile access and moderation checks with `npm run test:e2e -- tests/admin.spec.ts`. These tests mock Auth and RPC responses and never modify production users.
+
+## Mobile appearance editor
+
+The appearance screen keeps a compact live preview above independently scrollable controls, including on small phones and in landscape. Theme, link-card style, avatar shape and size update the preview immediately. Photo selection and re-cropping stay inline, with pointer/keyboard positioning, zoom, reset, cancel and apply. A local crop draft is shown in the preview before upload; cancelling never uploads it. Applying the photo persists the avatar; the Save button persists appearance settings.
+
+Run `npm run test:e2e -- tests/appearance.spec.ts` for mocked desktop/mobile persistence, image upload, crop interaction, cancellation, upload failure, and viewport checks. No production users are modified by these tests.

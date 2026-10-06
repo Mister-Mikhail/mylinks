@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from 'react'
+import { useState } from 'react'
 import { AtSign, Globe2, Link2 } from 'lucide-react'
 import { faviconCandidates } from '../lib/favicons'
 import type { LinkIcon as LinkIconName } from '../types'
@@ -37,10 +37,7 @@ export function LinkIcon({ name, url = '', size = 19 }: LinkIconProps) {
   const candidate = candidates[state.index]
   if (candidate) {
     const next = () => setAttempt({ ...state, index: state.index + 1 })
-    const checkSize = (event: SyntheticEvent<HTMLImageElement>) => {
-      if (candidate.rejectBelow && event.currentTarget.naturalWidth < candidate.rejectBelow) next()
-    }
-    return <img key={candidate.src} className="link-icon__favicon" src={candidate.src} width={size} height={size} alt="" aria-hidden onLoad={checkSize} onError={next} />
+    return <img key={candidate} className="link-icon__favicon" src={candidate} width={size} height={size} alt="" aria-hidden onError={next} />
   }
   return candidates.length ? <Globe2 {...props} /> : <Link2 {...props} />
 }

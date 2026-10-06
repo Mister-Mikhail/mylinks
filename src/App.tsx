@@ -400,6 +400,7 @@ function Dashboard({ user }: { user: User }) {
   const [avatarDraft, setAvatarDraft] = useState<AvatarDraft | null>(null)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [newLinkId, setNewLinkId] = useState<string | null>(null)
   const capabilities = capabilitiesForTier('free')
 
   const loadData = async (jwtRetry = 0) => {
@@ -456,17 +457,20 @@ function Dashboard({ user }: { user: User }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id])
 
+  // New links go to the top of the list and are scrolled into view right away.
   const addLink = () => {
     if (links.length >= capabilities.maxLinks) return
-    setLinks((current) => [...current, {
-      localId: crypto.randomUUID(),
+    const localId = crypto.randomUUID()
+    setLinks((current) => [{
+      localId,
       label: '',
       url: '',
       icon_key: 'link',
-      position: current.length,
+      position: 0,
       is_visible: true,
       is_sensitive: false,
-    }])
+    }, ...current.map((link, index) => ({ ...link, position: index + 1 }))])
+    setNewLinkId(localId)
   }
 
   const updateLink = (localId: string, patch: Partial<EditableLink>) => {
@@ -736,6 +740,7 @@ function Dashboard({ user }: { user: User }) {
               updateContact={updateContact}
               removeContact={removeContact}
               moveContact={moveContact}
+              newLinkId={newLinkId}
             />
           ) : (
             <DesignEditor profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} onAvatarDraft={setAvatarDraft} />
@@ -771,6 +776,7 @@ interface ContentEditorProps {
   updateContact: (localId: string, patch: Partial<EditableContact>) => void
   removeContact: (localId: string) => void
   moveContact: (index: number, direction: -1 | 1) => void
+  newLinkId?: string | null
 }
 
 function ContentEditor({
@@ -786,6 +792,7 @@ function ContentEditor({
   updateContact,
   removeContact,
   moveContact,
+  newLinkId = null,
 }: ContentEditorProps) {
   const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null)
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
@@ -799,6 +806,14 @@ function ContentEditor({
     }
   }
   const selectedLinkIndex = links.findIndex((link) => link.localId === selectedLinkId)
+
+  useEffect(() => {
+    if (!newLinkId) return
+    const card = document.querySelector<HTMLElement>(`[data-link-id="${newLinkId}"]`)
+    if (!card) return
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    card.querySelector<HTMLInputElement>('input[aria-label="Адрес ссылки"]')?.focus({ preventScroll: true })
+  }, [newLinkId])
   const selectedContactIndex = contacts.findIndex((contact) => contact.localId === selectedContactId)
 
   const changePlatform = (link: EditableLink, nextValue: LinkIconName) => {
@@ -822,7 +837,7 @@ function ContentEditor({
         <div className="settings-card__title"><UserRound size={18} /><div><h2>Профиль</h2><p>Имя, описание и адрес вашей страницы.</p></div></div>
         <div className="field-grid">
           <label>Отображаемое имя<input value={profile.display_name} onChange={(event) => setProfile({ ...profile, display_name: event.target.value })} maxLength={60} /></label>
-          <label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandle(event.target.value) })} /><button type="button" className={`input-prefix__copy ${masterLinkCopied ? 'input-prefix__copy--done' : ''}`} onClick={(event) => { event.preventDefault(); void copyMasterLink() }} disabled={!profile.handle} aria-label="Скопировать мастер‑ссылку">{masterLinkCopied ? <Check size={13} /> : <Copy size={13} />}<span aria-live="polite">{masterLinkCopied ? 'Скопировано' : 'Копировать'}</span></button></div></label>
+          <label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandle(event.target.value) })} /><button type="button" className={`input-prefix__copy ${masterLinkCopied ? 'input-prefix__copy--done' : ''}`} onClick={(event) => { event.preventDefault(); void copyMasterLink() }} disabled={!profile.handle} aria-label={masterLinkCopied ? 'Мастер‑ссылка скопирована' : 'Скопировать мастер‑ссылку'} title="Скопировать ссылку">{masterLinkCopied ? <Check size={15} /> : <Copy size={15} />}</button></div></label>
           <label className="field-grid__full">О себе<textarea value={profile.bio} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} maxLength={160} rows={3} placeholder="Чем вы занимаетесь?" /><small>{profile.bio.length}/160</small></label>
         </div>
         <label className="publish-setting">
@@ -850,7 +865,7 @@ function ContentEditor({
             <button className="empty-links" onClick={addLink}><span><Plus size={21} /></span><strong>Добавьте первую ссылку</strong><p>Instagram, Telegram, сайт или любой другой адрес.</p></button>
           )}
           {links.map((link) => (
-            <article className={`link-editor ${selectedLinkId === link.localId ? 'link-editor--selected' : ''}`} key={link.localId}>
+            <article className={`link-editor ${selectedLinkId === link.localId ? 'link-editor--selected' : ''} ${newLinkId === link.localId ? 'link-editor--new' : ''}`} key={link.localId} data-link-id={link.localId}>
               <button
                 className={`selection-check ${selectedLinkId === link.localId ? 'selection-check--selected' : ''}`}
                 type="button"

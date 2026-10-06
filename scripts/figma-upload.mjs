@@ -1,15 +1,17 @@
 // Uploads design-screens/*.png to single-use Figma upload URLs listed in design/figma-uploads.json:
 //   [{ "name": "01-landing--desktop", "url": "https://..." }, ...]
-// Each URL creates one image frame in the Figma file; frames are renamed there afterwards.
+// URLs expire 10 minutes after they are issued. Each upload becomes an image frame named after the file.
 import { readFileSync, existsSync } from 'node:fs'
 
 const plan = JSON.parse(readFileSync('design/figma-uploads.json', 'utf8'))
-let failed = 0
-for (const { name, url } of plan) {
+const results = await Promise.all(plan.map(async ({ name, url }) => {
   const file = `design-screens/${name}.png`
-  if (!existsSync(file)) { console.log(`skip  ${name} (no screenshot)`); continue }
-  const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: readFileSync(file) })
-  console.log(`${response.ok ? 'ok   ' : 'FAIL '} ${name} → ${response.status}`)
-  if (!response.ok) { failed++; console.log((await response.text()).slice(0, 300)) }
-}
-if (failed) process.exit(1)
+  if (!existsSync(file)) return `skip  ${name} (no screenshot)`
+  const form = new FormData()
+  form.append('file', new Blob([readFileSync(file)], { type: 'image/png' }), `${name}.png`)
+  const response = await fetch(url, { method: 'POST', body: form })
+  const detail = response.ok ? '' : ` ${(await response.text()).slice(0, 200)}`
+  return `${response.ok ? 'ok  ' : 'FAIL'}  ${name} → ${response.status}${detail}`
+}))
+console.log(results.join('\n'))
+if (results.some((line) => line.startsWith('FAIL'))) process.exit(1)

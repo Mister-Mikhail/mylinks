@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Everything CI does lives here, so it can change without touching .github/workflows.
-# Pull request: lint, build, e2e.  Push to main: lint, build, deploy to Beget.
+# Pull request: lint, build, e2e, dependency audit.  Push to main: lint, build, deploy to Beget.
 set -euo pipefail
 
 # ci.log is posted as a comment, so credentials are masked before anything is written.
@@ -19,6 +19,10 @@ npm run build
 if [ "${IS_PR:-false}" = "true" ]; then
   npx playwright install --with-deps chromium > /dev/null
   npm run test:e2e -- --workers=2 --reporter=line
+  echo "== npm audit (production dependencies)"
+  npm audit --omit=dev || true
+  echo "== npm audit (all dependencies)"
+  npm audit || true
   exit 0
 fi
 

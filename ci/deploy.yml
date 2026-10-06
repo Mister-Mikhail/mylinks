@@ -1,0 +1,126 @@
+name: Check & deploy to Beget
+
+# Push to main  -> lint, build, upload to mylinks.bar (Beget), smoke test.
+# Pull request  -> lint, build, end-to-end tests; nothing is published.
+# The result (with the tail of the log) is written as a comment:
+#   push to main -> issue "Журнал деплоя на Beget"; pull request -> the PR itself.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: ship-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Public client settings: they are shipped to every visitor's browser anyway.
+  VITE_SUPABASE_URL: https://loykiawbqdkitndqkegk.supabase.co
+  VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_GjGkSeQ5okx58Tphh7Hfrw_6psgCioE
+  SITE_URL: https://mylinks.bar
+  DEPLOY_LOG_ISSUE: 5
+  IS_PR: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ship:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci 2>&1 | tee -a ci.log; exit ${PIPESTATUS[0]}
+      - name: Lint
+        run: npm run lint 2>&1 | tee -a ci.log; exit ${PIPESTATUS[0]}
+      - name: Build
+        run: npm run build 2>&1 | tee -a ci.log; exit ${PIPESTATUS[0]}
+
+      - name: End-to-end tests
+        if: env.IS_PR == 'true'
+        run: |
+          npx playwright install --with-deps chromium > /dev/null
+          npm run test:e2e -- --workers=2 --reporter=line 2>&1 | tee -a ci.log; exit ${PIPESTATUS[0]}
+
+      - name: Upload to Beget over FTP
+        if: env.IS_PR != 'true'
+        env:
+          HOST: ${{ secrets.BEGET_FTP_HOST }}
+          USER: ${{ secrets.BEGET_FTP_USER }}
+          PASS: ${{ secrets.BEGET_FTP_PASSWORD }}
+          REMOTE_DIR: ${{ secrets.BEGET_FTP_DIR || '.' }}
+        run: |
+          set -o pipefail
+          if [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$PASS" ]; then
+            echo "Secrets BEGET_FTP_HOST / BEGET_FTP_USER / BEGET_FTP_PASSWORD are not set" | tee -a ci.log
+            exit 1
+          fi
+          sudo apt-get install -y -qq lftp > /dev/null
+          # New hashed assets and static files first, index.html last,
+          # so visitors never get an index.html that points to missing files.
+          lftp -u "$USER","$PASS" "$HOST" 2>&1 <<LFTP | tee -a ci.log
+          set ftp:ssl-allow yes
+          set ssl:verify-certificate no
+          set net:max-retries 3
+          set net:timeout 30
+          set cmd:fail-exit yes
+          cd "$REMOTE_DIR"
+          mirror -R --parallel=4 --exclude-glob index.html --verbose=1 dist/ ./
+          put dist/index.html -o index.html
+          bye
+          LFTP
+
+      - name: Smoke test the live site
+        if: env.IS_PR != 'true'
+        run: |
+          {
+          expected=$(grep -o 'assets/index-[^"]*\.js' dist/index.html | head -1)
+          live=""
+          for i in 1 2 3 4 5 6; do
+            live=$(curl -fsSL -H 'Cache-Control: no-cache' "$SITE_URL/?v=$GITHUB_SHA" | grep -o 'assets/index-[^"]*\.js' | head -1 || true)
+            [ "$live" = "$expected" ] && break
+            sleep 10
+          done
+          echo "expected=$expected live=$live"
+          [ "$live" = "$expected" ] || { echo "Live site does not serve the new build"; exit 1; }
+          curl -fsS -o /dev/null "$SITE_URL/$expected" || { echo "Main script is not reachable"; exit 1; }
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE_URL/mister")
+          echo "/mister -> $code"
+          [ "$code" = "200" ] || { echo "Profile URL failed (SPA fallback in .htaccess?)"; exit 1; }
+          } 2>&1 | tee -a ci.log; exit ${PIPESTATUS[0]}
+
+      - name: Report the result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATUS: ${{ job.status }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "$STATUS" = "success" ]; then
+            if [ "$IS_PR" = "true" ]; then head="✅ Проверки пройдены (lint, build, e2e)"; else head="✅ Опубликовано на mylinks.bar"; fi
+          else
+            head="❌ Ошибка ($STATUS)"
+          fi
+          {
+            echo "$head — \`${GITHUB_SHA::7}\` — [лог](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})"
+            if [ "$STATUS" != "success" ] && [ -f ci.log ]; then
+              echo; echo '<details><summary>Последние строки лога</summary>'; echo; echo '```'
+              tail -n 60 ci.log | sed 's/\x1b\[[0-9;]*m//g'
+              echo '```'; echo '</details>'
+            fi
+          } > comment.md
+          if [ "$IS_PR" = "true" ]; then target="$PR"; else target="$DEPLOY_LOG_ISSUE"; fi
+          gh api "repos/${GITHUB_REPOSITORY}/issues/${target}/comments" -F body=@comment.md

@@ -1,0 +1,29 @@
+# mylinks.bar — Apache settings for Beget (Vite copies this file into dist)
+AddDefaultCharset UTF-8
+AddType image/webp .webp
+AddType image/svg+xml .svg
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Single-page app: any path that is not a real file opens index.html
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  RewriteRule ^assets/ - [R=404,L]
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  # The page itself is always revalidated, so updates appear immediately
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  # Build files in /assets have a content hash in the name: cache for a year
+  <If "%{REQUEST_URI} =~ m#^/assets/#">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </If>
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript text/javascript application/json image/svg+xml
+</IfModule>

@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.env.local
+.DS_Store
+*.log
+playwright-report
+test-results
+.codex
+upload
+supabase/.temp
+.sites-runtime

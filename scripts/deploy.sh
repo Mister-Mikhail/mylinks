@@ -29,7 +29,7 @@ ftp() { # ftp <tls yes|no> <commands...>
     set ssl:verify-certificate no
     set ftp:passive-mode on
     set net:timeout 15
-    set net:max-retries 2
+    set net:max-retries 5
     set net:reconnect-interval-base 5
     set net:persist-retries 0
     set cmd:fail-exit yes
@@ -67,7 +67,11 @@ fi
 echo "== Upload"
 # New hashed assets and static files first, index.html last,
 # so visitors never get an index.html that points to missing files.
-FTP_TIMEOUT=900 ftp "$TLS" "cd $REMOTE_DIR; mirror -R --parallel=4 --exclude-glob index.html --verbose=1 dist/ ./; put dist/index.html -o index.html"
+# Beget limits parallel FTP sessions per user: 2 streams, no chmod, one full retry.
+upload_files() { FTP_TIMEOUT=900 ftp "$TLS" "cd $REMOTE_DIR; mirror -R --parallel=2 --no-perms --exclude-glob index.html --exclude-glob .htaccess --verbose=1 dist/ ./"; }
+upload_files || { echo "Retrying upload once..."; sleep 5; upload_files; }
+# .htaccess and index.html go last, after every file they refer to is in place.
+FTP_TIMEOUT=120 ftp "$TLS" "cd $REMOTE_DIR; put dist/.htaccess -o .htaccess; put dist/index.html -o index.html"
 echo "Upload finished"
 
 echo "== Smoke test"

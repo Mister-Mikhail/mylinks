@@ -10,7 +10,7 @@ fi
   echo "$head — \`${GITHUB_SHA::7}\` — [лог](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})"
   if [ -f ci.log ]; then
     echo; echo '<details><summary>Лог (последние строки)</summary>'; echo; echo '```'
-    tail -n 80 ci.log | sed 's/\x1b\[[0-9;]*m//g' | grep -v -i 'pass '
+    tail -n 150 ci.log | sed 's/\x1b\[[0-9;]*m//g' | grep -v -i 'pass '
     echo '```'; echo '</details>'
   fi
 } > comment.md

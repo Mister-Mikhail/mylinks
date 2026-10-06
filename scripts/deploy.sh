@@ -40,11 +40,11 @@ ftp() { # ftp <tls yes|no> <commands...>
 echo "== Login check"
 TLS=""
 for mode in yes no; do
-  if listing=$(FTP_TIMEOUT=60 ftp "$mode" "debug 1; pwd; cls -1" 2>&1); then TLS="$mode"; break; fi
+  if listing=$(FTP_TIMEOUT=60 ftp "$mode" "cls -1" 2>&1); then TLS="$mode"; break; fi
   echo "login with TLS=$mode failed:"; echo "$listing" | grep -v -i pass | tail -n 15
 done
 [ -n "$TLS" ] || { echo "Cannot log in to FTP"; exit 1; }
-echo "Logged in (TLS=$TLS). Remote root contains:"; echo "$listing" | grep -v -i -E '^(---|<---|\*\*\*)' | head -n 30
+echo "Logged in (TLS=$TLS). Remote root contains:"; echo "$listing" | head -n 30
 
 if [ -z "$REMOTE_DIR" ]; then
   if echo "$listing" | grep -qx 'index.html'; then REMOTE_DIR="."
@@ -54,10 +54,20 @@ if [ -z "$REMOTE_DIR" ]; then
 fi
 echo "Upload directory: $REMOTE_DIR"
 
+echo "== Current .htaccess on the server (kept as .htaccess.before-ci once)"
+if ftp "$TLS" "cd $REMOTE_DIR; get .htaccess -o server.htaccess" > /dev/null 2>&1; then
+  cat server.htaccess
+  if ! echo "$listing" | grep -qx '.htaccess.before-ci'; then
+    ftp "$TLS" "cd $REMOTE_DIR; put server.htaccess -o .htaccess.before-ci" > /dev/null 2>&1 || true
+  fi
+else
+  echo "(none)"
+fi
+
 echo "== Upload"
 # New hashed assets and static files first, index.html last,
 # so visitors never get an index.html that points to missing files.
-FTP_TIMEOUT=900 ftp "$TLS" "cd \"$REMOTE_DIR\"; mirror -R --parallel=4 --exclude-glob index.html --verbose=1 dist/ ./; put dist/index.html -o index.html"
+FTP_TIMEOUT=900 ftp "$TLS" "cd $REMOTE_DIR; mirror -R --parallel=4 --exclude-glob index.html --verbose=1 dist/ ./; put dist/index.html -o index.html"
 echo "Upload finished"
 
 echo "== Smoke test"

@@ -1,4 +1,5 @@
 # mylinks.bar — Apache settings for Beget (Vite copies this file into dist)
+DirectoryIndex index.html
 AddDefaultCharset UTF-8
 AddType image/webp .webp
 AddType image/svg+xml .svg

@@ -69,25 +69,23 @@ echo "== Upload"
 # so visitors never get an index.html that points to missing files.
 # Beget limits parallel FTP sessions per user: 2 streams, no chmod, one full retry.
 upload_files() { FTP_TIMEOUT=900 ftp "$TLS" "cd $REMOTE_DIR; mirror -R --parallel=2 --no-perms --exclude-glob index.html --exclude-glob .htaccess --verbose=1 dist/ ./"; }
-diagnose() { # show the FTP server's own replies for files that failed
+diagnose() { # probe each file the server refused (see scripts/ftp-diag.sh)
+  source scripts/ftp-diag.sh
   local names; names=$(grep -o 'mirror: [^:]*: Fatal' upload.log | awk '{print $2}' | tr -d ':' | sort -u)
   for name in $names; do
-    local path; path=$(cd dist && find . -type f -name "$name" | head -1 | sed 's#^\./##')
-    for mode in yes no; do
-      echo "--- put $path (TLS=$mode), size $(stat -c %s "dist/$path")"
-      FTP_TIMEOUT=90 ftp "$mode" "set net:max-retries 1; debug 3; cd $REMOTE_DIR; put dist/$path -o $path" 2>&1 \
-        | grep -v -i -E 'pass|user ' | tail -n 15 || true
-    done
+    ftp_diag "$(cd dist && find . -type f -name "$name" | head -1 | sed 's#^\./##')"
   done
 }
+# .htaccess first: it is independent of the build and carries the HTTPS redirect.
+FTP_TIMEOUT=60 ftp "$TLS" "cd $REMOTE_DIR; put dist/.htaccess -o .htaccess"
 ok=0
 for attempt in 1 2; do
   if upload_files 2>&1 | tee upload.log; then ok=1; break; fi
   echo "Upload attempt $attempt failed"; sleep 5
 done
 if [ "$ok" != 1 ]; then echo "== Diagnose"; diagnose; exit 1; fi
-# .htaccess and index.html go last, after every file they refer to is in place.
-FTP_TIMEOUT=120 ftp "$TLS" "cd $REMOTE_DIR; put dist/.htaccess -o .htaccess; put dist/index.html -o index.html"
+# index.html goes last, after every file it refers to is in place.
+FTP_TIMEOUT=120 ftp "$TLS" "cd $REMOTE_DIR; put dist/index.html -o index.html"
 echo "Upload finished"
 
 echo "== Smoke test"

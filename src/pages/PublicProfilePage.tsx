@@ -31,7 +31,11 @@ const readCache = (handle: string): CacheEntry | null => {
     const raw = localStorage.getItem(CACHE_PREFIX + handle)
     if (!raw) return null
     const entry = JSON.parse(raw) as CacheEntry
-    if (!entry?.data?.profile) return null
+    // A shared browser cache must never restore an owner's private profile.
+    if (entry?.data?.profile?.is_published !== true || entry.data.profile.handle !== handle) {
+      localStorage.removeItem(CACHE_PREFIX + handle)
+      return null
+    }
     if (Date.now() - entry.avatarSignedAt > AVATAR_TTL_MS) entry.data.profile.avatar_preview_url = null
     return entry
   } catch {
@@ -41,6 +45,10 @@ const readCache = (handle: string): CacheEntry | null => {
 
 const writeCache = (handle: string, entry: CacheEntry) => {
   try {
+    if (!entry.data.profile.is_published) {
+      localStorage.removeItem(CACHE_PREFIX + handle)
+      return
+    }
     localStorage.setItem(CACHE_PREFIX + handle, JSON.stringify(entry))
   } catch {
     // Storage can be unavailable (private mode); the page works without the cache.
@@ -156,15 +164,24 @@ export function PublicProfilePage({ handle }: { handle: string }) {
   const [status, setStatus] = useState<Status>(initial ? 'ready' : 'loading')
   const [attempt, setAttempt] = useState(0)
   const [session, setSession] = useState<Session | null>(null)
+  const [sessionResolved, setSessionResolved] = useState(false)
 
   // The session only decides whether to show the "back to editor" button; it never blocks the page.
   useEffect(() => {
     let active = true
     void supabase.auth.getSession().then(({ data: sessionData }) => {
-      if (active) setSession(sessionData.session)
+      if (active) {
+        setSession(sessionData.session)
+        setSessionResolved(true)
+      }
+    }).catch(() => {
+      if (active) setSessionResolved(true)
     })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (active) setSession(nextSession)
+      if (active) {
+        setSession(nextSession)
+        setSessionResolved(true)
+      }
     })
     return () => {
       active = false
@@ -186,7 +203,10 @@ export function PublicProfilePage({ handle }: { handle: string }) {
         if (!page) {
           // Not public: it may be the owner's own unpublished page, which needs the signed-in session.
           const { data: sessionData } = await supabase.auth.getSession()
-          if (sessionData.session) page = await fetchPage(supabase, handle, cachedAvatar)
+          if (sessionData.session) {
+            const ownPage = await fetchPage(supabase, handle, cachedAvatar)
+            if (ownPage?.profile.id === sessionData.session.user.id) page = ownPage
+          }
         }
         if (cancelled) return
         if (page) {
@@ -226,7 +246,10 @@ export function PublicProfilePage({ handle }: { handle: string }) {
     )
   }
 
-  if (!data) {
+  const visibleData = data && (data.profile.is_published || session?.user.id === data.profile.id) ? data : null
+  if (data && !visibleData && !sessionResolved) return <ProfileSkeleton />
+
+  if (!visibleData) {
     return (
       <main className="private-access-page">
         <BrandMark />
@@ -235,12 +258,12 @@ export function PublicProfilePage({ handle }: { handle: string }) {
     )
   }
 
-  const isOwner = Boolean(session && session.user.id === data.profile.id)
+  const isOwner = Boolean(session && session.user.id === visibleData.profile.id)
 
   return (
-    <main className={`public-preview-page theme-${data.profile.background_preset}`}>
+    <main className={`public-preview-page theme-${visibleData.profile.background_preset}`}>
       {isOwner && <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> В редактор</button>}
-      <div className="public-preview-page__content"><ProfilePreview profile={data.profile} links={data.links} contacts={data.contacts} interactive showPrivacy={!data.profile.is_published} /></div>
+      <div className="public-preview-page__content"><ProfilePreview profile={visibleData.profile} links={visibleData.links} contacts={visibleData.contacts} interactive showPrivacy={!visibleData.profile.is_published} /></div>
     </main>
   )
 }

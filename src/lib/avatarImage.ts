@@ -1,6 +1,5 @@
 /** Longest side of the stored avatar. It is shown at ~100–250 px, so 512 px covers high-DPI screens. */
 const MAX_SIDE = 512
-const MIN_SIDE = 96
 /** Quality is lowered step by step until the file fits this size. */
 const TARGET_BYTES = 60 * 1024
 const QUALITIES = [0.84, 0.74, 0.64, 0.54]
@@ -36,7 +35,7 @@ const encodeBest = async (canvas: HTMLCanvasElement, type: string) => {
  * Photos smaller than 512 px are never enlarged.
  */
 export async function cropAvatarToBlob(image: HTMLImageElement, sourceX: number, sourceY: number, sourceSize: number): Promise<Blob> {
-  const side = Math.round(Math.max(MIN_SIDE, Math.min(MAX_SIDE, sourceSize)))
+  const side = Math.max(1, Math.round(Math.min(MAX_SIDE, sourceSize)))
   let current: CanvasImageSource = image
   let x = sourceX
   let y = sourceY
@@ -57,7 +56,7 @@ export async function cropAvatarToBlob(image: HTMLImageElement, sourceX: number,
   context.drawImage(current, x, y, size, size, 0, 0, side, side)
 
   let blob = await encodeBest(canvas, 'image/webp')
-  if (blob && blob.type !== 'image/webp') blob = await encodeBest(canvas, 'image/jpeg')
+  if (!blob || blob.type !== 'image/webp') blob = await encodeBest(canvas, 'image/jpeg')
   if (!blob) throw new Error('Не удалось подготовить изображение.')
   return blob
 }

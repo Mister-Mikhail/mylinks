@@ -1,10 +1,9 @@
 import { expect, test } from '@playwright/test'
 
-test('landing presents the private MVP and registration flow', async ({ page }) => {
+test('landing presents the registration flow', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByRole('heading', { name: /Одна ссылка/i })).toBeVisible()
-  await expect(page.getByText('Пока доступно только вам')).toBeVisible()
 
   await page.getByRole('button', { name: 'Создать профиль' }).first().click()
   await expect(page.getByRole('heading', { name: 'Создайте мастер‑ссылку' })).toBeVisible()

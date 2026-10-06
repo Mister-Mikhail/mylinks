@@ -122,7 +122,8 @@ test('crop applies a real image and preserves settings changed during upload', a
   expect(patches[0]).toHaveProperty('avatar_path')
   expect(pageErrors).toEqual([])
   await expect(page.locator('.avatar-cropper__viewport')).toHaveCount(0)
-  await expect(page.locator('.preview-panel .avatar img')).toHaveJSProperty('naturalWidth', 1024)
+  // This fixture crops a 160px source region at 1.5×; small photos are not enlarged.
+  await expect(page.locator('.preview-panel .avatar img')).toHaveJSProperty('naturalWidth', 107)
   await page.getByRole('button', { name: 'Изменить кадр' }).click()
   await expect(page.getByRole('heading', { name: 'Настройте кадр' })).toBeVisible()
   await page.getByRole('button', { name: 'Отмена', exact: true }).click()

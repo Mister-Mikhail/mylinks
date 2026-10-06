@@ -128,7 +128,7 @@ test('04 editor links, 05 appearance, 06 avatar crop', async ({ page }) => {
   await page.getByRole('heading', { name: 'Ссылки и контакты' }).waitFor()
   await shot(page, '04-editor-links')
   await page.getByRole('button', { name: 'Оформление', exact: true }).click()
-  await page.getByRole('heading', { name: 'Оформление', level: 1 }).waitFor()
+  await page.locator('.theme-picker').waitFor()
   await shot(page, '05-editor-appearance')
   await page.locator('input[type=file]').setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: AVATAR })
   await page.getByRole('heading', { name: 'Настройте кадр' }).waitFor()

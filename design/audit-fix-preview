@@ -1,0 +1,1 @@
+Marker: when present on a pull request, CI prints the package-lock.json diff that `npm audit fix` would make.

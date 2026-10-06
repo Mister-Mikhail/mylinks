@@ -1,0 +1,66 @@
+/* Footer logo on public pages: leads to the start page (or the editor when signed in). */
+.profile-card__home {
+  display: inline-flex;
+  border-radius: 10px;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.profile-card__home:hover {
+  transform: translateY(-1px);
+}
+
+.profile-card__footer:has(.profile-card__home:hover) {
+  opacity: 1;
+}
+
+.profile-card__home:focus-visible,
+.input-prefix__copy:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* One-click copy of the master link inside its input. */
+.input-prefix__copy {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 5px;
+  height: 30px;
+  margin-right: 6px;
+  padding: 0 9px;
+  color: #aab4c2;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.input-prefix__copy:hover {
+  color: #fff;
+  border-color: var(--line-strong);
+}
+
+.input-prefix__copy--done {
+  color: var(--success);
+  border-color: rgba(103, 214, 155, 0.3);
+}
+
+.input-prefix input {
+  min-width: 0;
+}
+
+@media (max-width: 650px) {
+  .input-prefix__copy span {
+    display: none;
+  }
+}
+
+.input-prefix .input-prefix__copy span {
+  padding-left: 0;
+  color: inherit;
+  font-size: inherit;
+}

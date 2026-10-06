@@ -82,3 +82,12 @@
   object-fit: contain;
   border-radius: 0;
 }
+
+/* Single-colour brand icons (CapCut, Dzen) take the card's text colour, so they suit every theme. */
+.link-icon__mono {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  background-color: currentColor;
+}

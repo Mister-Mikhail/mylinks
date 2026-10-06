@@ -1,4 +1,5 @@
 # mylinks.bar — Apache settings for Beget (Vite copies this file into dist)
+Options -Indexes -MultiViews
 DirectoryIndex index.html
 AddDefaultCharset UTF-8
 AddType image/webp .webp
@@ -6,15 +7,21 @@ AddType image/svg+xml .svg
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  # Single-page app: any path that is not a real file opens index.html
-  RewriteCond %{REQUEST_FILENAME} -f [OR]
-  RewriteCond %{REQUEST_FILENAME} -d
-  RewriteRule ^ - [L]
-  RewriteRule ^assets/ - [R=404,L]
+  RewriteRule ^\.well-known/acme-challenge/ - [L]
+  # Beget terminates TLS at its proxy before forwarding to Apache.
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule .* https://%{SERVER_NAME}%{REQUEST_URI} [R=301,L]
+  # Static folders: real files or a real 404, never the app page
+  RewriteRule ^(?:assets|icons|sounds|admin)/ - [L]
+  # Single-page app: any other path that is not a real file opens index.html
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^ index.html [L]
 </IfModule>
 
 <IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
   # The page itself is always revalidated, so updates appear immediately
   <FilesMatch "\.html$">
     Header set Cache-Control "no-cache"

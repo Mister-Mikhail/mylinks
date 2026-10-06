@@ -4,6 +4,7 @@
 set -euo pipefail
 exec > >(tee -a ci.log) 2>&1
 
+echo "node $(node -v), npm $(npm -v), commit ${GITHUB_SHA:-local}"
 npm ci
 npm run lint
 npm run build

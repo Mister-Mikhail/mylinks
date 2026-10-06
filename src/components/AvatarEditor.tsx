@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent, type KeyboardEvent } from 'react'
 import { Camera, Check, Crop, LoaderCircle, Move, RotateCcw, X, ZoomIn } from 'lucide-react'
 import type { AvatarDraft, Profile } from '../types'
+import { cropAvatarToBlob } from '../lib/avatarImage'
 
 interface AvatarEditorProps {
   profile: Profile
@@ -37,10 +38,6 @@ const clampOffset = (offset: Point, image: ImageSize, zoom: number, viewportSize
     y: Math.max(-maxY, Math.min(maxY, offset.y)),
   }
 }
-
-const canvasBlob = (canvas: HTMLCanvasElement) => new Promise<Blob>((resolve, reject) => {
-  canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Не удалось подготовить изображение.')), 'image/webp', 0.9)
-})
 
 export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraftChange }: AvatarEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -180,14 +177,9 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
       const sourceX = ((renderedWidth - viewportSize) / 2 - offset.x) / renderedScale
       const sourceY = ((renderedHeight - viewportSize) / 2 - offset.y) / renderedScale
       const sourceSize = viewportSize / renderedScale
-      const canvas = document.createElement('canvas')
-      canvas.width = 1024
-      canvas.height = 1024
-      const context = canvas.getContext('2d')
-      if (!context) throw new Error('Не удалось открыть редактор изображения.')
 
-      context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, 1024, 1024)
-      const uploaded = await onUpload(await canvasBlob(canvas))
+      // The chosen frame is scaled down to at most 512 px and compressed before it is stored.
+      const uploaded = await onUpload(await cropAvatarToBlob(image, sourceX, sourceY, sourceSize))
       if (uploaded) closeEditor()
       else setError('Не удалось сохранить фото. Попробуйте ещё раз.')
     } catch (caught) {

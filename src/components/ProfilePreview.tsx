@@ -1,11 +1,14 @@
 import { useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { Link } from 'react-router-dom'
 import { Check, Copy, LockKeyhole, ShieldAlert, X } from 'lucide-react'
 import type { AvatarDraft, EditableContact, EditableLink, Profile } from '../types'
 import { isKnownSensitiveUrl } from '../lib/sensitiveLinks'
+import { copyText, profileUrl } from '../lib/clipboard'
 import { BrandMark } from './BrandMark'
 import { LinkIcon } from './LinkIcon'
 import { ProfileContacts } from './ProfileContacts'
+import './extras.css'
 
 interface ProfilePreviewProps {
   profile: Profile
@@ -34,19 +37,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
   }
 
   const copyProfileLink = async () => {
-    const profileUrl = `${window.location.origin}/${profile.handle}`
-    try {
-      await navigator.clipboard.writeText(profileUrl)
-    } catch {
-      const input = document.createElement('textarea')
-      input.value = profileUrl
-      input.style.position = 'fixed'
-      input.style.opacity = '0'
-      document.body.appendChild(input)
-      input.select()
-      document.execCommand('copy')
-      input.remove()
-    }
+    await copyText(profileUrl(profile.handle))
     setProfileLinkCopied(true)
     window.setTimeout(() => setProfileLinkCopied(false), 1800)
   }
@@ -115,7 +106,10 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
       </div>
 
       <div className="profile-card__footer">
-        <BrandMark light />
+        {interactive ? (
+          // Start page for visitors; signed-in owners land in their editor on the same route.
+          <Link className="profile-card__home" to="/" aria-label="mylinks.bar — на главную"><BrandMark light /></Link>
+        ) : <BrandMark light />}
       </div>
 
       {sensitiveLink && createPortal(

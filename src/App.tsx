@@ -31,6 +31,7 @@ import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } fr
 import { BrandMark } from './components/BrandMark'
 import { AvatarEditor } from './components/AvatarEditor'
 import { ProfilePreview } from './components/ProfilePreview'
+import './components/extras.css'
 import { capabilitiesForTier, FREE_CAPABILITIES } from './config/capabilities'
 import {
   buildPlatformUrl,
@@ -40,6 +41,7 @@ import {
   platformUsernameFromUrl,
 } from './config/linkPlatforms'
 import { supabase } from './lib/supabase'
+import { copyText, profileUrl } from './lib/clipboard'
 import { useStaffRole } from './lib/useStaffRole'
 import { CONTACT_OPTIONS, contactPlaceholder, isValidContactValue } from './lib/contacts'
 import { isKnownSensitiveUrl } from './lib/sensitiveLinks'
@@ -743,7 +745,7 @@ function Dashboard({ user }: { user: User }) {
         <aside className="preview-panel">
           <div className="preview-panel__heading">
             <div><MonitorSmartphone size={17} /><span>Предпросмотр</span></div>
-            <button className="button button--icon-text" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/${profile.handle}`)}><Copy size={14} /> Скопировать</button>
+            <button className="button button--icon-text" onClick={() => void copyText(profileUrl(profile.handle))}><Copy size={14} /> Скопировать</button>
           </div>
           <div className="device-frame">
             <div className="device-frame__speaker" />
@@ -787,6 +789,15 @@ function ContentEditor({
 }: ContentEditorProps) {
   const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null)
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
+  const [masterLinkCopied, setMasterLinkCopied] = useState(false)
+
+  const copyMasterLink = async () => {
+    if (!profile.handle) return
+    if (await copyText(profileUrl(profile.handle))) {
+      setMasterLinkCopied(true)
+      window.setTimeout(() => setMasterLinkCopied(false), 1800)
+    }
+  }
   const selectedLinkIndex = links.findIndex((link) => link.localId === selectedLinkId)
   const selectedContactIndex = contacts.findIndex((contact) => contact.localId === selectedContactId)
 
@@ -811,7 +822,7 @@ function ContentEditor({
         <div className="settings-card__title"><UserRound size={18} /><div><h2>Профиль</h2><p>Имя, описание и адрес вашей страницы.</p></div></div>
         <div className="field-grid">
           <label>Отображаемое имя<input value={profile.display_name} onChange={(event) => setProfile({ ...profile, display_name: event.target.value })} maxLength={60} /></label>
-          <label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandle(event.target.value) })} /></div></label>
+          <label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandle(event.target.value) })} /><button type="button" className={`input-prefix__copy ${masterLinkCopied ? 'input-prefix__copy--done' : ''}`} onClick={(event) => { event.preventDefault(); void copyMasterLink() }} disabled={!profile.handle} aria-label="Скопировать мастер‑ссылку">{masterLinkCopied ? <Check size={13} /> : <Copy size={13} />}<span aria-live="polite">{masterLinkCopied ? 'Скопировано' : 'Копировать'}</span></button></div></label>
           <label className="field-grid__full">О себе<textarea value={profile.bio} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} maxLength={160} rows={3} placeholder="Чем вы занимаетесь?" /><small>{profile.bio.length}/160</small></label>
         </div>
         <label className="publish-setting">

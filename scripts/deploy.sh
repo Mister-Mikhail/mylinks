@@ -27,6 +27,7 @@ ftp() { # ftp <tls yes|no> <commands...>
   timeout "${FTP_TIMEOUT:-120}" lftp -u "$USER_NAME","$PASS" "$HOST" -e "
     set ftp:ssl-allow $tls
     set ssl:verify-certificate no
+    set ssl:priority NORMAL:-VERS-TLS1.3
     set ftp:passive-mode on
     set net:timeout 15
     set net:max-retries 5

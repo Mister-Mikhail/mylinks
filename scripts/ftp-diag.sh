@@ -17,6 +17,8 @@ ftp_diag() {
   FTP_TIMEOUT=60 ftp yes "set ftp:ssl-protect-data no; set net:max-retries 1; debug 3; cd $REMOTE_DIR; put dist/$path -o $path" 2>&1 | show || true
   echo "-- no TLS"
   FTP_TIMEOUT=60 ftp no "set net:max-retries 1; debug 3; cd $REMOTE_DIR; put dist/$path -o $path" 2>&1 | show || true
+  echo "-- SFTP (port 22) with the same login"
+  timeout 60 lftp -u "$USER_NAME","$PASS" "sftp://$HOST" -e "set sftp:auto-confirm yes; set net:max-retries 1; ls -d . ; bye" 2>&1 | grep -v -i pass | tail -n 4 || true
   echo "-- gzip-compressed copy"
   gzip -9c "dist/$path" > probe.gz
   FTP_TIMEOUT=60 ftp yes "set net:max-retries 1; debug 3; cd $REMOTE_DIR; put probe.gz -o $(dirname "$path")/zz-probe-$$.gz" 2>&1 | show || true

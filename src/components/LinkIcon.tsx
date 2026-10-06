@@ -39,6 +39,8 @@ const localBrandIcon = (name: LinkIconName, url: string): BrandIcon | null => {
   // Russian banks refuse visitors from abroad, so their own icons would not load there.
   if (onDomain(host, 'alfabank.ru', 'alfa-bank.ru', 'alfabank.com')) return { src: '/icons/platforms/alfabank.svg' }
   if (onDomain(host, 'sovcombank.ru', 'halvacard.ru')) return { src: '/icons/platforms/sovcombank.svg' }
+  if (onDomain(host, 'sberbank.ru', 'sber.ru', 'sberbank.com')) return { src: '/icons/platforms/sberbank.svg' }
+  if (onDomain(host, 'tbank.ru', 'tinkoff.ru')) return { src: '/icons/platforms/tbank.svg' }
   return null
 }
 

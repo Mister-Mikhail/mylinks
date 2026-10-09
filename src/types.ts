@@ -58,6 +58,10 @@ export interface ProfileContact {
   kind: ContactKind
   label: string
   value: string
+  label_font?: FontKey
+  label_font_size?: number
+  value_font?: FontKey
+  value_font_size?: number
   position: number
   is_visible: boolean
   created_at?: string

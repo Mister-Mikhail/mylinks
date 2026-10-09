@@ -17,8 +17,10 @@ npm run lint
 npm run build
 php -l dist/share-profile.php
 php -l dist/share-avatar.php
+php -l dist/share-image.php
 php -l dist/preview-config.php
 php tests/share-preview.php
+php tests/share-image.php
 
 if [ "${IS_PR:-false}" = "true" ]; then
   npx playwright install --with-deps chromium > /dev/null

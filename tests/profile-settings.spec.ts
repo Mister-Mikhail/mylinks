@@ -192,9 +192,11 @@ test('largest fonts keep long text and mobile navigation inside their slots', as
     expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(1)
     await expect(page.getByRole('button', { name: 'Статистика', exact: true })).toBeInViewport()
     await page.getByRole('button', { name: 'Открыть страницу', exact: true }).click()
+    await expect(page.locator('.public-preview-page .profile-card')).toBeVisible()
   }
-  await page.locator('.profile-card').scrollIntoViewIfNeeded()
-  const heights = await page.locator('.profile-card').evaluate(card => ({ name: card.querySelector('h1')!.getBoundingClientRect().height, bio: card.querySelector('.profile-card__bio')!.getBoundingClientRect().height, link: card.querySelector('.profile-link__text')!.getBoundingClientRect().height }))
+  const profileCard = page.locator(isMobile ? '.public-preview-page .profile-card' : '.preview-panel .profile-card')
+  await profileCard.scrollIntoViewIfNeeded()
+  const heights = await profileCard.evaluate(card => ({ name: card.querySelector('h1')!.getBoundingClientRect().height, bio: card.querySelector('.profile-card__bio')!.getBoundingClientRect().height, link: card.querySelector('.profile-link__text')!.getBoundingClientRect().height }))
   expect(heights.name).toBeLessThanOrEqual(68)
   expect(heights.bio).toBeLessThanOrEqual(87)
   expect(heights.link).toBeLessThanOrEqual(39)

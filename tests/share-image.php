@@ -14,5 +14,11 @@ $image=imagecreatefromstring($png);
 $pixel=imagecolorsforindex($image,imagecolorat($image,310,310));
 verify_image($pixel['red']===230 && $pixel['green']===100 && $pixel['blue']===30,'Avatar missing from preview');
 verify_image(preview_image_render('invalid')===null,'Invalid image accepted');
+verify_image(preview_image_render('<svg></svg>')===null,'SVG passed to image delegate');
+if (class_exists('Imagick')) {
+    $alternative=preview_image_render_imagick($bytes);
+    $alternativeInfo=$alternative ? getimagesizefromstring($alternative) : null;
+    verify_image($alternativeInfo && $alternativeInfo['mime']==='image/png' && $alternativeInfo[0]===1200 && $alternativeInfo[1]===630,'Imagick fallback failed');
+}
 unset($image);
 echo "Share-image checks passed\n";

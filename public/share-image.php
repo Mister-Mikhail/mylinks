@@ -3,34 +3,47 @@ define('MYLINKS_PREVIEW_LIBRARY_ONLY', true);
 require __DIR__ . '/share-profile.php';
 
 // Always return a real PNG, including failures and profiles made private.
-function preview_image_fallback() {
+function preview_image_fallback($reason) {
     header('Content-Type: image/png');
+    header('X-Mylinks-Preview: fallback-' . $reason);
     readfile(__DIR__ . '/share-default.png');
     exit;
 }
 
 function preview_avatar_bytes($profile) {
     $path = implode('/', array_map('rawurlencode', explode('/', $profile['avatar_path'])));
-    $result = preview_api('/storage/v1/object/sign/avatars/' . $path, array('expiresIn' => 60));
-    if (!isset($result['signedURL']) || strpos($result['signedURL'], '/object/sign/avatars/') !== 0) return null;
+    $result = preview_api('/storage/v1/object/sign/avatars/' . $path, array('expiresIn' => 3600));
+    if (!isset($result['signedURL']) || strpos($result['signedURL'], '/object/sign/avatars/') !== 0) { header('X-Mylinks-Avatar-Fetch: sign-failed'); return null; }
     $config = require __DIR__ . '/preview-config.php';
     $curl = curl_init($config['url'] . '/storage/v1' . $result['signedURL']);
     $bytes = '';
     curl_setopt_array($curl, array(
-        CURLOPT_CONNECTTIMEOUT => 2, CURLOPT_TIMEOUT => 5,
+        CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_TIMEOUT => 12,
+        CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 3,
+        CURLOPT_USERAGENT => 'mylinks.bar preview image',
+        CURLOPT_HTTPHEADER => array('apikey: ' . $config['key'], 'Accept: image/*'),
         CURLOPT_WRITEFUNCTION => function ($curl, $chunk) use (&$bytes) {
             if (strlen($bytes) + strlen($chunk) > 8 * 1024 * 1024) return 0;
             $bytes .= $chunk;
             return strlen($chunk);
         },
     ));
+    if (defined('CURLOPT_PROTOCOLS_STR')) {
+        curl_setopt($curl,CURLOPT_PROTOCOLS_STR,'https');
+        curl_setopt($curl,CURLOPT_REDIR_PROTOCOLS_STR,'https');
+    } else {
+        curl_setopt($curl,CURLOPT_PROTOCOLS,CURLPROTO_HTTPS);
+        curl_setopt($curl,CURLOPT_REDIR_PROTOCOLS,CURLPROTO_HTTPS);
+    }
     $ok = curl_exec($curl);
     $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    header('X-Mylinks-Avatar-Fetch: http-' . $status);
     curl_close($curl);
     return $ok !== false && $status === 200 ? $bytes : null;
 }
 
-function preview_image_render($bytes) {
+function preview_image_render_gd($bytes) {
+    if (!function_exists('imagecreatefromstring')) return null;
     $info = @getimagesizefromstring($bytes);
     if (!$info || $info[0] * $info[1] > 16000000) return null;
     $avatar = @imagecreatefromstring($bytes);
@@ -48,23 +61,60 @@ function preview_image_render($bytes) {
     return $png;
 }
 
+function preview_image_render_imagick($bytes) {
+    if (!class_exists('Imagick')) return null;
+    try {
+        Imagick::setResourceLimit(Imagick::RESOURCETYPE_MEMORY,64*1024*1024);
+        Imagick::setResourceLimit(Imagick::RESOURCETYPE_MAP,64*1024*1024);
+        Imagick::setResourceLimit(Imagick::RESOURCETYPE_DISK,0);
+        $avatar = new Imagick();
+        $avatar->readImageBlob($bytes);
+        if ($avatar->getImageWidth()*$avatar->getImageHeight()>16000000) return null;
+        $avatar->setIteratorIndex(0);
+        $avatar = $avatar->getImage();
+        $avatar->cropThumbnailImage(440,440);
+        $canvas = new Imagick(__DIR__ . '/share-default.png');
+        $draw = new ImagickDraw();
+        $draw->setFillColor('#11161e');
+        $draw->rectangle(75,70,570,560);
+        $canvas->drawImage($draw);
+        $canvas->compositeImage($avatar,Imagick::COMPOSITE_OVER,90,95);
+        $canvas->setImageFormat('png');
+        return $canvas->getImageBlob();
+    } catch (Exception $error) { return null; }
+}
+
+function preview_image_render($bytes) {
+    // Do not pass arbitrary formats (e.g. SVG) to an image delegate.
+    $raster = substr($bytes,0,8)==="\x89PNG\r\n\x1a\n" || substr($bytes,0,3)==="\xff\xd8\xff"
+        || (substr($bytes,0,4)==='RIFF' && substr($bytes,8,4)==='WEBP');
+    if (!$raster) return null;
+    $png = preview_image_render_gd($bytes);
+    if ($png) { header('X-Mylinks-Preview-Engine: gd'); return $png; }
+    $png = preview_image_render_imagick($bytes);
+    if ($png) header('X-Mylinks-Preview-Engine: imagick');
+    return $png;
+}
+
 if (!defined('MYLINKS_PREVIEW_IMAGE_LIBRARY_ONLY')) {
     header('Content-Type: image/png');
     header('Cache-Control: no-cache, max-age=0');
     $handle = preview_handle(isset($_GET['handle']) ? $_GET['handle'] : null);
     $profile = preview_profile($handle);
-    if (!$profile || empty($profile['avatar_path']) || !function_exists('imagecreatefromstring')) preview_image_fallback();
+    if (!$profile || empty($profile['avatar_path'])) preview_image_fallback('profile');
+    if (!function_exists('imagecreatefromstring') && !class_exists('Imagick')) preview_image_fallback('engine');
     // Cache only image bytes; publication is checked through RLS on every request.
-    $key = hash('sha256',$profile['avatar_path'] . $profile['updated_at']);
+    $key = hash('sha256','png-v2' . $profile['avatar_path'] . $profile['updated_at']);
     $cache = sys_get_temp_dir() . '/mylinks-preview-' . $key . '.png';
-    if (is_file($cache) && filemtime($cache) > time()-86400) { readfile($cache); exit; }
+    if (is_file($cache) && filemtime($cache) > time()-86400) { header('X-Mylinks-Preview: avatar-cached'); readfile($cache); exit; }
     $bytes = preview_avatar_bytes($profile);
     $png = $bytes ? preview_image_render($bytes) : null;
-    if (!$png) preview_image_fallback();
+    if (!$png) preview_image_fallback($bytes ? 'decode' : 'download');
     $temporary = @tempnam(sys_get_temp_dir(),'mylinks-preview-');
     if ($temporary) {
         if (@file_put_contents($temporary,$png) !== false) @rename($temporary,$cache);
         if (is_file($temporary)) @unlink($temporary);
     }
+    header('X-Mylinks-Preview: avatar');
     echo $png;
 }

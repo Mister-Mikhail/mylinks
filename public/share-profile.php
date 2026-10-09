@@ -38,7 +38,7 @@ function preview_html($html, $profile, $handle) {
     $title = $profile ? (trim($profile['display_name']) ?: $handle) . ' — mylinks.bar' : 'mylinks.bar — все ссылки в одном месте';
     $description = $profile ? (trim($profile['bio']) ?: 'Все ссылки ' . (trim($profile['display_name']) ?: $handle) . ' в одном месте.') : 'mylinks.bar — одна ссылка для всего, чем вы делитесь.';
     $image = $profile && !empty($profile['avatar_path'])
-        ? 'https://mylinks.bar/share-image/' . rawurlencode($handle) . '.' . substr(hash('sha256', $profile['avatar_path'] . $profile['updated_at']),0,12) . '.png'
+        ? 'https://mylinks.bar/share-image/' . rawurlencode($handle) . '.' . substr(hash('sha256', 'png-v2' . $profile['avatar_path'] . $profile['updated_at']),0,12) . '.png'
         : 'https://mylinks.bar/share-default.png';
     $html = preg_replace('/<title>.*?<\/title>/s', '<title>' . $escape($title) . '</title>', $html);
     $html = preg_replace('/<meta name="description"[^>]*\/>/', '<meta name="description" content="' . $escape($description) . '" />', $html);

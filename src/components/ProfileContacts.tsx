@@ -1,6 +1,7 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Mail, MapPin, Phone } from 'lucide-react'
 import { addressHref, contactKindLabel, emailHref, phoneHref } from '../lib/contacts'
+import { textStyle } from '../lib/typography'
 import type { CardPreset, EditableContact } from '../types'
 
 interface ProfileContactsProps {
@@ -12,8 +13,8 @@ interface ProfileContactsProps {
 
 const ContactCopy = ({ contact, status }: { contact: EditableContact; status?: string }) => (
   <span className="profile-contact__copy">
-    <strong>{contact.label.trim() || contactKindLabel(contact.kind)}</strong>
-    <small>{status || contact.value}</small>
+    <strong style={textStyle(contact.label_font, contact.label_font_size, 'contactLabel')}>{contact.label.trim() || contactKindLabel(contact.kind)}</strong>
+    <small style={textStyle(contact.value_font, contact.value_font_size, 'contactValue')}>{status || contact.value}</small>
   </span>
 )
 
@@ -103,3 +104,4 @@ export function ProfileContacts({ contacts, cardPreset, interactive, onActivate 
     </div>
   )
 }
+

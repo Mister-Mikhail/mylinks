@@ -11,9 +11,9 @@ Free MVP of a link-in-bio service, hosted at https://mylinks.bar on Beget. A use
 - Manual 18+ warnings with automatic enforcement for known adult-platform domains
 - Unlimited address, phone, and email contact cards with device-native actions
 - Three restrained visual themes and three card styles
-- Separate font and bounded size settings for the name, bio, master URL and every link label
+- Fifteen self-hosted Cyrillic/Latin fonts and bounded sizes for the name, bio, master URL, link labels and contact labels/values
 - Per-card selection and up/down arrows; site icons beside the 18+ setting
-- Owner-only page views, visitor sessions and link-click statistics for 7, 30 or 90 days
+- Owner-only page views, visitor sessions and link-click statistics for 7, 30, 90, 180 days, a calendar year (365/366), or all time since registration
 - Server-rendered Open Graph previews with profile name, bio and avatar for Telegram and other crawlers
 - Public profiles at `/:handle`, with unpublished profiles visible only to their owner; legacy `/p/:handle` redirects
 - Free-only capability layer prepared for future feature tiers
@@ -69,10 +69,10 @@ Run `npm run test:e2e -- tests/appearance.spec.ts` for mocked desktop/mobile per
 
 ## Typography, sharing and statistics
 
-Apply `20261009030827_profile_typography_and_analytics.sql` before deploying this release. Font names and sizes are constrained by both the editor and database. Each saved link has its own typography. The master URL under the avatar is displayed as `mylinks.bar/handle` and remains a copy button.
+Apply `20261009030827_profile_typography_and_analytics.sql` and `20261009044557_expanded_fonts_contacts_lifetime_statistics.sql` before deploying this release. Font names and sizes are constrained by both the editor and database. Each saved link has its own typography; contact captions and values have independent font/size controls. Selected contacts use the same card-local arrows as links. The font assets include handwritten, condensed, classical, decorative, heavy and pixel styles; licenses and source versions are in `public/fonts`. The master URL under the avatar is displayed as `mylinks.bar/handle` and remains a copy button.
 
-`npm run build` also creates `dist/preview-config.php` from the two public VITE Supabase variables. No privileged key is used. Apache routes supported preview crawlers to `share-profile.php`; ordinary visitors retain the static entry point. Published profiles get escaped title, bio, canonical URL and Open Graph/Twitter image metadata before JavaScript. The avatar endpoint checks publication again before redirecting to a signed Storage URL. Unpublished profiles reveal no personal metadata. Deploy PHP/config/assets before updating `.htaccess`.
+`npm run build` also creates `dist/preview-config.php` from the two public VITE Supabase variables. No privileged key is used. Apache routes all profile requests to `share-profile.php`, so metadata never depends on crawler User-Agent detection; the landing page retains its static entry point. Published profiles get escaped title, bio, canonical URL and Open Graph/Twitter image metadata before JavaScript. The image endpoint rechecks publication and uses GD to return a 1200×630 PNG directly on the same domain, without image redirects or exposing a temporary Storage URL. The old avatar endpoint remains compatible with cached previews. GD and cURL must be available on the host. Only image bytes are cached temporarily; publication is checked on every request. Unpublished profiles reveal no personal metadata. Deploy PHP/config/assets before updating `.htaccess`.
 
-Events contain only the profile/link id, random browser-session id and timestamp. Counts start when the feature is deployed; historic traffic cannot be reconstructed. Editor previews and signed-in owners do not generate events; adult-link clicks are recorded only after confirmation. Duplicate events from the same browser session and target within the same minute are collapsed. Statistics RPCs use caller permissions and owner RLS, with daily periods in Europe/Moscow.
+Events contain only the profile/link id, random browser-session id and timestamp. All saved events are retained without a rolling limit; earlier `analytics.link_clicks` records are imported once. The default period starts at profile registration. Visits never recorded before tracking started cannot be reconstructed. Long daily histories are paginated in the UI without truncating totals. Editor previews and signed-in owners do not generate events; adult-link clicks are recorded only after confirmation. Duplicate events from the same browser session and target within the same minute are collapsed. Statistics RPCs use caller permissions and owner RLS, with daily periods in Europe/Moscow.
 
-Run `php tests/share-preview.php` and `npm run test:e2e -- tests/profile-settings.spec.ts` for sharing, saved typography/order, owner statistics and visitor tracking checks. Tests mock frontend APIs; database verification uses rolled-back transactions.
+Run `php tests/share-preview.php`, `php tests/share-image.php` and `npm run test:e2e -- tests/profile-settings.spec.ts` for sharing, saved typography/order, owner statistics and visitor tracking checks. Tests mock frontend APIs; database verification uses rolled-back transactions.

@@ -125,6 +125,10 @@ const toEditableContact = (contact: ProfileContact): EditableContact => ({
   kind: contact.kind,
   label: contact.label,
   value: contact.value,
+  label_font: contact.label_font,
+  label_font_size: contact.label_font_size,
+  value_font: contact.value_font,
+  value_font_size: contact.value_font_size,
   position: contact.position,
   is_visible: contact.is_visible,
   created_at: contact.created_at,
@@ -656,6 +660,10 @@ function Dashboard({ user }: { user: User }) {
         kind: contact.kind,
         label: contact.label.trim(),
         value: contact.value.trim(),
+        label_font: contact.label_font ?? 'manrope',
+        label_font_size: contact.label_font_size ?? 10,
+        value_font: contact.value_font ?? 'manrope',
+        value_font_size: contact.value_font_size ?? 9,
         position,
         is_visible: contact.is_visible,
       }))
@@ -669,6 +677,10 @@ function Dashboard({ user }: { user: User }) {
         kind: contact.kind,
         label: contact.label.trim(),
         value: contact.value.trim(),
+        label_font: contact.label_font ?? 'manrope',
+        label_font_size: contact.label_font_size ?? 10,
+        value_font: contact.value_font ?? 'manrope',
+        value_font_size: contact.value_font_size ?? 9,
         position,
         is_visible: contact.is_visible,
       }))
@@ -832,7 +844,6 @@ function ContentEditor({
     card.scrollIntoView({ behavior: 'smooth', block: 'center' })
     card.querySelector<HTMLInputElement>('input[aria-label="Адрес ссылки"]')?.focus({ preventScroll: true })
   }, [newLinkId])
-  const selectedContactIndex = contacts.findIndex((contact) => contact.localId === selectedContactId)
 
   const changePlatform = (link: EditableLink, nextValue: LinkIconName) => {
     const currentPlatform = getLinkPlatform(link.icon_key)
@@ -950,10 +961,6 @@ function ContentEditor({
         <div className="settings-card__title settings-card__title--action">
           <div className="settings-card__title-copy"><MapPin size={18} /><div><h2>Контакты</h2><p>Адреса, телефоны и почта · без ограничений</p></div></div>
           <div className="settings-card__actions">
-            <div className="reorder-controls" aria-label="Порядок выбранного контакта">
-              <button className="icon-button" type="button" onClick={() => moveContact(selectedContactIndex, -1)} disabled={selectedContactIndex <= 0} aria-label="Переместить выбранный контакт выше"><ArrowUp size={16} /></button>
-              <button className="icon-button" type="button" onClick={() => moveContact(selectedContactIndex, 1)} disabled={selectedContactIndex < 0 || selectedContactIndex === contacts.length - 1} aria-label="Переместить выбранный контакт ниже"><ArrowDown size={16} /></button>
-            </div>
             <button className="button button--secondary button--small" type="button" onClick={addContact}><Plus size={16} /> Добавить</button>
           </div>
         </div>
@@ -963,8 +970,10 @@ function ContentEditor({
           {contacts.length === 0 && (
             <button className="empty-links" type="button" onClick={addContact}><span><Plus size={21} /></span><strong>Добавьте контакты</strong><p>Адрес, телефон или электронную почту.</p></button>
           )}
-          {contacts.map((contact) => (
-            <article className={`link-editor contact-editor ${selectedContactId === contact.localId ? 'link-editor--selected' : ''}`} key={contact.localId}>
+          {contacts.map((contact, index) => (
+            <article className={`link-editor contact-editor ${selectedContactId === contact.localId ? 'link-editor--selected' : ''}`} key={contact.localId} data-contact-id={contact.localId}>
+              <div className="link-editor__move" aria-label="Перемещение контакта">
+                <button className="icon-button" type="button" onClick={() => moveContact(index, -1)} disabled={selectedContactId !== contact.localId || index === 0} aria-label="Переместить контакт выше"><ArrowUp size={16} /></button>
               <button
                 className={`selection-check ${selectedContactId === contact.localId ? 'selection-check--selected' : ''}`}
                 type="button"
@@ -972,6 +981,8 @@ function ContentEditor({
                 aria-label={selectedContactId === contact.localId ? 'Снять выбор контакта' : 'Выбрать контакт для перемещения'}
                 onClick={() => setSelectedContactId((current) => current === contact.localId ? null : contact.localId)}
               >{selectedContactId === contact.localId && <Check size={15} />}</button>
+                <button className="icon-button" type="button" onClick={() => moveContact(index, 1)} disabled={selectedContactId !== contact.localId || index === contacts.length - 1} aria-label="Переместить контакт ниже"><ArrowDown size={16} /></button>
+              </div>
               <div className="link-editor__body">
                 <div className="link-editor__row">
                   <select aria-label="Тип контакта" value={contact.kind} onChange={(event) => updateContact(contact.localId, { kind: event.target.value as ContactKind })}>
@@ -979,6 +990,7 @@ function ContentEditor({
                   </select>
                   <input aria-label="Подпись контакта" value={contact.label} onChange={(event) => updateContact(contact.localId, { label: event.target.value })} placeholder="Подпись (необязательно)" maxLength={80} />
                 </div>
+                <TypographyControls label="Подпись контакта" slot="contactLabel" font={contact.label_font} size={contact.label_font_size} onChange={(font, size) => updateContact(contact.localId, { label_font: font, label_font_size: size })} />
                 <input
                   aria-label="Значение контакта"
                   type={contact.kind === 'email' ? 'email' : contact.kind === 'phone' ? 'tel' : 'text'}
@@ -987,6 +999,7 @@ function ContentEditor({
                   onChange={(event) => updateContact(contact.localId, { value: event.target.value })}
                   placeholder={contactPlaceholder(contact.kind)}
                 />
+                <TypographyControls label="Значение контакта" slot="contactValue" font={contact.value_font} size={contact.value_font_size} onChange={(font, size) => updateContact(contact.localId, { value_font: font, value_font_size: size })} />
                 <small className="link-editor__hint">{contact.kind === 'address' ? 'Откроется в приложении карт' : contact.kind === 'phone' ? 'Откроется набор номера' : 'Нажатие копирует · удержание открывает почту'}</small>
               </div>
               <div className="link-editor__actions">

@@ -865,6 +865,7 @@ a.profile-link:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.2;
 }
 
 .profile-contact__copy strong {
@@ -2742,7 +2743,10 @@ select:focus {
 .profile-card__handle span { overflow-wrap: anywhere; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .profile-link__text { overflow-wrap: anywhere; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; max-height: 38.4px; }
 .statistics__toolbar { display: flex; align-items: end; justify-content: space-between; gap: 12px; }
-.statistics__toolbar label { max-width: 180px; }
+.statistics__toolbar label { min-width: 0; width: 240px; }
+.statistics__toolbar select { width: 100%; min-width: 0; }
+.statistics__pagination { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; }
+.statistics__pagination span { color: #8c97a7; font-size: 11px; }
 .statistics__note { font-size: 11px; line-height: 1.7; color: #8c97a7; }
 .statistics__loading, .statistics__empty { display: flex; align-items: center; gap: 10px; padding: 18px 0; color: #9aabba; font-size: 12px; }
 .statistics__metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 20px 0; }
@@ -2765,7 +2769,7 @@ select:focus {
   .link-editor__footer { gap: 8px; }
 }
 @media (max-width: 650px) {
-  .link-editor:not(.contact-editor) { grid-template-columns: 30px minmax(0, 1fr); }
+  .link-editor { grid-template-columns: 30px minmax(0, 1fr); }
   .link-editor__move { align-self: center; }
 }
 .field-grid .profile-text-field small { position: static; display: block; text-align: right; margin-top: 4px; }

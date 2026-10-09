@@ -69,7 +69,7 @@ Run `npm run test:e2e -- tests/appearance.spec.ts` for mocked desktop/mobile per
 
 ## Typography, sharing and statistics
 
-Apply `20261009030320_profile_typography_and_analytics.sql` before deploying this release. Font names and sizes are constrained by both the editor and database. Each saved link has its own typography. The master URL under the avatar is displayed as `mylinks.bar/handle` and remains a copy button.
+Apply `20261009030827_profile_typography_and_analytics.sql` before deploying this release. Font names and sizes are constrained by both the editor and database. Each saved link has its own typography. The master URL under the avatar is displayed as `mylinks.bar/handle` and remains a copy button.
 
 `npm run build` also creates `dist/preview-config.php` from the two public VITE Supabase variables. No privileged key is used. Apache routes supported preview crawlers to `share-profile.php`; ordinary visitors retain the static entry point. Published profiles get escaped title, bio, canonical URL and Open Graph/Twitter image metadata before JavaScript. The avatar endpoint checks publication again before redirecting to a signed Storage URL. Unpublished profiles reveal no personal metadata. Deploy PHP/config/assets before updating `.htaccess`.
 

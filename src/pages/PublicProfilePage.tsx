@@ -5,6 +5,7 @@ import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { BrandMark } from '../components/BrandMark'
 import { ProfilePreview } from '../components/ProfilePreview'
 import { supabase } from '../lib/supabase'
+import { recordProfileEvent } from '../lib/analytics'
 import { publicSupabase } from '../lib/supabasePublic'
 import type { EditableContact, EditableLink, Profile, ProfileContact, ProfileLink } from '../types'
 import './publicProfile.css'
@@ -68,6 +69,8 @@ const toEditable = (link: ProfileLink): EditableLink => ({
   profile_id: link.profile_id,
   localId: link.id,
   label: link.label,
+  label_font: link.label_font,
+  label_font_size: link.label_font_size,
   url: link.url,
   icon_key: link.icon_key,
   position: link.position,
@@ -230,6 +233,11 @@ export function PublicProfilePage({ handle }: { handle: string }) {
     }
   }, [handle, instant, initial, attempt])
 
+  const canTrack = sessionResolved && status === 'ready' && Boolean(data?.profile.is_published) && session?.user.id !== data?.profile.id && !instant
+  useEffect(() => {
+    if (canTrack && data) recordProfileEvent(data.profile.id)
+  }, [canTrack, data])
+
   if (status === 'loading') return <ProfileSkeleton />
 
   if (status === 'error' && !data) {
@@ -263,7 +271,8 @@ export function PublicProfilePage({ handle }: { handle: string }) {
   return (
     <main className={`public-preview-page theme-${visibleData.profile.background_preset}`}>
       {isOwner && <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> В редактор</button>}
-      <div className="public-preview-page__content"><ProfilePreview profile={visibleData.profile} links={visibleData.links} contacts={visibleData.contacts} interactive showPrivacy={!visibleData.profile.is_published} /></div>
+      <div className="public-preview-page__content"><ProfilePreview profile={visibleData.profile} links={visibleData.links} contacts={visibleData.contacts} interactive onLinkActivate={canTrack ? link => { if (link.id) recordProfileEvent(visibleData.profile.id, link.id) } : undefined} showPrivacy={!visibleData.profile.is_published} /></div>
     </main>
   )
 }
+

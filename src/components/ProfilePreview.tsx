@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { Check, Copy, LockKeyhole, ShieldAlert, X } from 'lucide-react'
 import type { AvatarDraft, EditableContact, EditableLink, Profile } from '../types'
+import { textStyle } from '../lib/typography'
 import { isKnownSensitiveUrl } from '../lib/sensitiveLinks'
 import { copyText, profileUrl } from '../lib/clipboard'
 import { BrandMark } from './BrandMark'
@@ -17,11 +18,12 @@ interface ProfilePreviewProps {
   interactive?: boolean
   avatarDraft?: AvatarDraft | null
   showPrivacy?: boolean
+  onLinkActivate?: (link: EditableLink) => void
 }
 
 const initials = (name: string) => name.trim().slice(0, 2).toUpperCase() || 'ML'
 
-export function ProfilePreview({ profile, links, contacts = [], interactive = false, showPrivacy = true, avatarDraft = null }: ProfilePreviewProps) {
+export function ProfilePreview({ profile, links, contacts = [], interactive = false, showPrivacy = true, avatarDraft = null, onLinkActivate }: ProfilePreviewProps) {
   const visibleLinks = links.filter((link) => link.is_visible && link.label && link.url)
   const [sensitiveLink, setSensitiveLink] = useState<EditableLink | null>(null)
   const [profileLinkCopied, setProfileLinkCopied] = useState(false)
@@ -44,13 +46,17 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
 
   const openLink = (event: MouseEvent<HTMLAnchorElement>, link: EditableLink) => {
     playClickSound()
-    if (!link.is_sensitive && !isKnownSensitiveUrl(link.url)) return
+    if (!link.is_sensitive && !isKnownSensitiveUrl(link.url)) {
+      onLinkActivate?.(link)
+      return
+    }
     event.preventDefault()
     setSensitiveLink(link)
   }
 
   const confirmSensitiveLink = () => {
     if (!sensitiveLink) return
+    onLinkActivate?.(sensitiveLink)
     const popup = window.open(sensitiveLink.url, '_blank', 'noopener,noreferrer')
     if (popup) popup.opener = null
     setSensitiveLink(null)
@@ -69,12 +75,12 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
         <div className={`avatar avatar--${profile.avatar_shape}`} style={{ '--avatar-size': `${Math.round(42 + (profile.avatar_scale || 28) * 2.1)}px` } as CSSProperties}>
           {avatarDraft ? <img className="avatar__draft" src={avatarDraft.src} alt="" style={{ position: 'absolute', width: `${Math.max(1, avatarDraft.aspectRatio) * avatarDraft.zoom * 100}%`, height: `${Math.max(1, 1 / avatarDraft.aspectRatio) * avatarDraft.zoom * 100}%`, left: `${50 + avatarDraft.x * 100}%`, top: `${50 + avatarDraft.y * 100}%`, maxWidth: 'none', transform: 'translate(-50%, -50%)' }} /> : profile.avatar_preview_url || profile.avatar_url ? <img src={profile.avatar_preview_url || profile.avatar_url || ''} alt="" /> : <span>{initials(profile.display_name)}</span>}
         </div>
-        <h1>{profile.display_name || 'Ваше имя'}</h1>
-        <button className="profile-card__handle" type="button" onClick={() => void copyProfileLink()} aria-label="Скопировать ссылку на профиль">
+        <h1 style={textStyle(profile.name_font, profile.name_font_size, 'name')}>{profile.display_name || 'Ваше имя'}</h1>
+        <button className="profile-card__handle" style={textStyle(profile.handle_font, profile.handle_font_size, 'handle')} type="button" onClick={() => void copyProfileLink()} aria-label="Скопировать ссылку на профиль">
           {profileLinkCopied ? <Check size={11} /> : <Copy size={10} />}
-          <span>@{profile.handle || 'username'}</span>
+          <span>mylinks.bar/{profile.handle || 'username'}</span>
         </button>
-        <p className="profile-card__bio">{profile.bio || 'Коротко расскажите о себе и о том, чем делитесь.'}</p>
+        <p className="profile-card__bio" style={textStyle(profile.bio_font, profile.bio_font_size, 'bio')}>{profile.bio || 'Коротко расскажите о себе и о том, чем делитесь.'}</p>
         <span className={`profile-card__copy-toast ${profileLinkCopied ? 'profile-card__copy-toast--visible' : ''}`} aria-live="polite">Ссылка скопирована</span>
       </div>
 
@@ -86,7 +92,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
           const content = (
             <>
               <span className="profile-link__icon"><LinkIcon name={link.icon_key} url={link.url} /></span>
-              <span className="profile-link__label">{link.label}{(link.is_sensitive || isKnownSensitiveUrl(link.url)) && <small>18+</small>}</span>
+              <span className="profile-link__label" style={textStyle(link.label_font, link.label_font_size, 'link')}><span className="profile-link__text">{link.label}</span>{(link.is_sensitive || isKnownSensitiveUrl(link.url)) && <small>18+</small>}</span>
             </>
           )
           return interactive ? (
@@ -129,3 +135,4 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
     </section>
   )
 }
+

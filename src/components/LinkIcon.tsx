@@ -62,7 +62,6 @@ export function LinkIcon({ name, url = '', size = 19 }: LinkIconProps) {
     return <img className="link-icon__brand" src={localIcon.src} alt="" aria-hidden onError={() => setAttempt({ ...state, localFailed: true })} />
   }
   if (name === 'email') return <AtSign {...props} />
-  if (name === 'website') return <Globe2 {...props} />
 
   const candidate = candidates[state.index]
   if (candidate) {
@@ -71,3 +70,4 @@ export function LinkIcon({ name, url = '', size = 19 }: LinkIconProps) {
   }
   return candidates.length ? <Globe2 {...props} /> : <Link2 {...props} />
 }
+

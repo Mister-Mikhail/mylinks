@@ -77,14 +77,14 @@ diagnose() { # probe each file the server refused (see scripts/ftp-diag.sh)
     ftp_diag "$(cd dist && find . -type f -name "$name" | head -1 | sed 's#^\./##')"
   done
 }
-# .htaccess first: it is independent of the build and carries the HTTPS redirect.
-FTP_TIMEOUT=60 ftp "$TLS" "cd $REMOTE_DIR; put dist/.htaccess -o .htaccess"
 ok=0
 for attempt in 1 2; do
   if upload_files 2>&1 | tee upload.log; then ok=1; break; fi
   echo "Upload attempt $attempt failed"; sleep 5
 done
 if [ "$ok" != 1 ]; then echo "== Diagnose"; diagnose; exit 1; fi
+# PHP files and their config are in place before enabling crawler routing.
+FTP_TIMEOUT=60 ftp "$TLS" "cd $REMOTE_DIR; put dist/.htaccess -o .htaccess"
 # index.html goes last, after every file it refers to is in place.
 FTP_TIMEOUT=120 ftp "$TLS" "cd $REMOTE_DIR; put dist/index.html -o index.html"
 echo "Upload finished"
@@ -103,3 +103,4 @@ curl -fsS -o /dev/null "$SITE_URL/$expected" || { echo "Main script is not reach
 code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE_URL/mister"); echo "/mister -> $code"
 [ "$code" = "200" ] || { echo "Profile URL failed (SPA fallback in .htaccess?)"; exit 1; }
 echo "Deploy OK"
+

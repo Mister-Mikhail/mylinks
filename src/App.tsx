@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import {
+  BarChart3,
   ArrowDown,
   ArrowLeft,
   ArrowRight,
@@ -31,6 +32,9 @@ import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } fr
 import { BrandMark } from './components/BrandMark'
 import { AvatarEditor } from './components/AvatarEditor'
 import { ProfilePreview } from './components/ProfilePreview'
+import { TypographyControls } from './components/TypographyControls'
+import { LinkIcon } from './components/LinkIcon'
+import { StatisticsPanel } from './components/StatisticsPanel'
 import './components/extras.css'
 import { capabilitiesForTier, FREE_CAPABILITIES } from './config/capabilities'
 import {
@@ -50,7 +54,7 @@ import type { AvatarDraft, ContactKind, EditableContact, EditableLink, LinkIcon 
 
 type AuthMode = 'login' | 'register'
 const AdminPanel = lazy(() => import('./components/AdminPanel'))
-type EditorSection = 'links' | 'design'
+type EditorSection = 'links' | 'design' | 'stats'
 
 interface EditorSnapshot {
   userId: string
@@ -103,6 +107,8 @@ const toEditable = (link: ProfileLink): EditableLink => ({
   profile_id: link.profile_id,
   localId: link.id,
   label: link.label,
+  label_font: link.label_font,
+  label_font_size: link.label_font_size,
   url: link.url,
   icon_key: link.icon_key,
   position: link.position,
@@ -578,6 +584,12 @@ function Dashboard({ user }: { user: User }) {
         handle: profile.handle,
         display_name: profile.display_name.trim(),
         bio: profile.bio.trim(),
+        name_font: profile.name_font ?? 'manrope',
+        name_font_size: profile.name_font_size ?? 21,
+        bio_font: profile.bio_font ?? 'manrope',
+        bio_font_size: profile.bio_font_size ?? 10,
+        handle_font: profile.handle_font ?? 'manrope',
+        handle_font_size: profile.handle_font_size ?? 10,
         avatar_url: profile.avatar_url?.trim() || null,
         avatar_path: profile.avatar_path,
         background_preset: profile.background_preset,
@@ -601,6 +613,8 @@ function Dashboard({ user }: { user: User }) {
         id: link.id,
         profile_id: user.id,
         label: link.label.trim(),
+        label_font: link.label_font ?? 'manrope',
+        label_font_size: link.label_font_size ?? 11,
         url: normalizeUrl(link.url),
         icon_key: link.icon_key,
         position,
@@ -615,6 +629,8 @@ function Dashboard({ user }: { user: User }) {
       const fresh = positionedLinks.filter(({ link }) => !link.id).map(({ link, position }) => ({
         profile_id: user.id,
         label: link.label.trim(),
+        label_font: link.label_font ?? 'manrope',
+        label_font_size: link.label_font_size ?? 11,
         url: normalizeUrl(link.url),
         icon_key: link.icon_key,
         position,
@@ -705,7 +721,8 @@ function Dashboard({ user }: { user: User }) {
             <p className="editor-nav__label">Редактор</p>
             <button className={section === 'links' ? 'active' : ''} onClick={() => setSection('links')} disabled={avatarUploading || Boolean(avatarDraft)}><Link2 size={18} /> <span>Ссылки</span></button>
             <button className={section === 'design' ? 'active' : ''} onClick={() => setSection('design')}><Palette size={18} /> <span>Оформление</span></button>
-            {staffRole && <Link className="editor-nav__staff-link" to="/admin"><ShieldCheck size={18} /><span>{staffRole === 'admin' ? 'Администрирование' : 'Модерация'}</span></Link>}
+            <button className={section === 'stats' ? 'active' : ''} onClick={() => setSection('stats')} disabled={avatarUploading || Boolean(avatarDraft)}><BarChart3 size={18} /><span>Статистика</span></button>
+            {staffRole && <Link className="editor-nav__staff-link" to="/admin"><ShieldCheck size={18} /><span className="editor-nav__staff-full">{staffRole === 'admin' ? 'Администрирование' : 'Модерация'}</span><span className="editor-nav__staff-short">{staffRole === 'admin' ? 'Админ' : 'Модератор'}</span></Link>}
           </div>
           <div className="editor-nav__account">
             <div className="avatar avatar--small">
@@ -719,8 +736,8 @@ function Dashboard({ user }: { user: User }) {
 
         <main className="editor-panel">
           <div className="editor-panel__heading">
-            <div><span className="eyebrow">{section === 'links' ? 'Структура профиля' : 'Визуальный стиль'}</span><h1>{section === 'links' ? 'Ссылки и контакты' : 'Оформление'}</h1></div>
-            <span className="autosave-hint">Сохраняется вручную</span>
+            <div><span className="eyebrow">{section === 'links' ? 'Структура профиля' : section === 'stats' ? 'Посещаемость профиля' : 'Визуальный стиль'}</span><h1>{section === 'links' ? 'Ссылки и контакты' : section === 'stats' ? 'Статистика' : 'Оформление'}</h1></div>
+            <span className="autosave-hint">{section === 'stats' ? 'Только для владельца' : 'Сохраняется вручную'}</span>
           </div>
 
           {notice && <div className="toast toast--success"><Check size={16} /> {notice}</div>}
@@ -742,6 +759,8 @@ function Dashboard({ user }: { user: User }) {
               moveContact={moveContact}
               newLinkId={newLinkId}
             />
+          ) : section === 'stats' ? (
+            <StatisticsPanel profileId={user.id} />
           ) : (
             <DesignEditor profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} onAvatarDraft={setAvatarDraft} />
           )}
@@ -805,7 +824,6 @@ function ContentEditor({
       window.setTimeout(() => setMasterLinkCopied(false), 1800)
     }
   }
-  const selectedLinkIndex = links.findIndex((link) => link.localId === selectedLinkId)
 
   useEffect(() => {
     if (!newLinkId) return
@@ -836,9 +854,9 @@ function ContentEditor({
       <section className="settings-card">
         <div className="settings-card__title"><UserRound size={18} /><div><h2>Профиль</h2><p>Имя, описание и адрес вашей страницы.</p></div></div>
         <div className="field-grid">
-          <label>Отображаемое имя<input value={profile.display_name} onChange={(event) => setProfile({ ...profile, display_name: event.target.value })} maxLength={60} /></label>
-          <label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandle(event.target.value) })} /><button type="button" className={`input-prefix__copy ${masterLinkCopied ? 'input-prefix__copy--done' : ''}`} onClick={(event) => { event.preventDefault(); void copyMasterLink() }} disabled={!profile.handle} aria-label={masterLinkCopied ? 'Мастер‑ссылка скопирована' : 'Скопировать мастер‑ссылку'} title="Скопировать ссылку">{masterLinkCopied ? <Check size={15} /> : <Copy size={15} />}</button></div></label>
-          <label className="field-grid__full">О себе<textarea value={profile.bio} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} maxLength={160} rows={3} placeholder="Чем вы занимаетесь?" /><small>{profile.bio.length}/160</small></label>
+          <div className="profile-text-field"><label>Отображаемое имя<input value={profile.display_name} onChange={(event) => setProfile({ ...profile, display_name: event.target.value })} maxLength={60} /></label><TypographyControls label="Имя" slot="name" font={profile.name_font} size={profile.name_font_size} onChange={(font, size) => setProfile({ ...profile, name_font: font, name_font_size: size })} /></div>
+          <div className="profile-text-field"><label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandle(event.target.value) })} /><button type="button" className={`input-prefix__copy ${masterLinkCopied ? 'input-prefix__copy--done' : ''}`} onClick={(event) => { event.preventDefault(); void copyMasterLink() }} disabled={!profile.handle} aria-label={masterLinkCopied ? 'Мастер‑ссылка скопирована' : 'Скопировать мастер‑ссылку'} title="Скопировать ссылку">{masterLinkCopied ? <Check size={15} /> : <Copy size={15} />}</button></div></label><TypographyControls label="Мастер-ссылка" slot="handle" font={profile.handle_font} size={profile.handle_font_size} onChange={(font, size) => setProfile({ ...profile, handle_font: font, handle_font_size: size })} /></div>
+          <div className="field-grid__full profile-text-field"><label>О себе<textarea aria-label="О себе" value={profile.bio} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} maxLength={160} rows={3} placeholder="Чем вы занимаетесь?" /><small>{profile.bio.length}/160</small></label><TypographyControls label="О себе" slot="bio" font={profile.bio_font} size={profile.bio_font_size} onChange={(font, size) => setProfile({ ...profile, bio_font: font, bio_font_size: size })} /></div>
         </div>
         <label className="publish-setting">
           <input type="checkbox" checked={profile.is_published} onChange={(event) => setProfile({ ...profile, is_published: event.target.checked })} />
@@ -851,10 +869,6 @@ function ContentEditor({
         <div className="settings-card__title settings-card__title--action">
           <div className="settings-card__title-copy"><Link2 size={18} /><div><h2>Ссылки</h2><p>{links.length} из {FREE_CAPABILITIES.maxLinks}</p></div></div>
           <div className="settings-card__actions">
-            <div className="reorder-controls" aria-label="Порядок выбранной ссылки">
-              <button className="icon-button" type="button" onClick={() => moveLink(selectedLinkIndex, -1)} disabled={selectedLinkIndex <= 0} aria-label="Переместить выбранную ссылку выше"><ArrowUp size={16} /></button>
-              <button className="icon-button" type="button" onClick={() => moveLink(selectedLinkIndex, 1)} disabled={selectedLinkIndex < 0 || selectedLinkIndex === links.length - 1} aria-label="Переместить выбранную ссылку ниже"><ArrowDown size={16} /></button>
-            </div>
             <button className="button button--secondary button--small" onClick={addLink} disabled={links.length >= FREE_CAPABILITIES.maxLinks}><Plus size={16} /> Добавить</button>
           </div>
         </div>
@@ -864,8 +878,10 @@ function ContentEditor({
           {links.length === 0 && (
             <button className="empty-links" onClick={addLink}><span><Plus size={21} /></span><strong>Добавьте первую ссылку</strong><p>Instagram, Telegram, сайт или любой другой адрес.</p></button>
           )}
-          {links.map((link) => (
+          {links.map((link, index) => (
             <article className={`link-editor ${selectedLinkId === link.localId ? 'link-editor--selected' : ''} ${newLinkId === link.localId ? 'link-editor--new' : ''}`} key={link.localId} data-link-id={link.localId}>
+              <div className="link-editor__move" aria-label="Перемещение ссылки">
+                <button className="icon-button" type="button" onClick={() => moveLink(index, -1)} disabled={selectedLinkId !== link.localId || index === 0} aria-label="Переместить ссылку выше"><ArrowUp size={16} /></button>
               <button
                 className={`selection-check ${selectedLinkId === link.localId ? 'selection-check--selected' : ''}`}
                 type="button"
@@ -873,6 +889,8 @@ function ContentEditor({
                 aria-label={selectedLinkId === link.localId ? 'Снять выбор ссылки' : 'Выбрать ссылку для перемещения'}
                 onClick={() => setSelectedLinkId((current) => current === link.localId ? null : link.localId)}
               >{selectedLinkId === link.localId && <Check size={15} />}</button>
+                <button className="icon-button" type="button" onClick={() => moveLink(index, 1)} disabled={selectedLinkId !== link.localId || index === links.length - 1} aria-label="Переместить ссылку ниже"><ArrowDown size={16} /></button>
+              </div>
               <div className="link-editor__body">
                 <div className="link-editor__row">
                   <select aria-label="Площадка" value={LINK_PLATFORMS.some((platform) => platform.value === link.icon_key) ? link.icon_key : 'link'} onChange={(event) => changePlatform(link, event.target.value as LinkIconName)}>
@@ -903,7 +921,10 @@ function ContentEditor({
                     </div>
                   )
                 })()}
+                <TypographyControls label="Название ссылки" slot="link" font={link.label_font} size={link.label_font_size} onChange={(font, size) => updateLink(link.localId, { label_font: font, label_font_size: size })} />
                 <small className="link-editor__hint">{getLinkPlatform(link.icon_key).baseUrl ? 'Введите только имя после адреса площадки' : 'Можно без https:// · логотип подтянется автоматически'}</small>
+                <div className="link-editor__footer">
+                  <span className="link-editor__site-icon" role="img" aria-label="Иконка сайта"><LinkIcon name={link.icon_key} url={link.url} size={28} /></span>
                 <label className={`sensitive-toggle ${isKnownSensitiveUrl(link.url) ? 'sensitive-toggle--forced' : ''}`}>
                   <input
                     type="checkbox"
@@ -914,6 +935,7 @@ function ContentEditor({
                   <span className="sensitive-toggle__switch"><i /></span>
                   <span><ShieldAlert size={14} /><strong>Предупреждение 18+</strong><small>{isKnownSensitiveUrl(link.url) ? 'Включено автоматически для этой площадки' : 'Включите, если по ссылке возможен контент для взрослых'}</small></span>
                 </label>
+                </div>
               </div>
               <div className="link-editor__actions">
                 <button className="icon-button" onClick={() => updateLink(link.localId, { is_visible: !link.is_visible })} aria-label={link.is_visible ? 'Скрыть' : 'Показать'}>{link.is_visible ? <Eye size={17} /> : <EyeOff size={17} />}</button>
@@ -1083,3 +1105,4 @@ function ProfilePage({ session }: { session: Session | null }) {
 }
 
 export default App
+

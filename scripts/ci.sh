@@ -15,6 +15,10 @@ echo "node $(node -v), npm $(npm -v), commit ${GITHUB_SHA:-local}"
 npm ci
 npm run lint
 npm run build
+php -l dist/share-profile.php
+php -l dist/share-avatar.php
+php -l dist/preview-config.php
+php tests/share-preview.php
 
 if [ "${IS_PR:-false}" = "true" ]; then
   npx playwright install --with-deps chromium > /dev/null
@@ -27,3 +31,4 @@ if [ "${IS_PR:-false}" = "true" ]; then
 fi
 
 bash scripts/deploy.sh
+

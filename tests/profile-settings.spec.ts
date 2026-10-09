@@ -1,0 +1,135 @@
+import { expect, test, type Page } from '@playwright/test'
+
+const id = '00000000-0000-4000-8000-000000000001'
+const handle = 'sample-user'
+const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: id, exp: 2100000000, role: 'authenticated' })).toString('base64url')}.signature`
+const profile = { id, handle, display_name: 'Профиль', bio: 'О себе', avatar_url: null, avatar_path: null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, name_font: 'manrope', name_font_size: 21, bio_font: 'manrope', bio_font_size: 10, handle_font: 'manrope', handle_font_size: 10, created_at: '', updated_at: '' }
+const links = [0, 1, 2].map(n => ({ id: `00000000-0000-4000-8000-00000000001${n}`, profile_id: id, label: `Ссылка ${n + 1}`, url: `https://example.com/${n}`, icon_key: 'link', position: n, is_visible: true, is_sensitive: n === 2, label_font: 'manrope', label_font_size: 11 }))
+
+async function mock(page: Page, owner = true) {
+  const writes: { table: string; body: Record<string, unknown> | Record<string, unknown>[] }[] = []
+  const events: Record<string, unknown>[] = []
+  if (owner) await page.addInitScript(({ id, token }) => localStorage.setItem('sb-loykiawbqdkitndqkegk-auth-token', JSON.stringify({ access_token: token, refresh_token: 'test', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user: { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '' } })), { id, token })
+  await page.route('**/rest/v1/**', route => {
+    const table = new URL(route.request().url()).pathname.split('/').pop() ?? ''
+    const method = route.request().method()
+    if (table === 'record_profile_event') events.push(route.request().postDataJSON())
+    else if (method !== 'GET' && table !== 'staff_role' && table !== 'get_profile_statistics') writes.push({ table, body: route.request().postDataJSON() })
+    const data = table === 'profiles' ? profile : table === 'profile_links' ? links : table === 'staff_role' ? null : table === 'get_profile_statistics' ? { views: 12, visitors: 8, clicks: 5, daily: [{ date: '2026-10-09', views: 12, clicks: 5 }], links: [{ id: links[0].id, label: 'Ссылка 1', clicks: 5 }] } : []
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(data) })
+  })
+  await page.route('**/functions/v1/favicon**', route => route.fulfill({ status: 404, body: '' }))
+  return { writes, events }
+}
+
+test('card arrows follow selection and update the preview and saved order', async ({ page }) => {
+  const { writes } = await mock(page)
+  await page.goto('/')
+  const cards = page.locator('.link-editor:not(.contact-editor)')
+  await expect(cards).toHaveCount(3)
+  await expect(cards.nth(1).getByRole('button', { name: 'Переместить ссылку выше' })).toBeDisabled()
+  await cards.nth(1).getByRole('button', { name: 'Выбрать ссылку для перемещения' }).click()
+  await cards.nth(1).getByRole('button', { name: 'Переместить ссылку выше' }).click()
+  await expect(cards.first().getByLabel('Название ссылки', { exact: true })).toHaveValue('Ссылка 2')
+  await expect(cards.first().getByRole('button', { name: 'Переместить ссылку выше' })).toBeDisabled()
+  await expect(page.locator('.preview-panel .profile-link').first()).toContainText('Ссылка 2')
+  const bounds = await cards.first().evaluate(card => {
+    const icon = card.querySelector('.link-editor__site-icon')!.getBoundingClientRect()
+    const adult = card.querySelector('.sensitive-toggle')!.getBoundingClientRect()
+    return { iconRight: icon.right, adultLeft: adult.left }
+  })
+  expect(bounds.iconRight).toBeLessThan(bounds.adultLeft)
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+  await expect(page.getByText('Изменения сохранены')).toBeVisible()
+  const saved = writes.find(write => write.table === 'profile_links')!.body as Record<string, unknown>[]
+  expect(saved[0].id).toBe(links[1].id)
+  expect(saved[0].position).toBe(0)
+})
+
+test('fonts and bounded sizes update immediately and are saved', async ({ page, isMobile }) => {
+  const { writes } = await mock(page)
+  await page.goto('/')
+  await page.getByLabel('Шрифт: Имя', { exact: true }).selectOption('georgia')
+  await page.getByLabel('Размер: Имя', { exact: true }).selectOption('28')
+  await page.getByLabel('Размер: Мастер-ссылка', { exact: true }).selectOption('14')
+  await page.getByLabel('Шрифт: О себе', { exact: true }).selectOption('mono')
+  const card = page.locator('.link-editor:not(.contact-editor)').first()
+  await card.getByLabel('Шрифт: Название ссылки', { exact: true }).selectOption('verdana')
+  await card.getByLabel('Размер: Название ссылки', { exact: true }).selectOption('16')
+  await expect(page.locator('.preview-panel h1')).toHaveCSS('font-size', '28px')
+  await expect(page.locator('.preview-panel .profile-card__handle')).toHaveText(`mylinks.bar/${handle}`)
+  await expect(page.locator('.preview-panel .profile-card__handle')).toHaveCSS('font-size', '14px')
+  expect(await page.getByLabel('Размер: Имя', { exact: true }).locator('option').allTextContents()).not.toContain('30 px')
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+  await expect(page.getByText('Изменения сохранены')).toBeVisible()
+  const savedProfile = writes.find(write => write.table === 'profiles')!.body
+  expect(savedProfile).toMatchObject({ name_font: 'georgia', name_font_size: 28, handle_font_size: 14, bio_font: 'mono' })
+  expect((writes.find(write => write.table === 'profile_links')!.body as Record<string, unknown>[])[0]).toMatchObject({ label_font: 'verdana', label_font_size: 16 })
+  if (isMobile) expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => window.innerWidth))
+})
+
+test('owner statistics load, change period and show link counts', async ({ page }) => {
+  await mock(page)
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Статистика', exact: true }).click()
+  await expect(page.locator('.statistics__metrics')).toContainText('12')
+  await expect(page.locator('.statistics__metrics')).toContainText('8')
+  await expect(page.locator('.statistics__table').last()).toContainText('Ссылка 1')
+  const request = page.waitForRequest(request => request.url().includes('get_profile_statistics') && request.postDataJSON().p_days === 7)
+  await page.getByLabel('Период статистики').selectOption('7')
+  await request
+  await expect(page.locator('.statistics__metrics')).toBeVisible()
+})
+
+test('visitor events count once and an adult click waits for confirmation', async ({ page }) => {
+  const { events } = await mock(page, false)
+  await page.goto(`/${handle}`)
+  await expect(page.getByRole('heading', { name: 'Профиль' })).toBeVisible()
+  await expect.poll(() => events.filter(event => event.p_link_id === null).length).toBe(1)
+  await page.getByRole('link', { name: /Ссылка 3/ }).click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  expect(events.filter(event => event.p_link_id === links[2].id)).toHaveLength(0)
+  await page.getByRole('button', { name: 'Вернуться', exact: true }).click()
+  expect(events.filter(event => event.p_link_id === links[2].id)).toHaveLength(0)
+  await page.getByRole('link', { name: /Ссылка 3/ }).click()
+  await page.getByRole('button', { name: 'Мне есть 18 — продолжить' }).click()
+  await expect.poll(() => events.filter(event => event.p_link_id === links[2].id).length).toBe(1)
+})
+
+test('owner public preview does not create events', async ({ page }) => {
+  const { events } = await mock(page)
+  await page.goto(`/${handle}`)
+  await expect(page.getByRole('button', { name: 'В редактор' })).toBeVisible()
+  await page.getByRole('link', { name: /Ссылка 3/ }).click()
+  await page.getByRole('button', { name: 'Мне есть 18 — продолжить' }).click()
+  expect(events).toEqual([])
+})
+
+
+test('largest fonts keep long text and mobile navigation inside their slots', async ({ page, isMobile }, testInfo) => {
+  await mock(page)
+  await page.goto('/')
+  await page.getByLabel('Отображаемое имя', { exact: true }).fill('ДлинноеИмя'.repeat(6))
+  await page.getByLabel('Размер: Имя', { exact: true }).selectOption('28')
+  await page.getByLabel('Размер: О себе', { exact: true }).selectOption('14')
+  await page.getByLabel('О себе', { exact: true }).fill('Очень длинное описание профиля '.repeat(5))
+  await page.locator('.link-editor:not(.contact-editor)').first().getByLabel('Название ссылки', { exact: true }).fill('ДлиннаяСсылка'.repeat(6))
+  await page.locator('.link-editor:not(.contact-editor)').first().getByLabel('Размер: Название ссылки', { exact: true }).selectOption('16')
+  if (isMobile) {
+    const tops = await page.locator('.editor-nav button').evaluateAll(buttons => buttons.map(button => button.getBoundingClientRect().top))
+    expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(1)
+    await expect(page.getByRole('button', { name: 'Статистика', exact: true })).toBeInViewport()
+    await page.getByRole('button', { name: 'Открыть страницу', exact: true }).click()
+  }
+  await page.locator('.profile-card').scrollIntoViewIfNeeded()
+  const heights = await page.locator('.profile-card').evaluate(card => ({ name: card.querySelector('h1')!.getBoundingClientRect().height, bio: card.querySelector('.profile-card__bio')!.getBoundingClientRect().height, link: card.querySelector('.profile-link__text')!.getBoundingClientRect().height }))
+  expect(heights.name).toBeLessThanOrEqual(68)
+  expect(heights.bio).toBeLessThanOrEqual(87)
+  expect(heights.link).toBeLessThanOrEqual(39)
+  if (isMobile) {
+    await page.getByRole('button', { name: 'В редактор', exact: true }).click()
+    await page.getByRole('button', { name: 'Статистика', exact: true }).click()
+    await expect(page.locator('.statistics__metrics')).toBeVisible()
+  }
+  await page.screenshot({ path: testInfo.outputPath('layout.png'), fullPage: false })
+})

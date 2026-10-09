@@ -21,10 +21,10 @@ test('a new link appears at the top, focused and visible', async ({ page }) => {
   const cards = page.locator('.link-editor:not(.contact-editor)')
   await expect(cards).toHaveCount(7)
   const first = cards.first()
-  await expect(first.getByLabel('Название ссылки')).toHaveValue('')
+  await expect(first.getByLabel('Название ссылки', { exact: true })).toHaveValue('')
   await expect(first.getByLabel('Адрес ссылки')).toBeFocused()
   await expect(first).toBeInViewport()
-  await expect(cards.nth(1).getByLabel('Название ссылки')).toHaveValue('Ссылка 1')
+  await expect(cards.nth(1).getByLabel('Название ссылки', { exact: true })).toHaveValue('Ссылка 1')
 })
 
 test('master link is copied with a single icon button', async ({ page, context, browserName }) => {
@@ -43,3 +43,4 @@ test('master link is copied with a single icon button', async ({ page, context, 
   await expect(page.getByRole('button', { name: 'Мастер‑ссылка скопирована' })).toBeVisible()
   expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/sample-user$/)
 })
+

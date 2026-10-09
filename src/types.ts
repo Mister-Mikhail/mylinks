@@ -1,3 +1,5 @@
+import type { FontKey } from './lib/typography'
+
 export type BackgroundPreset = 'midnight' | 'mist' | 'cobalt'
 export type CardPreset = 'glass' | 'solid' | 'outline'
 export type AvatarShape = 'round' | 'square'
@@ -10,6 +12,12 @@ export interface Profile {
   handle: string
   display_name: string
   bio: string
+  name_font?: FontKey
+  name_font_size?: number
+  bio_font?: FontKey
+  bio_font_size?: number
+  handle_font?: FontKey
+  handle_font_size?: number
   avatar_url: string | null
   avatar_path: string | null
   avatar_preview_url?: string | null
@@ -28,6 +36,8 @@ export interface ProfileLink {
   profile_id: string
   label: string
   url: string
+  label_font?: FontKey
+  label_font_size?: number
   icon_key: LinkIcon
   position: number
   is_visible: boolean
@@ -68,3 +78,4 @@ export interface AvatarDraft {
   x: number
   y: number
 }
+

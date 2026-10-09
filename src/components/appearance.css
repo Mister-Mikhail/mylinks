@@ -20,8 +20,8 @@
   .dashboard-shell--design .dashboard-topbar__meta .button--primary .button__label { display: inline; }
   .dashboard-shell--design .dashboard-grid { display: flex; flex: 1; min-height: 0; flex-direction: column; padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
   .dashboard-shell--design .editor-nav { position: fixed; inset: auto 0 0; z-index: 40; display: block; width: 100%; height: calc(64px + env(safe-area-inset-bottom)); padding: 7px 12px calc(7px + env(safe-area-inset-bottom)); border: 0; border-top: 1px solid var(--line); }
-  .dashboard-shell--design .editor-nav > div:first-child { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; gap: 7px; }
-  .dashboard-shell--design .editor-nav > div:first-child:has(.editor-nav__staff-link) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dashboard-shell--design .editor-nav > div:first-child { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; gap: 7px; }
+  .dashboard-shell--design .editor-nav > div:first-child:has(.editor-nav__staff-link) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .dashboard-shell--design .editor-nav button, .dashboard-shell--design .editor-nav__staff-link { display: flex; align-items: center; justify-content: center; width: 100%; min-width: 0; height: 48px; margin: 0; padding: 0 5px; gap: 5px; font-size: 10px; }
   .dashboard-shell--design .editor-nav button span { display: inline; }
   .dashboard-shell--design .editor-nav__label, .dashboard-shell--design .editor-nav__account { display: none; }
@@ -106,4 +106,11 @@
   .dashboard-shell--cropping .profile-card__body { max-height: 94px; }
   .dashboard-shell--cropping .profile-card__identity > .avatar { width: calc(var(--avatar-size, 101px) * 0.27); height: calc(var(--avatar-size, 101px) * 0.27); }
   .dashboard-shell--design .avatar-cropper__actions .button { min-height: 44px; }
+}
+
+
+@media (max-width: 650px), (max-width: 950px) and (max-height: 500px) {
+  .dashboard-shell--design .profile-card__identity h1 { --profile-display-size: calc(var(--profile-font-size) * .6); }
+  .dashboard-shell--design .profile-card__handle { --profile-display-size: calc(var(--profile-font-size) * .8); }
+  .dashboard-shell--design .profile-link__label { --profile-display-size: calc(var(--profile-font-size) * .9); }
 }

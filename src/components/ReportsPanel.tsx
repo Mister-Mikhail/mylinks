@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Check, LoaderCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { staffError, staffReports, staffReviewReport, type StaffReport } from '../lib/staff'
+import { deactivateStaffAccount, staffError, staffReports, staffReviewReport, type StaffReport } from '../lib/staff'
 import './admin.css'
 
 const formatDate = (value: string) => new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Moscow' }).format(new Date(value))
@@ -30,8 +30,16 @@ export function ReportsPanel() {
     const reason = (reasons[report.id] || '').trim()
     if (reason.length < 3) { setError('Добавьте краткую причину решения (не менее 3 символов).'); return }
     setBusyId(report.id); setError(''); setNotice('')
-    try { await staffReviewReport(report.id, status, action, reason); setNotice('Решение сохранено в журнале действий.'); await load() }
-    catch (caught) { setError(staffError(caught)) }
+    try {
+      if (action === 'deactivate_account' && report.profile_id) {
+        await deactivateStaffAccount(report.profile_id, reason)
+        await staffReviewReport(report.id, 'resolved', 'none', reason)
+      } else {
+        await staffReviewReport(report.id, status, action, reason)
+      }
+      setNotice('Решение сохранено в журнале действий.')
+      await load()
+    } catch (caught) { setError(staffError(caught)) }
     finally { setBusyId('') }
   }
 
@@ -56,6 +64,7 @@ export function ReportsPanel() {
           <button className="button button--secondary button--small" disabled={Boolean(busyId) || loading} onClick={() => void review(report,'dismissed','none')}>Отклонить</button>
           <button className="button button--secondary button--small" disabled={Boolean(busyId) || loading} onClick={() => void review(report,'resolved','warn')}>Предупредить</button>
           <button className="button button--secondary button--small" disabled={Boolean(busyId) || loading} onClick={() => void review(report,'resolved','restrict_profile')}>Ограничить страницу</button>
+          {report.profile_id && <button className="button button--secondary button--small" disabled={Boolean(busyId) || loading} onClick={() => void review(report,'resolved','deactivate_account')}>Деактивировать аккаунт</button>}
           {report.link_id && <button className="button button--secondary button--small" disabled={Boolean(busyId) || loading} onClick={() => void review(report,'resolved','restrict_link')}>Ограничить ссылку</button>}
           {report.link_id && <button className="button button--secondary button--small" disabled={Boolean(busyId) || loading} onClick={() => void review(report,'resolved','remove_link')}>Удалить ссылку и предупредить</button>}
         </div>

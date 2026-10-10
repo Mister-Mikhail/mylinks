@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { BrandMark } from './components/BrandMark'
+import { OnboardingWizard } from './components/OnboardingWizard'
 import { AvatarEditor } from './components/AvatarEditor'
 import { ProfilePreview } from './components/ProfilePreview'
 import { TypographyControls } from './components/TypographyControls'
@@ -711,6 +712,7 @@ function Dashboard({ user }: { user: User }) {
   }
 
   if (loading) return <LoadingScreen />
+  if (!error && !profile.onboarding_completed) return <OnboardingWizard userId={user.id} profile={profile} onFinish={() => { void loadData() }} />
 
   return (
     <div className={`dashboard-shell ${section === 'design' ? 'dashboard-shell--design' : ''} ${avatarDraft ? 'dashboard-shell--cropping' : ''}`}>

@@ -31,7 +31,7 @@ export function CreateTemporaryUserDialog({ onClose, onCreated }: { onClose: () 
         {error && <div className="staff-error" role="alert">{error}</div>}
         <div className="staff-modal-actions"><button className="button button--primary" onClick={onCreated}>Готово</button></div>
       </> : <form onSubmit={submit}>
-        <p>Задайте имя и адрес страницы. После входа пользователь выберет свой email и пароль.</p>
+        <p>Задайте имя и адрес страницы. После входа пользователь выберет свой логин и постоянный пароль.</p>
         <label>Имя<input value={displayName} onChange={event => setDisplayName(event.target.value)} maxLength={80} required /></label>
         <label>Адрес страницы<div className="input-prefix"><span>mylinks.bar/</span><input value={handle} onChange={event => setHandle(event.target.value.toLowerCase().replace(/[^a-z0-9._-]+/g, ''))} maxLength={30} autoCapitalize="none" autoCorrect="off" required /></div></label>
         {error && <div className="staff-error" role="alert">{error}</div>}

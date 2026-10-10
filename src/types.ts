@@ -27,6 +27,8 @@ export interface Profile {
   avatar_size: AvatarSize
   avatar_scale: number
   is_published: boolean
+  onboarding_completed?: boolean
+  onboarding_progress?: Record<string, unknown>
   created_at: string
   updated_at: string
 }

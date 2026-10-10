@@ -50,7 +50,7 @@ create index if not exists moderation_reports_email_idx on moderation.reports(lo
 
 create table if not exists moderation.warnings (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references auth.users(id) on delete cascade,
+  profile_id uuid references auth.users(id) on delete set null,
   report_id uuid references moderation.reports(id) on delete set null,
   actor_id uuid references auth.users(id) on delete set null,
   reason text not null check (char_length(reason) between 3 and 1000),
@@ -320,6 +320,20 @@ begin
 end;
 $$;
 
+create or replace function public.staff_mark_account_deactivated(target uuid, reason text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  if auth.uid() is null or moderation.my_role() is null then raise exception 'Staff access required' using errcode='42501'; end if;
+  if length(trim(coalesce(reason,''))) not between 3 and 1000 then raise exception 'Укажите причину: 3–1000 символов.'; end if;
+  insert into moderation.audit(actor_id,target_id,action,reason)
+  values(auth.uid(),target,'deactivate_account',trim(reason));
+end;
+$;
+
 create or replace function moderation.cleanup_temporary_accounts()
 returns integer
 language plpgsql
@@ -366,3 +380,6 @@ revoke all on function public.staff_reports(integer) from public, anon;
 grant execute on function public.staff_reports(integer) to authenticated;
 revoke all on function public.staff_review_report(uuid,text,text,text) from public, anon;
 grant execute on function public.staff_review_report(uuid,text,text,text) to authenticated;
+
+revoke all on function public.staff_mark_account_deactivated(uuid,text) from public, anon;
+grant execute on function public.staff_mark_account_deactivated(uuid,text) to authenticated;

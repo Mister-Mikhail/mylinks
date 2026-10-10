@@ -204,7 +204,7 @@ begin
     'reports',coalesce((
       select jsonb_agg(jsonb_build_object(
         'id',r.id,'profile_id',r.profile_id,'handle',p.handle,'display_name',p.display_name,
-        'link_id',r.link_id,'link_label',l.label,'category',r.category,'details',r.details,
+        'link_id',r.link_id,'link_label',l.label,'link_url',l.url,'category',r.category,'details',r.details,
         'reporter_email',r.reporter_email,'status',r.status,'created_at',r.created_at,
         'staff_note',r.staff_note
       ) order by r.created_at desc)

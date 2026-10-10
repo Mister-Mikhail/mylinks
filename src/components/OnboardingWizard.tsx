@@ -86,8 +86,8 @@ export function OnboardingWizard({ userId, profile, onFinish }: { userId: string
       setError('Проверьте адрес ссылки. Можно вводить без https://.')
       return
     }
-    if (step === 3 && data.contact.value.trim() && data.contact.kind === 'email' && !/^\S+@\S+\.\S+$/.test(data.contact.value.trim())) {
-      setError('Проверьте адрес электронной почты.')
+    if (step === 3 && data.contact.value.trim() && !isValidContactValue(data.contact.kind, data.contact.value)) {
+      setError('Проверьте контактные данные.')
       return
     }
     if (step < steps.length - 1) {

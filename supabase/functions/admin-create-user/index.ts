@@ -51,7 +51,7 @@ Deno.serve(async request => {
   })
   if (error || !data.user) return reply(400, { error: error?.message || 'Не удалось создать пользователя.' })
 
-  const { error: recordError } = await userClient.rpc('staff_register_temporary', { target: data.user.id })
+  const { error: recordError } = await userClient.rpc('staff_register_temporary', { target: data.user.id, initial_handle: handle, initial_name: displayName })
   if (recordError) {
     await admin.auth.admin.deleteUser(data.user.id)
     return reply(500, { error: 'Аккаунт создан с ошибкой учёта. Создание отменено.' })

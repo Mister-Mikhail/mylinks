@@ -1,0 +1,2 @@
+[functions.login-by-handle]
+verify_jwt = false

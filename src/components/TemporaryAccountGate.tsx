@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { LoaderCircle, LogOut, ShieldCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { normalizeHandle } from '../lib/validation'
+import './temporaryAccount.css'
 
 interface TemporaryState {
   is_temporary: boolean

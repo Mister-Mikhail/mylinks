@@ -417,7 +417,7 @@ function Dashboard({ user }: { user: User }) {
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarDraft, setAvatarDraft] = useState<AvatarDraft | null>(null)
   const [notice, setNotice] = useState('')
-  const [temporaryAccount, setTemporaryAccount] = useState<{ is_temporary: boolean; expired?: boolean; login_count?: number; remaining_logins?: number } | null>(null)
+  const [temporaryAccount, setTemporaryAccount] = useState<{ is_temporary: boolean; expired?: boolean; login_count?: number; remaining_logins?: number; desired_handle?: string; desired_name?: string } | null>(null)
   const [error, setError] = useState('')
   const [newLinkId, setNewLinkId] = useState<string | null>(null)
   const capabilities = capabilitiesForTier('free')
@@ -432,8 +432,8 @@ function Dashboard({ user }: { user: User }) {
       supabase.rpc('temporary_account_session'),
     ])
 
-    const tempData = temporaryResult.data as { is_temporary?: boolean; expired?: boolean; login_count?: number; remaining_logins?: number } | null
-    setTemporaryAccount(!temporaryResult.error && tempData?.is_temporary ? { is_temporary: true, expired: tempData.expired, login_count: tempData.login_count, remaining_logins: tempData.remaining_logins } : null)
+    const tempData = temporaryResult.data as { is_temporary?: boolean; expired?: boolean; login_count?: number; remaining_logins?: number; desired_handle?: string; desired_name?: string } | null
+    setTemporaryAccount(!temporaryResult.error && tempData?.is_temporary ? { is_temporary: true, expired: tempData.expired, login_count: tempData.login_count, remaining_logins: tempData.remaining_logins, desired_handle: tempData.desired_handle, desired_name: tempData.desired_name } : null)
     const queryErrors = [profileResult.error, linksResult.error, contactsResult.error].filter(Boolean)
     const jwtTimingError = queryErrors.some((queryError) => queryError?.message.toLowerCase().includes('jwt issued at future'))
     if (jwtTimingError && jwtRetry < 2) {
@@ -472,6 +472,11 @@ function Dashboard({ user }: { user: User }) {
   useEffect(() => {
     if (skipInitialLoad.current) {
       skipInitialLoad.current = false
+      // A cached editor snapshot must not skip temporary-account login accounting.
+      void supabase.rpc('temporary_account_session').then(({ data, error: tempError }) => {
+        const tempData = data as { is_temporary?: boolean; expired?: boolean; login_count?: number; remaining_logins?: number; desired_handle?: string; desired_name?: string } | null
+        setTemporaryAccount(!tempError && tempData?.is_temporary ? { is_temporary: true, expired: tempData.expired, login_count: tempData.login_count, remaining_logins: tempData.remaining_logins, desired_handle: tempData.desired_handle, desired_name: tempData.desired_name } : null)
+      })
       return
     }
     void loadData()

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { isValidHandle, isValidHttpUrl, normalizeHandle, normalizeUrl } from '../lib/validation'
 import { CONTACT_OPTIONS, isValidContactValue } from '../lib/contacts'
 import { LINK_PLATFORMS } from '../config/linkPlatforms'
+import './onboarding.css'
 
 type WizardLink = { label: string; url: string; icon_key: string }
 type WizardContact = { kind: 'address' | 'phone' | 'email'; label: string; value: string; is_visible: boolean }

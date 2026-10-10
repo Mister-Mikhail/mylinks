@@ -323,7 +323,7 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
     try {
       if (mode === 'register') {
         const safeHandle = normalizeHandle(handle)
-        if (!isValidHandle(safeHandle)) throw new Error('Имя ссылки: 3–30 латинских символов, цифр или дефисов. Имена admin и auth зарезервированы.')
+        if (!isValidHandle(safeHandle)) throw new Error('Имя ссылки: 3–30 латинских букв, цифр, точек, дефисов или нижних подчёркиваний; в начале и конце — буква или цифра. Имена admin и auth зарезервированы.')
         if (password.length < 6) throw new Error('Пароль должен содержать не менее 6 символов.')
 
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -574,7 +574,7 @@ function Dashboard({ user }: { user: User }) {
     setNotice('')
 
     try {
-      if (!isValidHandle(profile.handle)) throw new Error('Адрес мастер‑ссылки должен содержать 3–30 латинских символов, цифр или дефисов.')
+      if (!isValidHandle(profile.handle)) throw new Error('Адрес мастер‑ссылки должен содержать 3–30 латинских букв, цифр, точек, дефисов или нижних подчёркиваний; в начале и конце — буква или цифра.')
       const readyLinks = links
         .filter((link) => link.label.trim() || link.url.trim())
         .map((link) => ({ ...link, label: link.label.trim() || inferLinkLabel(link.url) }))

@@ -286,6 +286,15 @@ begin
     if report.link_id is null then raise exception 'В этой жалобе нет ссылки.'; end if;
     perform moderation.change(report.link_id,'restrict_link',trim(reason));
     next_status := 'resolved';
+  elsif action='remove_link' then
+    if report.link_id is null or report.profile_id is null then raise exception 'В жалобе нет доступной ссылки.'; end if;
+    delete from public.profile_links where id=report.link_id and profile_id=report.profile_id;
+    if not found then raise exception 'Ссылка уже удалена или недоступна.'; end if;
+    insert into moderation.warnings(profile_id,report_id,actor_id,reason)
+    values(report.profile_id,report.id,auth.uid(),trim(reason));
+    insert into moderation.audit(actor_id,target_id,action,reason)
+    values(auth.uid(),report.link_id,'link_removed_with_warning',trim(reason));
+    next_status := 'resolved';
   elsif action not in ('none','') then
     raise exception 'Invalid action';
   end if;

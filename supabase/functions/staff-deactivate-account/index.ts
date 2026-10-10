@@ -37,5 +37,7 @@ Deno.serve(async request => {
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
   const { error: banError } = await admin.auth.admin.updateUserById(targetId, { ban_duration: '876000h' })
   if (banError) return reply(500, { error: 'Страница скрыта, но блокировку входа завершить не удалось. Повторите действие.' })
+  const { error: auditError } = await staff.rpc('staff_mark_account_deactivated', { target: targetId, reason })
+  if (auditError) return reply(500, { error: 'Вход отключён, но запись в журнале не создана. Проверьте аккаунт в панели Supabase.' })
   return reply(200, { deactivated: true })
 })

@@ -325,14 +325,14 @@ returns void
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 begin
   if auth.uid() is null or moderation.my_role() is null then raise exception 'Staff access required' using errcode='42501'; end if;
   if length(trim(coalesce(reason,''))) not between 3 and 1000 then raise exception 'Укажите причину: 3–1000 символов.'; end if;
   insert into moderation.audit(actor_id,target_id,action,reason)
   values(auth.uid(),target,'deactivate_account',trim(reason));
 end;
-$;
+$$;
 
 create or replace function moderation.cleanup_temporary_accounts()
 returns integer

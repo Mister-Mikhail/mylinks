@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Check, LoaderCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { staffError, staffReports, staffReviewReport, type StaffReport } from '../lib/staff'
@@ -19,12 +19,12 @@ export function ReportsPanel() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true); setError('')
     try { setData(await staffReports(page)) } catch (caught) { setError(staffError(caught)) }
     finally { setLoading(false) }
-  }
-  useEffect(() => { void load() }, [page])
+  }, [page])
+  useEffect(() => { void load() }, [load])
 
   const review = async (report: StaffReport, status: string, action: string) => {
     const reason = (reasons[report.id] || '').trim()

@@ -19,6 +19,16 @@ alter table moderation.temporary_accounts enable row level security;
 revoke all on moderation.temporary_accounts from public, anon, authenticated;
 create index if not exists temporary_accounts_cleanup_idx on moderation.temporary_accounts(delete_after) where delete_after is not null;
 
+create table if not exists moderation.username_login_failures (
+  id bigint generated always as identity primary key,
+  handle text not null,
+  ip_hash text not null,
+  created_at timestamptz not null default now()
+);
+alter table moderation.username_login_failures enable row level security;
+revoke all on moderation.username_login_failures from public, anon, authenticated;
+create index if not exists username_login_failures_window_idx on moderation.username_login_failures(handle,ip_hash,created_at desc);
+
 create table if not exists moderation.reports (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid references auth.users(id) on delete set null,
@@ -127,6 +137,7 @@ begin
   if owner_id is null then raise exception 'Authentication required' using errcode='42501'; end if;
   if safe_handle !~ '^[a-z0-9][a-z0-9._-]{1,28}[a-z0-9]$' or safe_handle in ('admin','auth','p','assets','icons','sounds','fonts','share-image') then raise exception 'Проверьте адрес страницы.'; end if;
   if char_length(safe_name) not between 1 and 80 then raise exception 'Проверьте имя страницы.'; end if;
+  if exists(select 1 from public.profiles where handle=safe_handle and id<>owner_id) then raise exception 'Этот адрес уже занят.'; end if;
   update moderation.temporary_accounts
   set desired_handle=safe_handle,desired_name=safe_name
   where user_id=owner_id and status in ('active','claim_pending') and (delete_after is null or delete_after>now());
@@ -152,6 +163,36 @@ begin
   return true;
 end;
 $$;
+
+create or replace function public.username_login_allowed(target_handle text, request_ip text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select exists(
+    select 1 from moderation.temporary_accounts t
+    join public.profiles p on p.id=t.user_id
+    where p.handle=lower(trim(target_handle)) and t.status='claimed'
+      and (select count(*) from moderation.username_login_failures f
+           where f.handle=lower(trim(target_handle)) and f.ip_hash=md5(coalesce(request_ip,'unknown'))
+             and f.created_at>now()-interval '15 minutes') < 10
+  );
+$;
+
+create or replace function public.username_login_failed(target_handle text, request_ip text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  insert into moderation.username_login_failures(handle,ip_hash)
+  values(lower(trim(target_handle)),md5(coalesce(request_ip,'unknown')));
+  delete from moderation.username_login_failures where created_at < now()-interval '1 day';
+end;
+$;
 
 create or replace function public.submit_profile_report(
   target_handle text,
@@ -289,6 +330,10 @@ revoke all on function public.begin_temporary_claim(text,text) from public, anon
 grant execute on function public.begin_temporary_claim(text,text) to authenticated;
 revoke all on function public.finish_temporary_claim() from public, anon;
 grant execute on function public.finish_temporary_claim() to authenticated;
+revoke all on function public.username_login_allowed(text,text) from public, anon, authenticated;
+grant execute on function public.username_login_allowed(text,text) to service_role;
+revoke all on function public.username_login_failed(text,text) from public, anon, authenticated;
+grant execute on function public.username_login_failed(text,text) to service_role;
 revoke all on function public.submit_profile_report(text,uuid,text,text,text) from public;
 grant execute on function public.submit_profile_report(text,uuid,text,text,text) to anon, authenticated;
 revoke all on function public.staff_reports(integer) from public, anon;

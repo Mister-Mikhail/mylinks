@@ -52,7 +52,7 @@ create table if not exists moderation.warnings (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references auth.users(id) on delete cascade,
   report_id uuid references moderation.reports(id) on delete set null,
-  actor_id uuid not null references auth.users(id) on delete set null,
+  actor_id uuid references auth.users(id) on delete set null,
   reason text not null check (char_length(reason) between 3 and 1000),
   created_at timestamptz not null default now()
 );

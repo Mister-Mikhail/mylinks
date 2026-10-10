@@ -4,7 +4,7 @@ grant all privileges on all tables in schema cron to postgres;
 
 create table if not exists moderation.temporary_accounts (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  created_by uuid not null references auth.users(id) on delete set null,
+  created_by uuid references auth.users(id) on delete set null,
   login_count smallint not null default 0 check (login_count between 0 and 10),
   login_sessions uuid[] not null default '{}',
   pending_email text,
@@ -18,7 +18,7 @@ create index if not exists temporary_accounts_cleanup_idx on moderation.temporar
 
 create table if not exists moderation.reports (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references auth.users(id) on delete set null,
+  profile_id uuid references auth.users(id) on delete set null,
   link_id uuid references public.profile_links(id) on delete set null,
   category text not null check (category in ('spam','scam','abuse','adult','copyright','other')),
   details text not null default '' check (char_length(details) <= 2000),
@@ -54,7 +54,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  if auth.uid() is null or moderation.my_role() <> 'admin' then
+  if auth.uid() is null or coalesce(moderation.my_role(),'') <> 'admin' then
     raise exception 'Admin access required' using errcode='42501';
   end if;
   if not exists (select 1 from auth.users where id=target and deleted_at is null) then raise exception 'User not found'; end if;
@@ -269,7 +269,7 @@ revoke all on function moderation.cleanup_temporary_accounts() from public, anon
 do $$
 begin
   if exists (select 1 from cron.job where jobname='mylinks-temporary-account-cleanup') then
-    perform cron.unschedule('mylinks-temporary-account-cleanup');
+    perform cron.unschedule(jobid) from cron.job where jobname='mylinks-temporary-account-cleanup';
   end if;
   perform cron.schedule('mylinks-temporary-account-cleanup','*/15 * * * *','select moderation.cleanup_temporary_accounts();');
 end $$;

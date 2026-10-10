@@ -37,7 +37,5 @@ Deno.serve(async request => {
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
   const { error: banError } = await admin.auth.admin.updateUserById(targetId, { ban_duration: '876000h' })
   if (banError) return reply(500, { error: 'Страница скрыта, но блокировку входа завершить не удалось. Повторите действие.' })
-  const { error: revokeError } = await admin.auth.admin.signOut(targetId, 'global')
-  if (revokeError) return reply(500, { error: 'Вход заблокирован, но не удалось завершить все сессии. Проверьте аккаунт в панели Supabase.' })
   return reply(200, { deactivated: true })
 })

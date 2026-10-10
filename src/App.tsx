@@ -31,6 +31,7 @@ import {
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { BrandMark } from './components/BrandMark'
 import { OnboardingWizard } from './components/OnboardingWizard'
+import { TemporaryAccountGate } from './components/TemporaryAccountGate'
 import { AvatarEditor } from './components/AvatarEditor'
 import { ProfilePreview } from './components/ProfilePreview'
 import { TypographyControls } from './components/TypographyControls'
@@ -340,9 +341,15 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
           throw new Error('Этот email уже зарегистрирован. Переключитесь на вход и используйте прежний пароль.')
         }
         if (!data.session) setMessage('Проверьте почту и подтвердите адрес. После этого вернитесь и войдите.')
-      } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      } else if (email.includes('@')) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
         if (signInError) throw signInError
+      } else {
+        const { data, error: loginError } = await supabase.functions.invoke('login-by-handle', { body: { handle: normalizeHandle(email), password } })
+        if (loginError) throw loginError
+        if (!data?.session) throw new Error('Неверный логин или пароль.')
+        const { error: sessionError } = await supabase.auth.setSession(data.session)
+        if (sessionError) throw sessionError
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Не удалось выполнить действие.')
@@ -376,7 +383,7 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
               <label>Адрес мастер‑ссылки<div className="input-prefix"><span>mylinks.bar/</span><input value={handle} onChange={(event) => setHandle(normalizeHandle(event.target.value))} placeholder="mikhail" autoCapitalize="none" /></div></label>
             </>
           )}
-          <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required /></label>
+          <label>{mode === 'register' ? 'Email' : 'Email или имя пользователя'}<input type={mode === 'register' ? 'email' : 'text'} value={email} onChange={(event) => setEmail(event.target.value)} placeholder={mode === 'register' ? 'you@example.com' : 'Email или логин страницы'} autoCapitalize="none" autoCorrect="off" inputMode={mode === 'register' ? 'email' : 'text'} autoComplete={mode === 'register' ? 'email' : 'username'} required /></label>
           <label>Пароль<div className="password-field"><input type={showPassword ? 'text' : 'password'} name={mode === 'register' ? 'mylinks-registration-password' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === 'register' ? 'Минимум 6 символов' : 'Ваш пароль'} minLength={mode === 'register' ? 6 : undefined} autoComplete={mode === 'register' ? 'off' : 'current-password'} data-form-type={mode === 'register' ? 'other' : undefined} data-lpignore={mode === 'register' ? 'true' : undefined} data-1p-ignore={mode === 'register' ? 'true' : undefined} data-bwignore={mode === 'register' ? 'true' : undefined} required /><button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
 
           {error && <div className="form-message form-message--error">{error}</div>}
@@ -410,6 +417,7 @@ function Dashboard({ user }: { user: User }) {
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarDraft, setAvatarDraft] = useState<AvatarDraft | null>(null)
   const [notice, setNotice] = useState('')
+  const [temporaryAccount, setTemporaryAccount] = useState<{ is_temporary: boolean; expired?: boolean; login_count?: number; remaining_logins?: number } | null>(null)
   const [error, setError] = useState('')
   const [newLinkId, setNewLinkId] = useState<string | null>(null)
   const capabilities = capabilitiesForTier('free')
@@ -417,12 +425,15 @@ function Dashboard({ user }: { user: User }) {
   const loadData = async (jwtRetry = 0) => {
     setLoading(true)
     setError('')
-    const [profileResult, linksResult, contactsResult] = await Promise.all([
+    const [profileResult, linksResult, contactsResult, temporaryResult] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('profile_links').select('*').eq('profile_id', user.id).order('position'),
       supabase.from('profile_contacts').select('*').eq('profile_id', user.id).order('position'),
+      supabase.rpc('temporary_account_session'),
     ])
 
+    const tempData = temporaryResult.data as { is_temporary?: boolean; expired?: boolean; login_count?: number; remaining_logins?: number } | null
+    setTemporaryAccount(!temporaryResult.error && tempData?.is_temporary ? { is_temporary: true, expired: tempData.expired, login_count: tempData.login_count, remaining_logins: tempData.remaining_logins } : null)
     const queryErrors = [profileResult.error, linksResult.error, contactsResult.error].filter(Boolean)
     const jwtTimingError = queryErrors.some((queryError) => queryError?.message.toLowerCase().includes('jwt issued at future'))
     if (jwtTimingError && jwtRetry < 2) {
@@ -712,7 +723,8 @@ function Dashboard({ user }: { user: User }) {
   }
 
   if (loading) return <LoadingScreen />
-  if (!error && !profile.onboarding_completed) return <OnboardingWizard userId={user.id} profile={profile} onFinish={() => { void loadData() }} />
+  if (temporaryAccount) return <TemporaryAccountGate account={temporaryAccount} onClaimed={() => { setTemporaryAccount(null); void loadData() }} />
+  if (!error && profile.onboarding_completed === false) return <OnboardingWizard userId={user.id} profile={profile} onFinish={() => { void loadData() }} />
 
   return (
     <div className={`dashboard-shell ${section === 'design' ? 'dashboard-shell--design' : ''} ${avatarDraft ? 'dashboard-shell--cropping' : ''}`}>

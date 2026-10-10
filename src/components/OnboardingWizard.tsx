@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Check, LoaderCircle, Sparkles } from 'lucide-rea
 import type { Profile } from '../types'
 import { supabase } from '../lib/supabase'
 import { isValidHandle, isValidHttpUrl, normalizeHandle, normalizeUrl } from '../lib/validation'
-import { CONTACT_OPTIONS } from '../lib/contacts'
+import { CONTACT_OPTIONS, isValidContactValue } from '../lib/contacts'
 import { LINK_PLATFORMS } from '../config/linkPlatforms'
 
 type WizardLink = { label: string; url: string; icon_key: string }
@@ -48,8 +48,8 @@ export function OnboardingWizard({ userId, profile, onFinish }: { userId: string
   const [error, setError] = useState('')
   const patch = <K extends keyof WizardData>(key: K, value: WizardData[K]) => setData(current => ({ ...current, [key]: value }))
 
-  const saveProgress = async () => {
-    const { error: saveError } = await supabase.from('profiles').update({ onboarding_progress: data }).eq('id', userId)
+  const saveProgress = async (draft: WizardData = data) => {
+    const { error: saveError } = await supabase.from('profiles').update({ onboarding_progress: draft }).eq('id', userId)
     if (saveError) throw saveError
   }
 
@@ -66,7 +66,21 @@ export function OnboardingWizard({ userId, profile, onFinish }: { userId: string
         setError('Введите имя для страницы.')
         return
       }
-      setData(current => ({ ...current, handle }))
+      const normalized = { ...data, handle }
+      setData(normalized)
+      if (step === 0) {
+        // Save the normalized value in the same request as the first step.
+        setBusy(true)
+        try {
+          await saveProgress(normalized)
+          setStep(1)
+        } catch (caught) {
+          setError(caught instanceof Error ? caught.message : 'Не удалось сохранить шаг. Попробуйте ещё раз.')
+        } finally {
+          setBusy(false)
+        }
+        return
+      }
     }
     if (step === 2 && data.links.some(link => link.url.trim() && !isValidHttpUrl(link.url))) {
       setError('Проверьте адрес ссылки. Можно вводить без https://.')

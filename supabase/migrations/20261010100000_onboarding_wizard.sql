@@ -49,13 +49,14 @@ begin
       bio = profile_bio,
       background_preset = case when payload->>'background_preset' in ('midnight','mist','cobalt') then payload->>'background_preset' else 'midnight' end,
       card_preset = case when payload->>'card_preset' in ('glass','solid','outline') then payload->>'card_preset' else 'glass' end,
-      is_published = coalesce((payload->>'publish')::boolean, false),
+      is_published = case when payload->>'publish' in ('true','false') then (payload->>'publish')::boolean else false end,
       onboarding_completed = true,
       onboarding_progress = '{}'::jsonb
   where id = owner_id;
 
   delete from public.profile_links where profile_id = owner_id;
   if jsonb_typeof(payload->'links') = 'array' then
+    if jsonb_array_length(payload->'links') > 3 then raise exception 'Добавьте не больше трёх ссылок на старте.'; end if;
     for item in select value from jsonb_array_elements(payload->'links') loop
       if coalesce(trim(item->>'url'), '') <> '' then
         if char_length(trim(item->>'label')) not between 1 and 80
@@ -78,7 +79,7 @@ begin
       raise exception 'Проверьте данные контакта.';
     end if;
     insert into public.profile_contacts(profile_id,kind,label,value,position,is_visible)
-    values(owner_id,contact_data->>'kind',trim(coalesce(contact_data->>'label','')),trim(contact_data->>'value'),0,coalesce((contact_data->>'is_visible')::boolean,false));
+    values(owner_id,contact_data->>'kind',trim(coalesce(contact_data->>'label','')),trim(contact_data->>'value'),0,case when contact_data->>'is_visible' in ('true','false') then (contact_data->>'is_visible')::boolean else false end);
   end if;
 end;
 $$;

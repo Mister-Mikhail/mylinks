@@ -15,11 +15,11 @@ AddType font/woff2 .woff2
   # Static folders: real files or a real 404, never the app page
   RewriteRule ^(?:assets|icons|sounds|fonts|admin)/ - [L]
   # Preview images are PNGs served directly on this domain, without redirects.
-  RewriteRule ^share-image/([a-z0-9][a-z0-9-]{2,29})\.[a-f0-9]{12}\.png$ share-image.php?handle=$1 [L]
+  RewriteRule ^share-image/([a-z0-9][a-z0-9._-]{1,28}[a-z0-9])\.[a-f0-9]{12}\.png$ share-image.php?handle=$1 [L]
   # Metadata must be present for every visitor, regardless of crawler User-Agent.
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^([a-z0-9][a-z0-9-]{2,29})/?$ share-profile.php?handle=$1 [L]
+  RewriteRule ^([a-z0-9][a-z0-9._-]{1,28}[a-z0-9])/?$ share-profile.php?handle=$1 [L]
   # Single-page app: any other path that is not a real file opens index.html
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d

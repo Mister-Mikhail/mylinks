@@ -57,6 +57,7 @@ export function ReportsPanel() {
           <button className="button button--secondary button--small" disabled={Boolean(busyId) || loading} onClick={() => void review(report,'resolved','warn')}>Предупредить</button>
           <button className="button button--secondary button--small" disabled={Boolean(busyId) || loading} onClick={() => void review(report,'resolved','restrict_profile')}>Ограничить страницу</button>
           {report.link_id && <button className="button button--secondary button--small" disabled={Boolean(busyId) || loading} onClick={() => void review(report,'resolved','restrict_link')}>Ограничить ссылку</button>}
+          {report.link_id && <button className="button button--secondary button--small" disabled={Boolean(busyId) || loading} onClick={() => void review(report,'resolved','remove_link')}>Удалить ссылку и предупредить</button>}
         </div>
         {busyId === report.id && <small>Сохраняем решение…</small>}
       </div>}

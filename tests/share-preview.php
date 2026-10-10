@@ -20,6 +20,8 @@ verify(strpos($hidden,'Михаил') === false, 'Unpublished profile leaked');
 verify(strpos($hidden,'noindex') !== false, 'Missing unpublished noindex');
 verify(preview_handle('../secret') === null && preview_handle('admin') === null && preview_handle(array('mister')) === null, 'Handle validation failed');
 verify(preview_handle('mister') === 'mister', 'Valid handle rejected');
+verify(preview_handle('mikhail.name_01-2') === 'mikhail.name_01-2', 'Punctuation handle rejected');
+verify(preview_handle('.mikhail') === null && preview_handle('mikhail_') === null, 'Handle boundary validation failed');
 verify(preview_handle('fonts') === null, 'Static directory treated as profile');
 // Metadata is served to regular clients too: no crawler User-Agent condition.
 $rules = file_get_contents(__DIR__ . '/../public/.htaccess');

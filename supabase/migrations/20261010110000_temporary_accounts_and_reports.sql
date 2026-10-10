@@ -95,7 +95,7 @@ begin
   end if;
 
   if session_token = any(temp.login_sessions) then
-    return jsonb_build_object('is_temporary',true,'expired',false,'login_count',temp.login_count,'remaining_logins',10-temp.login_count,'pending_email',temp.pending_email);
+    return jsonb_build_object('is_temporary',true,'expired',false,'login_count',temp.login_count,'remaining_logins',10-temp.login_count,'desired_handle',temp.desired_handle,'desired_name',temp.desired_name);
   end if;
 
   if temp.login_count >= 10 then
@@ -112,11 +112,11 @@ begin
       delete_after=case when next_count=10 then now()+interval '24 hours' else delete_after end
   where user_id=owner_id;
 
-  return jsonb_build_object('is_temporary',true,'expired',false,'login_count',next_count,'remaining_logins',10-next_count,'pending_email',temp.pending_email);
+  return jsonb_build_object('is_temporary',true,'expired',false,'login_count',next_count,'remaining_logins',10-next_count,'desired_handle',temp.desired_handle,'desired_name',temp.desired_name);
 end;
 $$;
 
-create or replace function public.begin_temporary_claim(target_email text, desired_handle text, desired_name text)
+create or replace function public.begin_temporary_claim(desired_handle text, desired_name text)
 returns void
 language plpgsql
 security definer
@@ -125,9 +125,10 @@ as $$
 declare owner_id uuid := auth.uid(); safe_handle text := lower(trim(coalesce(desired_handle,''))); safe_name text := trim(coalesce(desired_name,''));
 begin
   if owner_id is null then raise exception 'Authentication required' using errcode='42501'; end if;
-  if safe_handle !~ '^[a-z0-9][a-z0-9._-]{1,28}[a-z0-9] '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' then raise exception 'Укажите корректный email.'; end if;
+  if safe_handle !~ '^[a-z0-9][a-z0-9._-]{1,28}[a-z0-9]$' or safe_handle in ('admin','auth','p','assets','icons','sounds','fonts','share-image') then raise exception 'Проверьте адрес страницы.'; end if;
+  if char_length(safe_name) not between 1 and 80 then raise exception 'Проверьте имя страницы.'; end if;
   update moderation.temporary_accounts
-  set pending_email=lower(trim(target_email)),desired_handle=safe_handle,desired_name=safe_name
+  set desired_handle=safe_handle,desired_name=safe_name
   where user_id=owner_id and status in ('active','claim_pending') and (delete_after is null or delete_after>now());
   if not found then raise exception 'Временный доступ истёк. Обратитесь к администратору.'; end if;
 end;
@@ -139,13 +140,14 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
-declare owner_id uuid := auth.uid(); account_email text; confirmed_at timestamptz; expected_email text;
+declare owner_id uuid := auth.uid(); temp_status text; desired_handle text; desired_name text;
 begin
   if owner_id is null then raise exception 'Authentication required' using errcode='42501'; end if;
-  select email,email_confirmed_at into account_email,confirmed_at from auth.users where id=owner_id;
-  select pending_email into expected_email from moderation.temporary_accounts where user_id=owner_id and status in ('active','claim_pending');
-  if expected_email is null or lower(expected_email) <> lower(coalesce(account_email,'')) or confirmed_at is null then return false; end if;
-  update public.profiles set handle=(select desired_handle from moderation.temporary_accounts where user_id=owner_id),display_name=(select desired_name from moderation.temporary_accounts where user_id=owner_id),onboarding_completed=false,onboarding_progress='{}'::jsonb where id=owner_id;
+  select status,temporary_accounts.desired_handle,temporary_accounts.desired_name
+    into temp_status,desired_handle,desired_name
+    from moderation.temporary_accounts where user_id=owner_id for update;
+  if temp_status not in ('active','claim_pending') or desired_handle is null or desired_name is null then return false; end if;
+  update public.profiles set handle=desired_handle,display_name=desired_name,onboarding_completed=false,onboarding_progress='{}'::jsonb where id=owner_id;
   update moderation.temporary_accounts set status='claimed',delete_after=null,pending_email=null where user_id=owner_id;
   return true;
 end;
@@ -283,7 +285,7 @@ revoke all on function public.staff_register_temporary(uuid) from public, anon, 
 grant execute on function public.staff_register_temporary(uuid) to authenticated;
 revoke all on function public.temporary_account_session() from public, anon;
 grant execute on function public.temporary_account_session() to authenticated;
-revoke all on function public.begin_temporary_claim(text,text,text) from public, anon;
+revoke all on function public.begin_temporary_claim(text,text) from public, anon;
 grant execute on function public.begin_temporary_claim(text) to authenticated;
 revoke all on function public.finish_temporary_claim() from public, anon;
 grant execute on function public.finish_temporary_claim() to authenticated;

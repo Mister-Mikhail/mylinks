@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, LockKeyhole, RefreshCw } from 'lucide-react'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
@@ -172,6 +172,13 @@ export function PublicProfilePage({ handle }: { handle: string }) {
   const [attempt, setAttempt] = useState(0)
   const [session, setSession] = useState<Session | null>(null)
   const [sessionResolved, setSessionResolved] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reportSent, setReportSent] = useState(false)
+  const [reportBusy, setReportBusy] = useState(false)
+  const [reportError, setReportError] = useState('')
+  const [reportEmail, setReportEmail] = useState('')
+  const [reportCategory, setReportCategory] = useState('spam')
+  const [reportDetails, setReportDetails] = useState('')
 
   // The session only decides whether to show the "back to editor" button; it never blocks the page.
   useEffect(() => {
@@ -272,10 +279,42 @@ export function PublicProfilePage({ handle }: { handle: string }) {
 
   const isOwner = Boolean(session && session.user.id === visibleData.profile.id)
 
+  const sendReport = async (event: FormEvent) => {
+    event.preventDefault()
+    setReportBusy(true)
+    setReportError('')
+    const { error } = await supabase.rpc('submit_profile_report', {
+      target_handle: visibleData.profile.handle,
+      target_link: null,
+      report_category: reportCategory,
+      report_details: reportDetails.trim(),
+      contact_email: reportEmail.trim(),
+    })
+    if (error) setReportError(error.message)
+    else setReportSent(true)
+    setReportBusy(false)
+  }
+
   return (
     <main className={`public-preview-page theme-${visibleData.profile.background_preset}`}>
       {isOwner && <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> В редактор</button>}
-      <div className="public-preview-page__content"><ProfilePreview profile={visibleData.profile} links={visibleData.links} contacts={visibleData.contacts} interactive onLinkActivate={canTrack ? link => { if (link.id) recordProfileEvent(visibleData.profile.id, link.id) } : undefined} showPrivacy={!visibleData.profile.is_published} /></div>
+      <div className="public-preview-page__content"><ProfilePreview profile={visibleData.profile} links={visibleData.links} contacts={visibleData.contacts} interactive onLinkActivate={canTrack ? link => { if (link.id) recordProfileEvent(visibleData.profile.id, link.id) } : undefined} showPrivacy={!visibleData.profile.is_published} />
+        {visibleData.profile.is_published && !isOwner && <button className="public-report-trigger" type="button" onClick={() => { setReportOpen(true); setReportSent(false); setReportError('') }}>Пожаловаться на страницу</button>}
+      </div>
+      {reportOpen && <div className="report-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !reportBusy) setReportOpen(false) }}>
+        <section className="report-dialog" role="dialog" aria-modal="true" aria-labelledby="report-title">
+          <button className="report-close" type="button" onClick={() => setReportOpen(false)} aria-label="Закрыть">×</button>
+          {reportSent ? <><h2 id="report-title">Жалоба отправлена</h2><p>Спасибо. Команда mylinks.bar проверит страницу.</p><button className="button button--primary" onClick={() => setReportOpen(false)}>Готово</button></> :
+            <><h2 id="report-title">Сообщить о нарушении</h2><p>Укажите причину и email для связи. Жалоба будет рассмотрена командой.</p>
+              <form onSubmit={sendReport}>
+                <label>Причина<select value={reportCategory} onChange={event => setReportCategory(event.target.value)}><option value="spam">Спам или обман</option><option value="scam">Мошенничество</option><option value="abuse">Оскорбления или угрозы</option><option value="adult">Недопустимый контент</option><option value="copyright">Нарушение авторских прав</option><option value="other">Другое</option></select></label>
+                <label>Подробности <span className="report-optional">необязательно</span><textarea value={reportDetails} onChange={event => setReportDetails(event.target.value)} maxLength={2000} rows={3} placeholder="Что именно стоит проверить?" /></label>
+                <label>Email для связи<input type="email" value={reportEmail} onChange={event => setReportEmail(event.target.value)} maxLength={254} required placeholder="you@example.com" autoComplete="email" /></label>
+                {reportError && <p className="report-error" role="alert">{reportError}</p>}
+                <div className="report-actions"><button type="button" className="button button--ghost" onClick={() => setReportOpen(false)} disabled={reportBusy}>Отмена</button><button type="submit" className="button button--primary" disabled={reportBusy}>{reportBusy ? 'Отправляем…' : 'Отправить жалобу'}</button></div>
+              </form></>}
+        </section>
+      </div>}
     </main>
   )
 }

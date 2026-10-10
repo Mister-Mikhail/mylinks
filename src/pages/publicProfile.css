@@ -45,3 +45,11 @@
 @media (prefers-reduced-motion: reduce) {
   .profile-skeleton > span { animation: none; }
 }
+
+.public-report-trigger{display:block;margin:22px auto 0;border:0;background:transparent;color:#8798a8;font-size:12px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.report-backdrop{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:18px;background:rgba(4,8,13,.74);backdrop-filter:blur(8px)}
+.report-dialog{position:relative;width:min(100%,460px);max-height:min(90vh,700px);overflow:auto;padding:30px;border:1px solid rgba(174,201,226,.17);border-radius:22px;background:#171e27;color:#eff4f8;box-shadow:0 30px 90px rgba(0,0,0,.45)}
+.report-dialog h2{margin:0 30px 8px 0;font-size:23px;letter-spacing:-.03em}.report-dialog p{color:#a0adba;font-size:13px;line-height:1.55}
+.report-close{position:absolute;right:15px;top:12px;border:0;background:transparent;color:#c5d2de;font-size:28px;cursor:pointer}
+.report-dialog form{display:grid;gap:15px;margin-top:20px}.report-dialog label{display:grid;gap:7px;font-size:12px;color:#d7e1ea}.report-dialog input,.report-dialog textarea,.report-dialog select{width:100%;min-height:44px;border:1px solid rgba(174,201,226,.18);border-radius:11px;background:#10161e;color:#f3f6f9;padding:10px 12px;font:inherit}.report-dialog textarea{resize:vertical}.report-optional{color:#8493a2}.report-error{color:#ffaaaa!important;margin:0}.report-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:5px}
+@media(max-width:480px){.report-dialog{padding:26px 19px;border-radius:19px}.report-actions{flex-direction:column-reverse}.report-actions .button{width:100%;justify-content:center}}

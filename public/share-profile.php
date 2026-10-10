@@ -22,7 +22,7 @@ function preview_api($path, $body = null) {
 }
 
 function preview_handle($value) {
-    return is_string($value) && preg_match('/^[a-z0-9][a-z0-9-]{2,29}$/D', $value)
+    return is_string($value) && preg_match('/^[a-z0-9][a-z0-9._-]{1,28}[a-z0-9]$/D', $value)
         && !in_array($value, array('admin','auth','p','assets','icons','sounds','fonts','share-image')) ? $value : null;
 }
 

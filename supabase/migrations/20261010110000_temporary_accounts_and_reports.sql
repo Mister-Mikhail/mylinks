@@ -12,6 +12,7 @@ create table if not exists moderation.temporary_accounts (
   desired_name text,
   status text not null default 'active' check (status in ('active','claim_pending','expired','claimed')),
   created_at timestamptz not null default now(),
+  expires_at timestamptz not null default (now()+interval '30 days'),
   delete_after timestamptz
 );
 alter table moderation.temporary_accounts enable row level security;
@@ -87,7 +88,7 @@ begin
   select * into temp from moderation.temporary_accounts where user_id=owner_id for update;
   if not found or temp.status='claimed' then return jsonb_build_object('is_temporary',false); end if;
 
-  if temp.status='expired' or (temp.delete_after is not null and temp.delete_after <= now()) then
+  if temp.status='expired' or temp.expires_at <= now() or (temp.delete_after is not null and temp.delete_after <= now()) then
     update moderation.temporary_accounts set status='expired',delete_after=coalesce(delete_after,now()) where user_id=owner_id;
     update public.profiles set is_published=false where id=owner_id;
     return jsonb_build_object('is_temporary',true,'expired',true,'remaining_logins',0);
@@ -258,6 +259,8 @@ set search_path = ''
 as $$
 declare removed integer;
 begin
+  update moderation.temporary_accounts set status='expired',delete_after=now()
+  where status='active' and expires_at<=now();
   delete from auth.users u
   using moderation.temporary_accounts t
   where t.user_id=u.id and t.status in ('expired','claim_pending')

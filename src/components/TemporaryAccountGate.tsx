@@ -9,11 +9,13 @@ interface TemporaryState {
   expired?: boolean
   login_count?: number
   remaining_logins?: number
+  desired_handle?: string
+  desired_name?: string
 }
 
 export function TemporaryAccountGate({ account, onClaimed }: { account: TemporaryState; onClaimed: () => void }) {
-  const [displayName, setDisplayName] = useState('')
-  const [handle, setHandle] = useState('')
+  const [displayName, setDisplayName] = useState(account.desired_name ?? '')
+  const [handle, setHandle] = useState(account.desired_handle ?? '')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')

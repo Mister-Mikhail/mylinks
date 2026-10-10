@@ -114,3 +114,9 @@ export function staffError(error: unknown): string {
   if (message?.includes('Staff access required') || message?.includes('Admin access required')) return 'Недостаточно прав. Обновите страницу или войдите в другой аккаунт.'
   return message || 'Не удалось загрузить данные. Попробуйте ещё раз.'
 }
+
+export async function deactivateStaffAccount(target_id: string, reason: string) {
+  const { data, error } = await supabase.functions.invoke('staff-deactivate-account', { body: { target_id, reason } })
+  if (error) throw error
+  if (!data?.deactivated) throw new Error(data?.error || 'Не удалось деактивировать аккаунт.')
+}

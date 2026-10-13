@@ -51,7 +51,7 @@ export interface StaffDetail {
   profile: { display_name: string; handle: string; bio: string } | null
   links: ModeratedLink[]
 }
-export type StaffAction = UserRole | 'restrict_profile' | 'restore_profile' | 'restrict_link' | 'restore_link' | 'deactivate_account'
+export type StaffAction = UserRole | 'restrict_profile' | 'restore_profile' | 'restrict_link' | 'restore_link' | 'deactivate_account' | 'account_delete_requested' | 'account_deleted'
 export interface StaffEvent {
   id: number
   actor_handle: string | null
@@ -67,7 +67,7 @@ export interface StaffEvent {
 export const actionLabels: Record<StaffAction, string> = {
   admin: 'Назначен администратор', moderator: 'Назначен модератор', user: 'Снята роль сотрудника',
   restrict_profile: 'Публикация профиля ограничена', restore_profile: 'Публикация профиля восстановлена',
-  restrict_link: 'Ссылка ограничена', restore_link: 'Ссылка восстановлена', deactivate_account: 'Аккаунт деактивирован',
+  restrict_link: 'Ссылка ограничена', restore_link: 'Ссылка восстановлена', deactivate_account: 'Аккаунт деактивирован', account_delete_requested: 'Запрошено удаление аккаунта', account_deleted: 'Аккаунт удалён',
 }
 export const roleLabels: Record<UserRole, string> = { admin: 'Администратор', moderator: 'Модератор', user: 'Пользователь' }
 export async function staffRole(): Promise<StaffRole | null> {

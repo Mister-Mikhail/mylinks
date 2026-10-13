@@ -51,7 +51,7 @@ import { copyText, profileUrl } from './lib/clipboard'
 import { useStaffRole } from './lib/useStaffRole'
 import { CONTACT_OPTIONS, contactPlaceholder, isValidContactValue } from './lib/contacts'
 import { isKnownSensitiveUrl } from './lib/sensitiveLinks'
-import { isValidHandle, isValidHttpUrl, normalizeHandle, normalizeUrl } from './lib/validation'
+import { isValidHandle, isValidHttpUrl, normalizeHandle, normalizeHandleInput, normalizeUrl } from './lib/validation'
 import type { AvatarDraft, ContactKind, EditableContact, EditableLink, LinkIcon as LinkIconName, Profile, ProfileContact, ProfileLink } from './types'
 
 type AuthMode = 'login' | 'register'
@@ -198,10 +198,25 @@ function AuthConfirmation({ session }: { session: Session | null }) {
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
   const search = new URLSearchParams(window.location.search)
   const errorCode = hash.get('error_code') ?? search.get('error_code')
+  const tokenHash = hash.get('token_hash') ?? search.get('token_hash')
+  const [confirmed, setConfirmed] = useState(false)
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+
+  const confirmEmail = async () => {
+    if (!tokenHash) return
+    setBusy(true)
+    setError('')
+    const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'email' })
+    if (verifyError) setError('Ссылка уже использована или недействительна. Если вход работает, адрес подтверждён; иначе запросите новое письмо.')
+    else {
+      setConfirmed(true)
+      window.history.replaceState(null, '', '/auth/confirmed')
+    }
+    setBusy(false)
+  }
 
   const resendConfirmation = async (event: FormEvent) => {
     event.preventDefault()
@@ -220,25 +235,27 @@ function AuthConfirmation({ session }: { session: Session | null }) {
     setBusy(false)
   }
 
+  const isConfirmed = confirmed || (session && !tokenHash)
   return (
     <main className="private-access-page">
       <BrandMark />
       <div className="private-access-card">
-        {session ? <Check size={28} /> : <Mail size={28} />}
-        <h1>{session ? 'Почта подтверждена' : errorCode === 'otp_expired' ? 'Ссылка уже недействительна' : 'Подтверждаем почту'}</h1>
-        <p>{session ? 'Аккаунт готов. Можно перейти в личный кабинет.' : errorCode === 'otp_expired' ? 'Введите адрес регистрации — мы отправим новую ссылку подтверждения.' : 'Если подтверждение не завершилось, запросите новое письмо или вернитесь на главную.'}</p>
-        {!session && (
+        {isConfirmed ? <Check size={28} /> : <Mail size={28} />}
+        <h1>{isConfirmed ? 'Почта подтверждена' : tokenHash ? 'Подтвердите почту' : errorCode === 'otp_expired' ? 'Ссылка уже недействительна' : 'Подтверждение почты'}</h1>
+        <p>{isConfirmed ? 'Аккаунт готов. Можно перейти в личный кабинет.' : tokenHash ? 'Нажмите кнопку, чтобы завершить подтверждение адреса.' : 'Если ссылка истекла, укажите адрес регистрации и запросите новое письмо.'}</p>
+        {tokenHash && !confirmed && <button className="button button--primary button--full" onClick={() => void confirmEmail()} disabled={busy}>{busy ? <LoaderCircle className="spin" size={18} /> : <Check size={18} />}{busy ? 'Подтверждаем…' : 'Подтвердить email'}</button>}
+        {!tokenHash && !isConfirmed && (
           <form className="confirmation-resend" onSubmit={resendConfirmation}>
             <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required /></label>
-            {error && <div className="form-message form-message--error">{error}</div>}
-            {message && <div className="form-message form-message--success">{message}</div>}
-            <button className="button button--primary button--full" type="submit" disabled={busy || Boolean(message)}>
+            <button className="button button--primary button--full" type="submit" disabled={busy}>
               {busy ? <LoaderCircle className="spin" size={18} /> : <Mail size={17} />}
               {busy ? 'Отправляем…' : 'Отправить письмо ещё раз'}
             </button>
           </form>
         )}
-        <Link className={`button ${session ? 'button--primary' : 'button--ghost'}`} to="/">Перейти в mylinks.bar</Link>
+        {error && <div className="form-message form-message--error">{error}</div>}
+        {message && <div className="form-message form-message--success">{message}</div>}
+        <Link className={`button ${isConfirmed ? 'button--primary' : 'button--ghost'}`} to="/">Перейти в mylinks.bar</Link>
       </div>
     </main>
   )
@@ -380,7 +397,7 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
           {mode === 'register' && (
             <>
               <label>Имя<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Михаил" autoComplete="name" /></label>
-              <label>Адрес мастер‑ссылки<div className="input-prefix"><span>mylinks.bar/</span><input value={handle} onChange={(event) => setHandle(normalizeHandle(event.target.value))} placeholder="mikhail" autoCapitalize="none" /></div></label>
+              <label>Адрес мастер‑ссылки<div className="input-prefix"><span>mylinks.bar/</span><input value={handle} onChange={(event) => setHandle(normalizeHandleInput(event.target.value))} placeholder="mikhail" autoCapitalize="none" /></div></label>
             </>
           )}
           <label>{mode === 'register' ? 'Email' : 'Email или имя пользователя'}<input type={mode === 'register' ? 'email' : 'text'} value={email} onChange={(event) => setEmail(event.target.value)} placeholder={mode === 'register' ? 'you@example.com' : 'Email или логин страницы'} autoCapitalize="none" autoCorrect="off" inputMode={mode === 'register' ? 'email' : 'text'} autoComplete={mode === 'register' ? 'email' : 'username'} required /></label>

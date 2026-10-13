@@ -11,6 +11,8 @@ test('landing presents the registration flow', async ({ page }) => {
   const handleInput = page.getByPlaceholder('mikhail')
   await handleInput.fill('Mikhail Studio!')
   await expect(handleInput).toHaveValue('mikhail-studio')
+  await handleInput.fill('mikhail.name_01')
+  await expect(handleInput).toHaveValue('mikhail.name_01')
 
   const passwordInput = page.getByPlaceholder('Минимум 6 символов')
   await expect(passwordInput).toHaveAttribute('type', 'password')

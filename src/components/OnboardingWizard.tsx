@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { ArrowLeft, ArrowRight, Check, LoaderCircle, Sparkles } from 'lucide-react'
-import type { Profile } from '../types'
+import type { EditableContact, EditableLink, LinkIcon, Profile } from '../types'
+import { ProfilePreview } from './ProfilePreview'
 import { supabase } from '../lib/supabase'
-import { isValidHandle, isValidHttpUrl, normalizeHandle, normalizeUrl } from '../lib/validation'
+import { isValidHandle, isValidHttpUrl, normalizeHandle, normalizeHandleInput } from '../lib/validation'
 import { CONTACT_OPTIONS, isValidContactValue } from '../lib/contacts'
-import { LINK_PLATFORMS } from '../config/linkPlatforms'
+import { getLinkPlatform, LINK_PLATFORMS, onboardingPlatformUrl } from '../config/linkPlatforms'
 import './onboarding.css'
 
 type WizardLink = { label: string; url: string; icon_key: string }
@@ -83,8 +84,8 @@ export function OnboardingWizard({ userId, profile, onFinish }: { userId: string
         return
       }
     }
-    if (step === 2 && data.links.some(link => link.url.trim() && !isValidHttpUrl(link.url))) {
-      setError('Проверьте адрес ссылки. Можно вводить без https://.')
+    if (step === 2 && data.links.some(link => link.url.trim() && !isValidHttpUrl(onboardingPlatformUrl(getLinkPlatform(link.icon_key as LinkIcon), link.url)))) {
+      setError('Проверьте имя пользователя, номер телефона или адрес ссылки.')
       return
     }
     if (step === 3 && data.contact.value.trim() && !isValidContactValue(data.contact.kind, data.contact.value)) {
@@ -114,7 +115,7 @@ export function OnboardingWizard({ userId, profile, onFinish }: { userId: string
         links: data.links.filter(link => link.url.trim()).map(link => ({
           ...link,
           label: link.label.trim() || link.icon_key,
-          url: normalizeUrl(link.url),
+          url: onboardingPlatformUrl(getLinkPlatform(link.icon_key as LinkIcon), link.url),
         })),
         contact: { ...data.contact, label: data.contact.label.trim(), value: data.contact.value.trim() },
       }
@@ -141,8 +142,26 @@ export function OnboardingWizard({ userId, profile, onFinish }: { userId: string
     }
   }
 
+  const previewProfile: Profile = { ...profile, ...data, is_published: data.publish }
+  const previewLinks: EditableLink[] = data.links
+    .filter(link => link.url.trim())
+    .map((link, index) => ({
+      localId: `onboarding-${index}`,
+      label: link.label.trim() || getLinkPlatform(link.icon_key as LinkIcon).label,
+      url: onboardingPlatformUrl(getLinkPlatform(link.icon_key as LinkIcon), link.url),
+      icon_key: link.icon_key as LinkIcon,
+      position: index,
+      is_visible: true,
+      is_sensitive: false,
+    }))
+    .filter(link => isValidHttpUrl(link.url))
+  const previewContacts: EditableContact[] = data.contact.is_visible && data.contact.value.trim() && isValidContactValue(data.contact.kind, data.contact.value)
+    ? [{ localId: 'onboarding-contact', kind: data.contact.kind, label: data.contact.label.trim(), value: data.contact.value.trim(), position: 0, is_visible: true }]
+    : []
+
   return (
     <main className="onboarding-page">
+      <div className={`onboarding-layout ${step === 4 ? 'onboarding-layout--preview' : ''}`}>
       <section className="onboarding-card" aria-labelledby="onboarding-title">
         <div className="onboarding-brand"><span className="onboarding-mark"><Sparkles size={17} /></span><span>mylinks.bar</span><span className="onboarding-count">{step + 1} / {steps.length}</span></div>
         <div className="onboarding-progress" aria-label={`Шаг ${step + 1} из ${steps.length}`}>{steps.map((item, index) => <i key={item.title} className={index <= step ? 'is-active' : ''} />)}</div>
@@ -155,14 +174,16 @@ export function OnboardingWizard({ userId, profile, onFinish }: { userId: string
         <form className="onboarding-form" onSubmit={next}>
           {step === 0 && <div className="onboarding-fields">
             <label>Как к вам обращаться<input autoFocus value={data.display_name} onChange={event => patch('display_name', event.target.value)} maxLength={80} placeholder="Ваше имя" /></label>
-            <label>Адрес страницы<div className="onboarding-handle"><span>mylinks.bar/</span><input value={data.handle} onChange={event => patch('handle', normalizeHandle(event.target.value))} autoCapitalize="none" autoCorrect="off" maxLength={30} placeholder="your.name_01" /></div><small>Латиница, цифры, точка, дефис и нижнее подчёркивание.</small></label>
+            <label>Адрес страницы<div className="onboarding-handle"><span>mylinks.bar/</span><input value={data.handle} onChange={event => patch('handle', normalizeHandleInput(event.target.value))} autoCapitalize="none" autoCorrect="off" maxLength={30} placeholder="your.name_01" /></div><small>Латиница, цифры, точка, дефис и нижнее подчёркивание.</small></label>
           </div>}
           {step === 1 && <label>Описание<textarea autoFocus value={data.bio} onChange={event => patch('bio', event.target.value)} maxLength={160} rows={4} placeholder="Например: дизайнер, путешественник, автор проекта…" /><small className="onboarding-counter">{data.bio.length} / 160</small></label>}
           {step === 2 && <div className="onboarding-fields">
             {data.links.map((link, index) => <div className="onboarding-link" key={index}>
-              <select aria-label="Площадка" value={link.icon_key} onChange={event => patch('links', data.links.map((item, i) => i === index ? { ...item, icon_key: event.target.value } : item))}>{LINK_PLATFORMS.map(platform => <option key={platform.value} value={platform.value}>{platform.label}</option>)}</select>
+              <select aria-label="Площадка" value={link.icon_key} onChange={event => patch('links', data.links.map((item, i) => i === index ? { ...item, icon_key: event.target.value, url: '' } : item))}>{LINK_PLATFORMS.map(platform => <option key={platform.value} value={platform.value}>{platform.label}</option>)}</select>
               <input aria-label="Название ссылки" value={link.label} onChange={event => patch('links', data.links.map((item, i) => i === index ? { ...item, label: event.target.value } : item))} placeholder="Название" maxLength={80} />
-              <input aria-label="Адрес ссылки" value={link.url} onChange={event => patch('links', data.links.map((item, i) => i === index ? { ...item, url: event.target.value } : item))} inputMode="url" autoCapitalize="none" placeholder="https://…" />
+              <label className="onboarding-link-input">{link.icon_key === 'whatsapp' ? 'Номер телефона' : link.icon_key === 'link' ? 'Адрес ссылки' : 'Имя пользователя или ID'}
+                <span className="onboarding-link-address">{getLinkPlatform(link.icon_key as LinkIcon).inputPrefix && <span>{getLinkPlatform(link.icon_key as LinkIcon).inputPrefix}</span>}<input aria-label={link.icon_key === 'whatsapp' ? 'Номер WhatsApp' : link.icon_key === 'link' ? 'Адрес ссылки' : 'Имя пользователя или ID'} value={link.url} onChange={event => patch('links', data.links.map((item, i) => i === index ? { ...item, url: event.target.value } : item))} inputMode={link.icon_key === 'whatsapp' ? 'tel' : link.icon_key === 'link' ? 'url' : 'text'} autoCapitalize="none" autoCorrect="off" placeholder={link.icon_key === 'whatsapp' ? '+79990000000' : getLinkPlatform(link.icon_key as LinkIcon).placeholder} /></span>
+              </label>
             </div>)}
             {data.links.length < 3 && <button type="button" className="onboarding-add" onClick={() => patch('links', [...data.links, { label: '', url: '', icon_key: 'link' }])}>＋ Добавить ссылку</button>}
             <button type="button" className="onboarding-skip-link" onClick={skip} disabled={busy}>Добавлю позже</button>
@@ -188,6 +209,11 @@ export function OnboardingWizard({ userId, profile, onFinish }: { userId: string
         </form>
         <p className="onboarding-footnote">Шаги сохраняются автоматически. Всё можно изменить позже.</p>
       </section>
+      {step === 4 && <aside className="onboarding-live-preview" aria-label="Предпросмотр вашей страницы">
+        <p>Так будет выглядеть ваша страница</p>
+        <div className="onboarding-preview-frame"><ProfilePreview profile={previewProfile} links={previewLinks} contacts={previewContacts} showPrivacy={!data.publish} /></div>
+      </aside>}
+      </div>
     </main>
   )
 }

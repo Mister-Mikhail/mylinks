@@ -55,6 +55,30 @@ export const buildPlatformUrl = (platform: LinkPlatform, value: string) => {
   return `${platform.baseUrl}${platform.usernamePrefix ?? ''}${username}`
 }
 
+// The onboarding form accepts a short account name; saved links are always full HTTPS URLs.
+export const onboardingPlatformUrl = (platform: LinkPlatform, input: string) => {
+  const value = input.trim()
+  if (!value) return ''
+  if (!platform.baseUrl) return normalizeUrl(value)
+  if (platform.value === 'whatsapp') {
+    const raw = value.replace(/^(?:https?:\/\/)?(?:www\.)?wa\.me\//i, '')
+    if (!/^\+?[\d\s()-]+$/.test(raw)) return ''
+    const digits = raw.replace(/\D/g, '')
+    return /^\d{7,15}$/.test(digits) ? `https://wa.me/${digits}` : ''
+  }
+
+  const shortName = value.replace(/^@/, '')
+  if (/^[a-z0-9._-]{1,80}$/i.test(shortName)) return buildPlatformUrl(platform, shortName)
+  try {
+    const url = new URL(value)
+    const expectedHost = new URL(platform.baseUrl).hostname
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return ''
+    return url.hostname.replace(/^www\./, '') === expectedHost ? url.href : ''
+  } catch {
+    return ''
+  }
+}
+
 export const inferLinkLabel = (value: string) => {
   try {
     const hostname = new URL(normalizeUrl(value)).hostname.replace(/^www\./, '')

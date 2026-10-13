@@ -19,6 +19,35 @@ alter table moderation.temporary_accounts enable row level security;
 revoke all on moderation.temporary_accounts from public, anon, authenticated;
 create index if not exists temporary_accounts_cleanup_idx on moderation.temporary_accounts(delete_after) where delete_after is not null;
 
+-- A temporary account may read its page but may edit only after it is claimed.
+-- This is enforced in RLS so direct Data API calls cannot bypass the UI gate.
+create or replace function public.account_editable()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$select not exists(
+  select 1 from moderation.temporary_accounts t
+  where t.user_id=auth.uid() and t.status<>'claimed'
+);$$;
+revoke all on function public.account_editable() from public, anon;
+grant execute on function public.account_editable() to authenticated;
+
+create policy "public_profiles_claimed_insert" on public.profiles as restrictive for insert to authenticated with check (public.account_editable());
+create policy "public_profiles_claimed_update" on public.profiles as restrictive for update to authenticated using (public.account_editable()) with check (public.account_editable());
+create policy "public_profiles_claimed_delete" on public.profiles as restrictive for delete to authenticated using (public.account_editable());
+create policy "public_profile_links_claimed_insert" on public.profile_links as restrictive for insert to authenticated with check (public.account_editable());
+create policy "public_profile_links_claimed_update" on public.profile_links as restrictive for update to authenticated using (public.account_editable()) with check (public.account_editable());
+create policy "public_profile_links_claimed_delete" on public.profile_links as restrictive for delete to authenticated using (public.account_editable());
+create policy "public_profile_contacts_claimed_insert" on public.profile_contacts as restrictive for insert to authenticated with check (public.account_editable());
+create policy "public_profile_contacts_claimed_update" on public.profile_contacts as restrictive for update to authenticated using (public.account_editable()) with check (public.account_editable());
+create policy "public_profile_contacts_claimed_delete" on public.profile_contacts as restrictive for delete to authenticated using (public.account_editable());
+create policy "storage_objects_claimed_insert" on storage.objects as restrictive for insert to authenticated with check (public.account_editable());
+create policy "storage_objects_claimed_update" on storage.objects as restrictive for update to authenticated using (public.account_editable()) with check (public.account_editable());
+create policy "storage_objects_claimed_delete" on storage.objects as restrictive for delete to authenticated using (public.account_editable());
+
+
 create table if not exists moderation.username_login_failures (
   id bigint generated always as identity primary key,
   handle text not null,

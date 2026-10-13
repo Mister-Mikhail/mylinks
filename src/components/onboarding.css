@@ -22,3 +22,5 @@
 .onboarding-preview-frame{max-height:670px;overflow:auto;border-radius:18px}
 .onboarding-preview-frame .profile-card{min-height:560px}
 @media(max-width:850px){.onboarding-layout--preview{max-width:520px;grid-template-columns:1fr}.onboarding-live-preview{padding:14px}.onboarding-preview-frame{max-height:520px}}
+
+.onboarding-handle-status{min-height:16px;font-size:12px;color:#9eacbb}.onboarding-handle-status--available{color:#a8e6c1}.onboarding-handle-status--taken,.onboarding-handle-status--error{color:#ffb1b1}

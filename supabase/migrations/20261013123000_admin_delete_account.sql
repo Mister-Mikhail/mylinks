@@ -22,6 +22,9 @@ begin
   end if;
 
   perform pg_advisory_xact_lock(734029101);
+  if coalesce(moderation.my_role(), '') <> 'admin' then
+    raise exception 'Admin access required' using errcode='42501';
+  end if;
   select p.handle into actual_handle
   from auth.users u join public.profiles p on p.id=u.id
   where u.id=target and u.deleted_at is null

@@ -41,7 +41,7 @@ Deno.serve(async request => {
   const { error: passwordError } = await admin.auth.admin.updateUserById(user.id, { password, app_metadata: nextMetadata })
   if (passwordError) return reply(400, { error: passwordError.message })
 
-  const { data: completed, error: completeError } = await userClient.rpc('finish_temporary_claim')
+  const { data: completed, error: completeError } = await admin.rpc('finish_temporary_claim', { target: user.id })
   if (completeError || completed !== true) {
     await admin.auth.admin.updateUserById(user.id, { app_metadata: { ...(user.app_metadata || {}), account_kind: 'temporary' } })
     return reply(400, { error: completeError?.message || 'Не удалось завершить передачу страницы.' })

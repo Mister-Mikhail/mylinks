@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { ArrowLeft, ArrowRight, Check, LoaderCircle, Sparkles } from 'lucide-react'
 import type { EditableContact, EditableLink, LinkIcon, Profile } from '../types'
 import { ProfilePreview } from './ProfilePreview'
@@ -48,6 +48,21 @@ export function OnboardingWizard({ userId, profile, onFinish }: { userId: string
   const [data, setData] = useState<WizardData>(() => initialData(profile))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [availability, setAvailability] = useState<{ handle: string; status: 'idle' | 'checking' | 'available' | 'taken' | 'error' }>({ handle: '', status: 'idle' })
+  const typedHandle = data.handle
+  useEffect(() => {
+    if (!isValidHandle(typedHandle)) {
+      setAvailability({ handle: typedHandle, status: 'idle' })
+      return
+    }
+    let cancelled = false
+    setAvailability({ handle: typedHandle, status: 'checking' })
+    const timer = window.setTimeout(async () => {
+      const { data: available, error: checkError } = await supabase.rpc('is_handle_available', { candidate: typedHandle })
+      if (!cancelled) setAvailability({ handle: typedHandle, status: checkError ? 'error' : available ? 'available' : 'taken' })
+    }, 400)
+    return () => { cancelled = true; window.clearTimeout(timer) }
+  }, [typedHandle])
   const patch = <K extends keyof WizardData>(key: K, value: WizardData[K]) => setData(current => ({ ...current, [key]: value }))
 
   const saveProgress = async (draft: WizardData = data) => {
@@ -67,6 +82,25 @@ export function OnboardingWizard({ userId, profile, onFinish }: { userId: string
       if (!data.display_name.trim()) {
         setError('Введите имя для страницы.')
         return
+      }
+      setBusy(true)
+      try {
+        const known = availability.handle === handle && availability.status === 'available'
+        if (!known) {
+          const { data: available, error: checkError } = await supabase.rpc('is_handle_available', { candidate: handle })
+          if (checkError) throw checkError
+          if (!available) {
+            setAvailability({ handle, status: 'taken' })
+            setError('Этот адрес уже занят. Выберите другой.')
+            return
+          }
+          setAvailability({ handle, status: 'available' })
+        }
+      } catch {
+        setError('Не удалось проверить адрес. Повторите попытку.')
+        return
+      } finally {
+        setBusy(false)
       }
       const normalized = { ...data, handle }
       setData(normalized)
@@ -123,7 +157,14 @@ export function OnboardingWizard({ userId, profile, onFinish }: { userId: string
       if (completeError) throw completeError
       onFinish()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Не удалось завершить настройку. Проверьте данные и повторите.')
+      const dbError = caught as { code?: string; message?: string }
+      if (dbError.code === '23505') {
+        setAvailability({ handle: normalizeHandle(data.handle), status: 'taken' })
+        setError('Этот адрес уже заняли. Выберите другой.')
+        setStep(0)
+      } else {
+        setError(caught instanceof Error ? caught.message : 'Не удалось завершить настройку. Проверьте данные и повторите.')
+      }
     } finally {
       setBusy(false)
     }
@@ -174,7 +215,15 @@ export function OnboardingWizard({ userId, profile, onFinish }: { userId: string
         <form className="onboarding-form" onSubmit={next}>
           {step === 0 && <div className="onboarding-fields">
             <label>Как к вам обращаться<input autoFocus value={data.display_name} onChange={event => patch('display_name', event.target.value)} maxLength={80} placeholder="Ваше имя" /></label>
-            <label>Адрес страницы<div className="onboarding-handle"><span>mylinks.bar/</span><input value={data.handle} onChange={event => patch('handle', normalizeHandleInput(event.target.value))} autoCapitalize="none" autoCorrect="off" maxLength={30} placeholder="your.name_01" /></div><small>Латиница, цифры, точка, дефис и нижнее подчёркивание.</small></label>
+            <label>Адрес страницы<div className="onboarding-handle"><span>mylinks.bar/</span><input value={data.handle} onChange={event => patch('handle', normalizeHandleInput(event.target.value))} autoCapitalize="none" autoCorrect="off" maxLength={30} placeholder="your.name_01" /></div><small>Латиница, цифры, точка, дефис и нижнее подчёркивание.</small>
+              <span className={`onboarding-handle-status onboarding-handle-status--${availability.status}`} role="status" aria-live="polite">
+                {availability.handle === data.handle && isValidHandle(data.handle) && (
+                  availability.status === 'checking' ? 'Проверяем адрес…' :
+                  availability.status === 'available' ? 'Адрес свободен' :
+                  availability.status === 'taken' ? 'Адрес уже занят' :
+                  availability.status === 'error' ? 'Проверка недоступна. Нажмите «Продолжить», чтобы повторить.' : ''
+                )}
+              </span></label>
           </div>}
           {step === 1 && <label>Описание<textarea autoFocus value={data.bio} onChange={event => patch('bio', event.target.value)} maxLength={160} rows={4} placeholder="Например: дизайнер, путешественник, автор проекта…" /><small className="onboarding-counter">{data.bio.length} / 160</small></label>}
           {step === 2 && <div className="onboarding-fields">

@@ -2,11 +2,17 @@ export const normalizeHandle = (value: string) =>
   value
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^[._-]+|[._-]+$/g, '')
     .slice(0, 30)
+    .replace(/[._-]+$/g, '')
 
-export const isValidHandle = (value: string) => /^[a-z0-9][a-z0-9-]{2,29}$/.test(value) && !['admin', 'auth', 'p'].includes(value)
+const reservedHandles = new Set([
+  'admin', 'auth', 'p', 'assets', 'icons', 'sounds', 'fonts', 'share-image',
+])
+
+export const isValidHandle = (value: string) =>
+  /^[a-z0-9][a-z0-9._-]{1,28}[a-z0-9]$/.test(value) && !reservedHandles.has(value)
 
 export const normalizeUrl = (value: string) => {
   const trimmed = value.trim()

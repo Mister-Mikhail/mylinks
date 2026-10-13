@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { ArrowLeft, ArrowRight, Check, LoaderCircle, Sparkles } from 'lucide-react'
-import type { EditableLink, LinkIcon, Profile } from '../types'
+import type { EditableContact, EditableLink, LinkIcon, Profile } from '../types'
 import { ProfilePreview } from './ProfilePreview'
 import { supabase } from '../lib/supabase'
 import { isValidHandle, isValidHttpUrl, normalizeHandle, normalizeHandleInput } from '../lib/validation'
@@ -155,6 +155,9 @@ export function OnboardingWizard({ userId, profile, onFinish }: { userId: string
       is_sensitive: false,
     }))
     .filter(link => isValidHttpUrl(link.url))
+  const previewContacts: EditableContact[] = data.contact.is_visible && data.contact.value.trim() && isValidContactValue(data.contact.kind, data.contact.value)
+    ? [{ localId: 'onboarding-contact', kind: data.contact.kind, label: data.contact.label.trim(), value: data.contact.value.trim(), position: 0, is_visible: true }]
+    : []
 
   return (
     <main className="onboarding-page">
@@ -208,7 +211,7 @@ export function OnboardingWizard({ userId, profile, onFinish }: { userId: string
       </section>
       {step === 4 && <aside className="onboarding-live-preview" aria-label="Предпросмотр вашей страницы">
         <p>Так будет выглядеть ваша страница</p>
-        <div className="onboarding-preview-frame"><ProfilePreview profile={previewProfile} links={previewLinks} showPrivacy={!data.publish} /></div>
+        <div className="onboarding-preview-frame"><ProfilePreview profile={previewProfile} links={previewLinks} contacts={previewContacts} showPrivacy={!data.publish} /></div>
       </aside>}
       </div>
     </main>

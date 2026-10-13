@@ -1,13 +1,12 @@
 // Preserve a separator at the end while the person is typing: "a." can become "a.b".
-export const normalizeHandleInput = (value: string) => {
-  const normalized = value
-    .toLowerCase()
-    .trimStart()
-    .replace(/[^a-z0-9._-]+/g, '-')
-    .replace(/^[._-]+/g, '')
-    .slice(0, 30)
-  return /[^a-z0-9._-]$/.test(value) ? normalized.replace(/-+$/g, '') : normalized
-}
+export const normalizeHandleInput = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 30)
+
+export const normalizeDisplayNameInput = (value: string) =>
+  value.replace(/[^\p{L} ]/gu, '').replace(/ {2,}/g, ' ').replace(/^ /, '').slice(0, 60)
+
+export const isValidDisplayName = (value: string) =>
+  value.length >= 1 && value.length <= 60 && /^[\p{L}]+(?: [\p{L}]+)*$/u.test(value)
 
 export const normalizeHandle = (value: string) =>
   normalizeHandleInput(value.trim()).replace(/[._-]+$/g, '')

@@ -150,32 +150,43 @@ begin
   if exists(select 1 from public.profiles where handle=safe_handle and id<>owner_id) then raise exception 'Этот адрес уже занят.'; end if;
   update moderation.temporary_accounts
   set desired_handle=safe_handle,desired_name=safe_name
-  where user_id=owner_id and status in ('active','claim_pending') and (delete_after is null or delete_after>now());
+  where user_id=owner_id and status in ('active','claim_pending') and expires_at>now()
+    and (delete_after is null or delete_after>now());
   if not found then raise exception 'Временный доступ истёк. Обратитесь к администратору.'; end if;
 end;
 $$;
 
-create or replace function public.finish_temporary_claim()
+-- Called only by the service-role Edge Function after it has changed the password.
+-- A temporary user must not be able to claim an account by calling RPC directly.
+create or replace function public.finish_temporary_claim(target uuid)
 returns boolean
 language plpgsql
 security definer
 set search_path = ''
 as $$
 declare
-  owner_id uuid := auth.uid();
   temp_status text;
   desired_handle text;
   desired_name text;
+  expires_at timestamptz;
+  delete_after timestamptz;
+  account_kind text;
 begin
-  if owner_id is null then raise exception 'Authentication required' using errcode='42501'; end if;
-  select status,temporary_accounts.desired_handle,temporary_accounts.desired_name
-  into temp_status,desired_handle,desired_name
-  from moderation.temporary_accounts where user_id=owner_id for update;
-  if temp_status not in ('active','claim_pending') or desired_handle is null or desired_name is null then return false; end if;
+  select t.status,t.desired_handle,t.desired_name,t.expires_at,t.delete_after,
+         u.raw_app_meta_data ->> 'account_kind'
+  into temp_status,desired_handle,desired_name,expires_at,delete_after,account_kind
+  from moderation.temporary_accounts t
+  join auth.users u on u.id=t.user_id
+  where t.user_id=target
+  for update of t;
+  if temp_status not in ('active','claim_pending')
+     or desired_handle is null or desired_name is null
+     or expires_at<=now() or (delete_after is not null and delete_after<=now())
+     or account_kind is distinct from 'standard' then return false; end if;
   update public.profiles
   set handle=desired_handle,display_name=desired_name,onboarding_completed=false,onboarding_progress='{}'::jsonb
-  where id=owner_id;
-  update moderation.temporary_accounts set status='claimed',delete_after=null,pending_email=null where user_id=owner_id;
+  where id=target;
+  update moderation.temporary_accounts set status='claimed',delete_after=null,pending_email=null where user_id=target;
   return true;
 end;
 $$;
@@ -188,13 +199,15 @@ security definer
 set search_path = ''
 as $$
   select exists(
-    select 1 from moderation.temporary_accounts t
-    join public.profiles p on p.id=t.user_id
-    where p.handle=lower(trim(target_handle)) and t.status='claimed'
-      and (select count(*) from moderation.username_login_failures f
-           where f.handle=lower(trim(target_handle)) and f.ip_hash=md5(coalesce(request_ip,'unknown'))
-             and f.created_at>now()-interval '15 minutes')<10
-  );
+    select 1 from public.profiles p
+    where p.handle=lower(trim(target_handle))
+  )
+  and (select count(*) from moderation.username_login_failures f
+       where f.handle=lower(trim(target_handle)) and f.ip_hash=md5(coalesce(request_ip,'unknown'))
+         and f.created_at>now()-interval '15 minutes')<10
+  and (select count(*) from moderation.username_login_failures f
+       where f.handle=lower(trim(target_handle))
+         and f.created_at>now()-interval '15 minutes')<50;
 $$;
 
 create or replace function public.username_login_failed(target_handle text, request_ip text)
@@ -368,8 +381,8 @@ revoke all on function public.temporary_account_session() from public, anon;
 grant execute on function public.temporary_account_session() to authenticated;
 revoke all on function public.begin_temporary_claim(text,text) from public, anon;
 grant execute on function public.begin_temporary_claim(text,text) to authenticated;
-revoke all on function public.finish_temporary_claim() from public, anon;
-grant execute on function public.finish_temporary_claim() to authenticated;
+revoke all on function public.finish_temporary_claim(uuid) from public, anon, authenticated;
+grant execute on function public.finish_temporary_claim(uuid) to service_role;
 revoke all on function public.username_login_allowed(text,text) from public, anon, authenticated;
 grant execute on function public.username_login_allowed(text,text) to service_role;
 revoke all on function public.username_login_failed(text,text) from public, anon, authenticated;

@@ -2,8 +2,10 @@ export const normalizeHandle = (value: string) =>
   value
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9._-]+/g, '')
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^[._-]+|[._-]+$/g, '')
     .slice(0, 30)
+    .replace(/[._-]+$/g, '')
 
 const reservedHandles = new Set([
   'admin', 'auth', 'p', 'assets', 'icons', 'sounds', 'fonts', 'share-image',

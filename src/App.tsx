@@ -231,11 +231,11 @@ function AuthConfirmation({ session }: { session: Session | null }) {
     })
 
     if (resendError) setError(resendError.message)
-    else setMessage('Новое письмо отправлено. Используйте самую свежую ссылку из почты.')
+    else setMessage('Если адрес ещё не подтверждён, проверьте входящие и папку «Спам» — письмо может прийти с задержкой. Если письмо не приходит, попробуйте войти: возможно, адрес уже подтверждён.')
     setBusy(false)
   }
 
-  const isConfirmed = confirmed || (session && !tokenHash)
+  const isConfirmed = confirmed || Boolean(session && !tokenHash)
   return (
     <main className="private-access-page">
       <BrandMark />
@@ -243,8 +243,8 @@ function AuthConfirmation({ session }: { session: Session | null }) {
         {isConfirmed ? <Check size={28} /> : <Mail size={28} />}
         <h1>{isConfirmed ? 'Почта подтверждена' : tokenHash ? 'Подтвердите почту' : errorCode === 'otp_expired' ? 'Ссылка уже недействительна' : 'Подтверждение почты'}</h1>
         <p>{isConfirmed ? 'Аккаунт готов. Можно перейти в личный кабинет.' : tokenHash ? 'Нажмите кнопку, чтобы завершить подтверждение адреса.' : 'Если ссылка истекла, укажите адрес регистрации и запросите новое письмо.'}</p>
-        {tokenHash && !confirmed && <button className="button button--primary button--full" onClick={() => void confirmEmail()} disabled={busy}>{busy ? <LoaderCircle className="spin" size={18} /> : <Check size={18} />}{busy ? 'Подтверждаем…' : 'Подтвердить email'}</button>}
-        {!tokenHash && !isConfirmed && (
+        {tokenHash && !confirmed && !error && <button className="button button--primary button--full" onClick={() => void confirmEmail()} disabled={busy}>{busy ? <LoaderCircle className="spin" size={18} /> : <Check size={18} />}{busy ? 'Подтверждаем…' : 'Подтвердить email'}</button>}
+        {(!tokenHash || Boolean(error)) && !isConfirmed && (
           <form className="confirmation-resend" onSubmit={resendConfirmation}>
             <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required /></label>
             <button className="button button--primary button--full" type="submit" disabled={busy}>

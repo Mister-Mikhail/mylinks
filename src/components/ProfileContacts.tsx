@@ -85,7 +85,7 @@ export function ProfileContacts({ contacts, cardPreset, interactive, onActivate 
         }
 
         const icon = contact.kind === 'address' ? <MapPin size={18} /> : contact.kind === 'phone' ? <Phone size={18} /> : <Mail size={18} />
-        const href = contact.kind === 'address' ? addressHref(contact.value) : contact.kind === 'phone' ? phoneHref(contact.value) : emailHref(contact.value)
+        const href = contact.kind === 'address' ? addressHref(contact.value, contact.latitude, contact.longitude) : contact.kind === 'phone' ? phoneHref(contact.value) : emailHref(contact.value)
         const content = (
           <>
             <span className="profile-link__icon">{icon}</span>
@@ -104,4 +104,5 @@ export function ProfileContacts({ contacts, cardPreset, interactive, onActivate 
     </div>
   )
 }
+
 

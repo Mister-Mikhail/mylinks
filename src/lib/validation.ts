@@ -32,3 +32,7 @@ export const isValidHttpUrl = (value: string) => {
     return false
   }
 }
+
+
+export const normalizeNewHandleInput = (value: string) => value.toLowerCase().replace(/[^a-z._]/g, '').slice(0, 30)
+export const isValidNewHandle = (value: string) => value.length >= 3 && value.length <= 30 && /^[a-z]+(?:[._][a-z]+)?$/.test(value) && !reservedHandles.has(value)

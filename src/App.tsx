@@ -32,6 +32,7 @@ import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } fr
 import { BrandMark } from './components/BrandMark'
 import { OnboardingWizard } from './components/OnboardingWizard'
 import { TemporaryAccountGate } from './components/TemporaryAccountGate'
+import { DeleteAccount } from './components/DeleteAccount'
 import { AvatarEditor } from './components/AvatarEditor'
 import { ProfilePreview } from './components/ProfilePreview'
 import { TypographyControls } from './components/TypographyControls'
@@ -327,20 +328,6 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [displayName, setDisplayName] = useState('')
-  const [handle, setHandle] = useState('')
-  const [nameWarning, setNameWarning] = useState(false)
-  const [handleStatus, setHandleStatus] = useState<{ value: string; status: 'checking' | 'available' | 'taken' | 'error' }>({ value: '', status: 'checking' })
-  useEffect(() => {
-    if (mode !== 'register' || !isValidHandle(handle)) return
-    let cancelled = false
-    setHandleStatus({ value: handle, status: 'checking' })
-    const timer = window.setTimeout(async () => {
-      const { data: available, error: checkError } = await supabase.rpc('is_handle_available', { candidate: handle })
-      if (!cancelled) setHandleStatus({ value: handle, status: checkError ? 'error' : available ? 'available' : 'taken' })
-    }, 400)
-    return () => { cancelled = true; window.clearTimeout(timer) }
-  }, [handle, mode])
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -353,27 +340,17 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
 
     try {
       if (mode === 'register') {
-        const safeHandle = handle
-        const safeName = displayName.trim()
-        if (!isValidDisplayName(safeName)) throw new Error('Имя должно содержать только буквы и пробелы (до 60 символов).')
-        if (!isValidHandle(safeHandle)) throw new Error('Адрес: 3–30 латинских букв, цифр, точек, дефисов или подчёркиваний; начните и закончите буквой или цифрой.')
-        if (handleStatus.value !== safeHandle || handleStatus.status !== 'available') {
-          const { data: available, error: checkError } = await supabase.rpc('is_handle_available', { candidate: safeHandle })
-          if (checkError) throw new Error('Не удалось проверить адрес. Попробуйте ещё раз.')
-          if (!available) { setHandleStatus({ value: safeHandle, status: 'taken' }); throw new Error('Адрес уже занят. Выберите другой.') }
-          setHandleStatus({ value: safeHandle, status: 'available' })
-        }
         if (password.length < 6) throw new Error('Пароль должен содержать не менее 6 символов.')
 
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { handle: safeHandle, display_name: safeName, handle_strict: true },
+            data: { onboarding_version: 2 },
             emailRedirectTo: `${window.location.origin}/auth/confirmed`,
           },
         })
-        if (signUpError) throw new Error(signUpError.message.includes('Database error') ? 'Не удалось закрепить адрес. Проверьте, свободен ли он, и повторите регистрацию.' : signUpError.message)
+        if (signUpError) throw signUpError
         if (!data.session && data.user?.identities?.length === 0) {
           throw new Error('Этот email уже зарегистрирован. Переключитесь на вход и используйте прежний пароль.')
         }
@@ -414,12 +391,6 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
         </div>
 
         <form onSubmit={submit} className="auth-form" autoComplete={mode === 'register' ? 'off' : 'on'} data-form-type={mode === 'register' ? 'other' : undefined}>
-          {mode === 'register' && (
-            <>
-              <label>Имя на странице<input value={displayName} onChange={(event) => { const next = normalizeDisplayNameInput(event.target.value); setNameWarning(next !== event.target.value); setDisplayName(next) }} placeholder="Михаил" autoComplete="name" maxLength={60} required /><small>Только буквы и пробелы.</small>{nameWarning && <small role="alert">Цифры и знаки в имени не используются.</small>}</label>
-              <label>Адрес страницы<div className="input-prefix"><span>mylinks.bar/</span><input value={handle} onChange={(event) => setHandle(normalizeHandleInput(event.target.value))} placeholder="mikhail" autoCapitalize="none" autoCorrect="off" maxLength={30} aria-invalid={handle.length > 0 && !isValidHandle(handle)} required /></div><small>Латиница, цифры, точка, дефис и подчёркивание. Начало и конец — буква или цифра.</small><small role="status" aria-live="polite">{handle.length > 0 && !isValidHandle(handle) ? 'Введите корректный адрес (3–30 символов).' : handleStatus.value === handle ? handleStatus.status === 'checking' ? 'Проверяем адрес…' : handleStatus.status === 'available' ? 'Адрес свободен' : handleStatus.status === 'taken' ? 'Адрес уже занят' : 'Проверка недоступна. Повторите при регистрации.' : ''}</small></label>
-            </>
-          )}
           <label>{mode === 'register' ? 'Email' : 'Email или имя пользователя'}<input type={mode === 'register' ? 'email' : 'text'} value={email} onChange={(event) => setEmail(event.target.value)} placeholder={mode === 'register' ? 'you@example.com' : 'Email или логин страницы'} autoCapitalize="none" autoCorrect="off" inputMode={mode === 'register' ? 'email' : 'text'} autoComplete={mode === 'register' ? 'email' : 'username'} required /></label>
           <label>Пароль<div className="password-field"><input type={showPassword ? 'text' : 'password'} name={mode === 'register' ? 'mylinks-registration-password' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === 'register' ? 'Минимум 6 символов' : 'Ваш пароль'} minLength={mode === 'register' ? 6 : undefined} autoComplete={mode === 'register' ? 'off' : 'current-password'} data-form-type={mode === 'register' ? 'other' : undefined} data-lpignore={mode === 'register' ? 'true' : undefined} data-1p-ignore={mode === 'register' ? 'true' : undefined} data-bwignore={mode === 'register' ? 'true' : undefined} required /><button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
 
@@ -730,6 +701,8 @@ function Dashboard({ user }: { user: User }) {
         kind: contact.kind,
         label: contact.label.trim(),
         value: contact.value.trim(),
+        latitude: contact.kind === 'address' ? contact.latitude ?? null : null,
+        longitude: contact.kind === 'address' ? contact.longitude ?? null : null,
         label_font: contact.label_font ?? 'manrope',
         label_font_size: contact.label_font_size ?? 10,
         value_font: contact.value_font ?? 'manrope',
@@ -747,6 +720,8 @@ function Dashboard({ user }: { user: User }) {
         kind: contact.kind,
         label: contact.label.trim(),
         value: contact.value.trim(),
+        latitude: contact.kind === 'address' ? contact.latitude ?? null : null,
+        longitude: contact.kind === 'address' ? contact.longitude ?? null : null,
         label_font: contact.label_font ?? 'manrope',
         label_font_size: contact.label_font_size ?? 10,
         value_font: contact.value_font ?? 'manrope',
@@ -794,7 +769,7 @@ function Dashboard({ user }: { user: User }) {
     </main>
   )
   if (temporaryAccount) return <TemporaryAccountGate account={temporaryAccount} onClaimed={() => { setTemporaryAccount(null); void loadData() }} />
-  if (!error && profile.onboarding_completed === false) return <OnboardingWizard userId={user.id} profile={profile} onFinish={() => { void loadData() }} />
+  if (profile.onboarding_completed === false) return <OnboardingWizard onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} userId={user.id} profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} avatarDraft={avatarDraft} onAvatarDraft={setAvatarDraft} uploadError={error} onFinish={() => { void loadData() }} />
 
   return (
     <div className={`dashboard-shell ${section === 'design' ? 'dashboard-shell--design' : ''} ${avatarDraft ? 'dashboard-shell--cropping' : ''}`}>
@@ -836,6 +811,7 @@ function Dashboard({ user }: { user: User }) {
             <span className="autosave-hint">{section === 'stats' ? 'Только для владельца' : 'Сохраняется вручную'}</span>
           </div>
 
+          {!staffRole && <DeleteAccount onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
           {notice && <div className="toast toast--success"><Check size={16} /> {notice}</div>}
           {error && <div className="toast toast--error">{error}</div>}
 
@@ -1202,4 +1178,5 @@ function ProfilePage({ session }: { session: Session | null }) {
 }
 
 export default App
+
 

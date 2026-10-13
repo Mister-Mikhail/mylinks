@@ -5,17 +5,17 @@ language sql
 security definer
 set search_path = ''
 as $$
-  select candidate is not null
+  select auth.uid() is not null and candidate is not null
     and candidate = lower(trim(candidate))
-    and candidate ~ '^[a-z0-9][a-z0-9._-]{1,28}[a-z0-9]$'
+    and ((char_length(candidate) between 3 and 30 and candidate ~ '^[a-z]+([._][a-z]+)?$') or exists(select 1 from public.profiles where id=auth.uid() and handle=candidate and handle not like 'draft-%'))
     and candidate not in ('admin','auth','p','assets','icons','sounds','fonts','share-image')
     and not exists (select 1 from public.profiles p where p.handle = candidate and p.id is distinct from auth.uid());
 $$;
 
 revoke all on function public.is_handle_available(text) from public, anon, authenticated;
-grant execute on function public.is_handle_available(text) to anon, authenticated;
+grant execute on function public.is_handle_available(text) to authenticated;
 
--- Registration must keep the exact address and name chosen by the person.
+-- Email-only signups receive an opaque private draft until the wizard claims an address.
 -- Other account creation paths retain their existing fallback behavior.
 create or replace function public.handle_new_user()
 returns trigger
@@ -27,25 +27,13 @@ declare
   requested_handle text;
   safe_handle text;
   requested_name text;
-  strict_registration boolean;
 begin
-  strict_registration := coalesce(new.raw_user_meta_data ->> 'handle_strict', 'false') = 'true';
   requested_handle := lower(coalesce(new.raw_user_meta_data ->> 'handle', split_part(new.email, '@', 1), 'profile'));
   requested_name := coalesce(new.raw_user_meta_data ->> 'display_name', split_part(new.email, '@', 1), 'New profile');
 
-  if strict_registration then
-    if requested_handle !~ '^[a-z0-9][a-z0-9._-]{1,28}[a-z0-9]$'
-       or requested_handle in ('admin','auth','p','assets','icons','sounds','fonts','share-image') then
-      raise exception 'Invalid registration handle' using errcode = '22023';
-    end if;
-    if char_length(requested_name) not between 1 and 60
-       or requested_name !~ '^[[:alpha:]]+( [[:alpha:]]+)*$' then
-      raise exception 'Invalid registration name' using errcode = '22023';
-    end if;
-    if exists (select 1 from public.profiles where handle = requested_handle) then
-      raise exception 'Registration handle unavailable' using errcode = '23505';
-    end if;
-    safe_handle := requested_handle;
+  if coalesce(new.raw_user_meta_data ->> 'onboarding_version', '') = '2' then
+    safe_handle := 'draft-' || right(replace(new.id::text, '-', ''),24);
+    requested_name := '';
   else
     safe_handle := regexp_replace(requested_handle, '[^a-z0-9._-]+', '', 'g');
     safe_handle := regexp_replace(safe_handle, '^[._-]+|[._-]+$', '', 'g');
@@ -69,3 +57,4 @@ begin
   return new;
 end;
 $$;
+

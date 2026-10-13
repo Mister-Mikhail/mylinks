@@ -21,7 +21,8 @@ export const phoneHref = (value: string) => `tel:${normalizePhone(value)}`
 
 export const emailHref = (value: string) => `mailto:${value.trim()}`
 
-export const addressHref = (value: string) => {
+export const addressHref = (value: string, latitude?: number | null, longitude?: number | null) => {
+  if (latitude != null && longitude != null) value = `${latitude},${longitude}`
   const query = encodeURIComponent(value.trim())
   if (typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent)) return `geo:0,0?q=${query}`
   if (typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent)) return `https://maps.apple.com/?q=${query}`
@@ -35,3 +36,11 @@ export const isValidContactValue = (kind: ContactKind, value: string) => {
   if (kind === 'phone') return /^[+\d\s()-]+$/.test(value) && value.replace(/\D/g, '').length >= 5 && value.replace(/\D/g, '').length <= 15
   return trimmed.length >= 3
 }
+
+
+export const normalizePhoneInput = (value: string) => {
+  const digits = value.replace(/\D/g, "").slice(0, 15)
+  return digits ? `+${digits}` : ""
+}
+export const normalizeContactEmailInput = (value: string) => value.replace(/[^a-zA-Z0-9.@]/g, "").slice(0, 254)
+export const isValidContactEmail = (value: string) => /^(?!.*\.\.)[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)*@[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$/.test(value)

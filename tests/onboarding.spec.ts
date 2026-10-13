@@ -18,6 +18,10 @@ test('onboarding accepts short social names and previews the finished page', asy
   let submitted: Record<string, unknown> | undefined
   await page.route('**/rest/v1/**', route => {
     const name = new URL(route.request().url()).pathname.split('/').pop()
+    if (name === 'is_handle_available') {
+      const { candidate } = route.request().postDataJSON()
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify(candidate !== 'taken.name_01') })
+    }
     if (name === 'complete_onboarding') {
       submitted = route.request().postDataJSON().payload
       return route.fulfill({ contentType: 'application/json', body: 'null' })
@@ -26,7 +30,12 @@ test('onboarding accepts short social names and previews the finished page', asy
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify(data) })
   })
   await page.goto('/')
+  await page.getByPlaceholder('your.name_01').fill('taken.name_01')
+  await expect(page.getByRole('status')).toHaveText('Адрес уже занят')
+  await page.getByRole('button', { name: 'Продолжить' }).click()
+  await expect(page.getByRole('alert')).toHaveText('Этот адрес уже занят. Выберите другой.')
   await page.getByPlaceholder('your.name_01').fill('author.name_01')
+  await expect(page.getByRole('status')).toHaveText('Адрес свободен')
   await page.getByRole('button', { name: 'Продолжить' }).click()
   await page.getByRole('button', { name: 'Продолжить' }).click()
   await page.getByRole('button', { name: 'Добавить ссылку' }).click()

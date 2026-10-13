@@ -1,11 +1,16 @@
-export const normalizeHandle = (value: string) =>
-  value
+// Preserve a separator at the end while the person is typing: "a." can become "a.b".
+export const normalizeHandleInput = (value: string) => {
+  const normalized = value
     .toLowerCase()
-    .trim()
+    .trimStart()
     .replace(/[^a-z0-9._-]+/g, '-')
-    .replace(/^[._-]+|[._-]+$/g, '')
+    .replace(/^[._-]+/g, '')
     .slice(0, 30)
-    .replace(/[._-]+$/g, '')
+  return /[^a-z0-9._-]$/.test(value) ? normalized.replace(/-+$/g, '') : normalized
+}
+
+export const normalizeHandle = (value: string) =>
+  normalizeHandleInput(value.trim()).replace(/[._-]+$/g, '')
 
 const reservedHandles = new Set([
   'admin', 'auth', 'p', 'assets', 'icons', 'sounds', 'fonts', 'share-image',

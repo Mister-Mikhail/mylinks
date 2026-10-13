@@ -643,6 +643,7 @@ function Dashboard({ user }: { user: User }) {
     setNotice('')
 
     try {
+      if (!isValidDisplayName(profile.display_name.trim())) throw new Error('Имя должно содержать только буквы и пробелы (до 60 символов).')
       if (!isValidHandle(profile.handle)) throw new Error('Адрес мастер‑ссылки должен содержать 3–30 латинских букв, цифр, точек, дефисов или нижних подчёркиваний; в начале и конце — буква или цифра.')
       const readyLinks = links
         .filter((link) => link.label.trim() || link.url.trim())

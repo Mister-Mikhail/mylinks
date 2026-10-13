@@ -13,7 +13,7 @@ declare
   objects jsonb;
   object_count integer;
 begin
-  if auth.uid() is null or moderation.my_role() <> 'admin' then
+  if auth.uid() is null or coalesce(moderation.my_role(), '') <> 'admin' then
     raise exception 'Admin access required' using errcode='42501';
   end if;
   if target = auth.uid() then raise exception 'Нельзя удалить собственный аккаунт.'; end if;

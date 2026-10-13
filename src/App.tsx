@@ -51,7 +51,7 @@ import { copyText, profileUrl } from './lib/clipboard'
 import { useStaffRole } from './lib/useStaffRole'
 import { CONTACT_OPTIONS, contactPlaceholder, isValidContactValue } from './lib/contacts'
 import { isKnownSensitiveUrl } from './lib/sensitiveLinks'
-import { isValidHandle, isValidHttpUrl, normalizeHandle, normalizeHandleInput, normalizeUrl } from './lib/validation'
+import { isValidDisplayName, isValidHandle, isValidHttpUrl, normalizeDisplayNameInput, normalizeHandle, normalizeHandleInput, normalizeUrl } from './lib/validation'
 import type { AvatarDraft, ContactKind, EditableContact, EditableLink, LinkIcon as LinkIconName, Profile, ProfileContact, ProfileLink } from './types'
 
 type AuthMode = 'login' | 'register'
@@ -329,6 +329,18 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
   const [showPassword, setShowPassword] = useState(false)
   const [displayName, setDisplayName] = useState('')
   const [handle, setHandle] = useState('')
+  const [nameWarning, setNameWarning] = useState(false)
+  const [handleStatus, setHandleStatus] = useState<{ value: string; status: 'checking' | 'available' | 'taken' | 'error' }>({ value: '', status: 'checking' })
+  useEffect(() => {
+    if (mode !== 'register' || !isValidHandle(handle)) return
+    let cancelled = false
+    setHandleStatus({ value: handle, status: 'checking' })
+    const timer = window.setTimeout(async () => {
+      const { data: available, error: checkError } = await supabase.rpc('is_handle_available', { candidate: handle })
+      if (!cancelled) setHandleStatus({ value: handle, status: checkError ? 'error' : available ? 'available' : 'taken' })
+    }, 400)
+    return () => { cancelled = true; window.clearTimeout(timer) }
+  }, [handle, mode])
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -341,19 +353,27 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
 
     try {
       if (mode === 'register') {
-        const safeHandle = normalizeHandle(handle)
-        if (!isValidHandle(safeHandle)) throw new Error('Имя ссылки: 3–30 латинских букв, цифр, точек, дефисов или нижних подчёркиваний; в начале и конце — буква или цифра. Имена admin и auth зарезервированы.')
+        const safeHandle = handle
+        const safeName = displayName.trim()
+        if (!isValidDisplayName(safeName)) throw new Error('Имя должно содержать только буквы и пробелы (до 60 символов).')
+        if (!isValidHandle(safeHandle)) throw new Error('Адрес: 3–30 латинских букв, цифр, точек, дефисов или подчёркиваний; начните и закончите буквой или цифрой.')
+        if (handleStatus.value !== safeHandle || handleStatus.status !== 'available') {
+          const { data: available, error: checkError } = await supabase.rpc('is_handle_available', { candidate: safeHandle })
+          if (checkError) throw new Error('Не удалось проверить адрес. Попробуйте ещё раз.')
+          if (!available) { setHandleStatus({ value: safeHandle, status: 'taken' }); throw new Error('Адрес уже занят. Выберите другой.') }
+          setHandleStatus({ value: safeHandle, status: 'available' })
+        }
         if (password.length < 6) throw new Error('Пароль должен содержать не менее 6 символов.')
 
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { handle: safeHandle, display_name: displayName.trim() || safeHandle },
+            data: { handle: safeHandle, display_name: safeName, handle_strict: true },
             emailRedirectTo: `${window.location.origin}/auth/confirmed`,
           },
         })
-        if (signUpError) throw signUpError
+        if (signUpError) throw new Error(signUpError.message.includes('Database error') ? 'Не удалось закрепить адрес. Проверьте, свободен ли он, и повторите регистрацию.' : signUpError.message)
         if (!data.session && data.user?.identities?.length === 0) {
           throw new Error('Этот email уже зарегистрирован. Переключитесь на вход и используйте прежний пароль.')
         }
@@ -389,15 +409,15 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
         <BrandMark />
         <div className="auth-dialog__heading">
           <span className="eyebrow">{mode === 'register' ? 'Новый профиль' : 'С возвращением'}</span>
-          <h2 id="auth-title">{mode === 'register' ? 'Создайте мастер‑ссылку' : 'Войдите в редактор'}</h2>
+          <h2 id="auth-title">{mode === 'register' ? 'Создайте страницу' : 'Войдите в редактор'}</h2>
           <p>{mode === 'register' ? 'Первый профиль полностью бесплатный.' : 'Продолжите настраивать свой профиль.'}</p>
         </div>
 
         <form onSubmit={submit} className="auth-form" autoComplete={mode === 'register' ? 'off' : 'on'} data-form-type={mode === 'register' ? 'other' : undefined}>
           {mode === 'register' && (
             <>
-              <label>Имя<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Михаил" autoComplete="name" /></label>
-              <label>Адрес мастер‑ссылки<div className="input-prefix"><span>mylinks.bar/</span><input value={handle} onChange={(event) => setHandle(normalizeHandleInput(event.target.value))} placeholder="mikhail" autoCapitalize="none" /></div></label>
+              <label>Имя на странице<input value={displayName} onChange={(event) => { const next = normalizeDisplayNameInput(event.target.value); setNameWarning(next !== event.target.value); setDisplayName(next) }} placeholder="Михаил" autoComplete="name" maxLength={60} required /><small>Только буквы и пробелы.</small>{nameWarning && <small role="alert">Цифры и знаки в имени не используются.</small>}</label>
+              <label>Адрес страницы<div className="input-prefix"><span>mylinks.bar/</span><input value={handle} onChange={(event) => setHandle(normalizeHandleInput(event.target.value))} placeholder="mikhail" autoCapitalize="none" autoCorrect="off" maxLength={30} aria-invalid={handle.length > 0 && !isValidHandle(handle)} required /></div><small>Латиница, цифры, точка, дефис и подчёркивание. Начало и конец — буква или цифра.</small><small role="status" aria-live="polite">{handle.length > 0 && !isValidHandle(handle) ? 'Введите корректный адрес (3–30 символов).' : handleStatus.value === handle ? handleStatus.status === 'checking' ? 'Проверяем адрес…' : handleStatus.status === 'available' ? 'Адрес свободен' : handleStatus.status === 'taken' ? 'Адрес уже занят' : 'Проверка недоступна. Повторите при регистрации.' : ''}</small></label>
             </>
           )}
           <label>{mode === 'register' ? 'Email' : 'Email или имя пользователя'}<input type={mode === 'register' ? 'email' : 'text'} value={email} onChange={(event) => setEmail(event.target.value)} placeholder={mode === 'register' ? 'you@example.com' : 'Email или логин страницы'} autoCapitalize="none" autoCorrect="off" inputMode={mode === 'register' ? 'email' : 'text'} autoComplete={mode === 'register' ? 'email' : 'username'} required /></label>
@@ -928,8 +948,8 @@ function ContentEditor({
       <section className="settings-card">
         <div className="settings-card__title"><UserRound size={18} /><div><h2>Профиль</h2><p>Имя, описание и адрес вашей страницы.</p></div></div>
         <div className="field-grid">
-          <div className="profile-text-field"><label>Отображаемое имя<input value={profile.display_name} onChange={(event) => setProfile({ ...profile, display_name: event.target.value })} maxLength={60} /></label><TypographyControls label="Имя" slot="name" font={profile.name_font} size={profile.name_font_size} onChange={(font, size) => setProfile({ ...profile, name_font: font, name_font_size: size })} /></div>
-          <div className="profile-text-field"><label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandle(event.target.value) })} /><button type="button" className={`input-prefix__copy ${masterLinkCopied ? 'input-prefix__copy--done' : ''}`} onClick={(event) => { event.preventDefault(); void copyMasterLink() }} disabled={!profile.handle} aria-label={masterLinkCopied ? 'Мастер‑ссылка скопирована' : 'Скопировать мастер‑ссылку'} title="Скопировать ссылку">{masterLinkCopied ? <Check size={15} /> : <Copy size={15} />}</button></div></label><TypographyControls label="Мастер-ссылка" slot="handle" font={profile.handle_font} size={profile.handle_font_size} onChange={(font, size) => setProfile({ ...profile, handle_font: font, handle_font_size: size })} /></div>
+          <div className="profile-text-field"><label>Отображаемое имя<input value={profile.display_name} onChange={(event) => setProfile({ ...profile, display_name: normalizeDisplayNameInput(event.target.value) })} maxLength={60} /></label><TypographyControls label="Имя" slot="name" font={profile.name_font} size={profile.name_font_size} onChange={(font, size) => setProfile({ ...profile, name_font: font, name_font_size: size })} /></div>
+          <div className="profile-text-field"><label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandleInput(event.target.value) })} /><button type="button" className={`input-prefix__copy ${masterLinkCopied ? 'input-prefix__copy--done' : ''}`} onClick={(event) => { event.preventDefault(); void copyMasterLink() }} disabled={!profile.handle} aria-label={masterLinkCopied ? 'Мастер‑ссылка скопирована' : 'Скопировать мастер‑ссылку'} title="Скопировать ссылку">{masterLinkCopied ? <Check size={15} /> : <Copy size={15} />}</button></div></label><TypographyControls label="Мастер-ссылка" slot="handle" font={profile.handle_font} size={profile.handle_font_size} onChange={(font, size) => setProfile({ ...profile, handle_font: font, handle_font_size: size })} /></div>
           <div className="field-grid__full profile-text-field"><label>О себе<textarea aria-label="О себе" value={profile.bio} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} maxLength={160} rows={3} placeholder="Чем вы занимаетесь?" /><small>{profile.bio.length}/160</small></label><TypographyControls label="О себе" slot="bio" font={profile.bio_font} size={profile.bio_font_size} onChange={(font, size) => setProfile({ ...profile, bio_font: font, bio_font_size: size })} /></div>
         </div>
         <label className="publish-setting">

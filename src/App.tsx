@@ -405,6 +405,7 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
 
           {error && <div className="form-message form-message--error">{error}</div>}
           {message && <div className="form-message form-message--success">{message}</div>}
+          {mode === 'register' && message && <Link className="auth-switch" to="/auth/confirmed">Письмо не пришло? Запросить ещё раз</Link>}
 
           <button className="button button--primary button--full" type="submit" disabled={busy || Boolean(message)}>
             {busy ? <LoaderCircle className="spin" size={18} /> : mode === 'register' ? 'Создать профиль' : 'Войти'}

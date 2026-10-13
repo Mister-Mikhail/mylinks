@@ -418,12 +418,26 @@ function Dashboard({ user }: { user: User }) {
   const [avatarDraft, setAvatarDraft] = useState<AvatarDraft | null>(null)
   const [notice, setNotice] = useState('')
   const [temporaryAccount, setTemporaryAccount] = useState<{ is_temporary: boolean; expired?: boolean; login_count?: number; remaining_logins?: number; desired_handle?: string; desired_name?: string } | null>(null)
+  const [temporaryCheckPending, setTemporaryCheckPending] = useState(Boolean(cachedSnapshot))
+  const [temporaryCheckError, setTemporaryCheckError] = useState(false)
   const [error, setError] = useState('')
   const [newLinkId, setNewLinkId] = useState<string | null>(null)
   const capabilities = capabilitiesForTier('free')
 
+  const applyTemporaryResult = (data: unknown, failed: boolean) => {
+    if (failed) {
+      setTemporaryCheckError(true)
+      setTemporaryAccount(null)
+      return
+    }
+    const tempData = data as { is_temporary?: boolean; expired?: boolean; login_count?: number; remaining_logins?: number; desired_handle?: string; desired_name?: string } | null
+    setTemporaryCheckError(false)
+    setTemporaryAccount(tempData?.is_temporary ? { is_temporary: true, expired: tempData.expired, login_count: tempData.login_count, remaining_logins: tempData.remaining_logins, desired_handle: tempData.desired_handle, desired_name: tempData.desired_name } : null)
+  }
+
   const loadData = async (jwtRetry = 0) => {
     setLoading(true)
+    setTemporaryCheckPending(true)
     setError('')
     const [profileResult, linksResult, contactsResult, temporaryResult] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
@@ -432,8 +446,7 @@ function Dashboard({ user }: { user: User }) {
       supabase.rpc('temporary_account_session'),
     ])
 
-    const tempData = temporaryResult.data as { is_temporary?: boolean; expired?: boolean; login_count?: number; remaining_logins?: number; desired_handle?: string; desired_name?: string } | null
-    setTemporaryAccount(!temporaryResult.error && tempData?.is_temporary ? { is_temporary: true, expired: tempData.expired, login_count: tempData.login_count, remaining_logins: tempData.remaining_logins, desired_handle: tempData.desired_handle, desired_name: tempData.desired_name } : null)
+    applyTemporaryResult(temporaryResult.data, Boolean(temporaryResult.error))
     const queryErrors = [profileResult.error, linksResult.error, contactsResult.error].filter(Boolean)
     const jwtTimingError = queryErrors.some((queryError) => queryError?.message.toLowerCase().includes('jwt issued at future'))
     if (jwtTimingError && jwtRetry < 2) {
@@ -467,6 +480,7 @@ function Dashboard({ user }: { user: User }) {
       editorSnapshot = { userId: user.id, profile: nextProfile, links: nextLinks, contacts: nextContacts }
     }
     setLoading(false)
+    setTemporaryCheckPending(false)
   }
 
   useEffect(() => {
@@ -474,8 +488,8 @@ function Dashboard({ user }: { user: User }) {
       skipInitialLoad.current = false
       // A cached editor snapshot must not skip temporary-account login accounting.
       void supabase.rpc('temporary_account_session').then(({ data, error: tempError }) => {
-        const tempData = data as { is_temporary?: boolean; expired?: boolean; login_count?: number; remaining_logins?: number; desired_handle?: string; desired_name?: string } | null
-        setTemporaryAccount(!tempError && tempData?.is_temporary ? { is_temporary: true, expired: tempData.expired, login_count: tempData.login_count, remaining_logins: tempData.remaining_logins, desired_handle: tempData.desired_handle, desired_name: tempData.desired_name } : null)
+        applyTemporaryResult(data, Boolean(tempError))
+        setTemporaryCheckPending(false)
       })
       return
     }
@@ -727,7 +741,19 @@ function Dashboard({ user }: { user: User }) {
     navigate(`/${profile.handle}`, { state })
   }
 
-  if (loading) return <LoadingScreen />
+  if (loading || temporaryCheckPending) return <LoadingScreen />
+  if (temporaryCheckError) return (
+    <main className="private-access-page">
+      <BrandMark />
+      <div className="private-access-card">
+        <ShieldAlert size={28} />
+        <h1>Не удалось проверить доступ</h1>
+        <p>Повторите проверку, чтобы открыть редактор.</p>
+        <button className="button button--primary" onClick={() => void loadData()}>Повторить</button>
+        <button className="button button--ghost" onClick={() => void signOut()}>Выйти</button>
+      </div>
+    </main>
+  )
   if (temporaryAccount) return <TemporaryAccountGate account={temporaryAccount} onClaimed={() => { setTemporaryAccount(null); void loadData() }} />
   if (!error && profile.onboarding_completed === false) return <OnboardingWizard userId={user.id} profile={profile} onFinish={() => { void loadData() }} />
 

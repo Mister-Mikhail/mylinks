@@ -25,6 +25,29 @@ env:
   IS_PR: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  registration_db:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test registration migration
+        env:
+          PGPASSWORD: postgres
+        run: |
+          command -v psql || { sudo apt-get update -qq && sudo apt-get install -y postgresql-client; }
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f scripts/test-registration-migration.sql
+
   ship:
     runs-on: ubuntu-latest
     timeout-minutes: 30

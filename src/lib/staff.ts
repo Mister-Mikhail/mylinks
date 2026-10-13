@@ -120,3 +120,15 @@ export async function deactivateStaffAccount(target_id: string, reason: string) 
   if (error) throw error
   if (!data?.deactivated) throw new Error(data?.error || 'Не удалось деактивировать аккаунт.')
 }
+
+export async function deleteStaffUser(target_id: string, expected_handle: string, reason: string) {
+  const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+    body: { target_id, expected_handle, reason },
+  })
+  if (error) {
+    const response = (error as { context?: Response }).context
+    const details = response?.json ? await response.json().catch(() => null) as { error?: string } | null : null
+    throw new Error(details?.error || error.message)
+  }
+  if (!data?.deleted) throw new Error(data?.error || 'Не удалось удалить пользователя.')
+}

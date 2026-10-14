@@ -2,16 +2,28 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { LoaderCircle, Trash2, X } from 'lucide-react'
 import { deleteStaffUser, staffError, type StaffUser } from '../lib/staff'
 
+const confirmationHandle = (value: string) => {
+  const trimmed = value.trim().toLowerCase()
+  if (/^(?:https?:\/\/)?(?:www\.)?mylinks\.bar\//.test(trimmed)) {
+    try {
+      const url = new URL(/^https?:/.test(trimmed) ? trimmed : `https://${trimmed}`)
+      return decodeURIComponent(url.pathname.replace(/^\//, '').replace(/\/$/, ''))
+    } catch { return '' }
+  }
+  return trimmed.replace(/^@/, '')
+}
+
 export function DeleteUserDialog({ user, onClose, onDeleted }: {
   user: StaffUser
   onClose: () => void
   onDeleted: () => void
 }) {
   const [handle, setHandle] = useState('')
-  const [reason, setReason] = useState('')
+  const [reason, setReason] = useState('Удаление по запросу администратора')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const container = useRef<HTMLElement>(null)
+  const matches = Boolean(user.handle && confirmationHandle(handle) === user.handle)
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null
     const previousOverflow = document.body.style.overflow
@@ -22,7 +34,7 @@ export function DeleteUserDialog({ user, onClose, onDeleted }: {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!user.handle || handle !== user.handle) return
+    if (!user.handle || !matches || reason.trim().length < 3) return
     setBusy(true)
     setError('')
     try {
@@ -41,12 +53,14 @@ export function DeleteUserDialog({ user, onClose, onDeleted }: {
       <h2 id="staff-delete-title">Удалить пользователя</h2>
       <p>Аккаунт <strong>@{user.handle}</strong> и его профиль будут удалены без возможности восстановления. Ссылки, контакты, статистика и файлы аватара также исчезнут. Запись о действии сохранится в журнале.</p>
       <form onSubmit={submit}>
-        <label>Введите адрес страницы @{user.handle}<input value={handle} onChange={event => setHandle(event.target.value)} autoComplete="off" spellCheck={false} required /></label>
+        <label>Адрес страницы или user name<input value={handle} onChange={event => setHandle(event.target.value)} placeholder={`mylinks.bar/${user.handle}`} autoComplete="off" spellCheck={false} aria-describedby="delete-handle-hint" aria-invalid={Boolean(handle) && !matches} required /></label>
+        <small id="delete-handle-hint" aria-live="polite">{matches ? 'Адрес совпадает.' : `Введите ${user.handle}, @${user.handle} или полную ссылку mylinks.bar/${user.handle}.`}</small>
         <label>Причина<textarea value={reason} onChange={event => setReason(event.target.value)} minLength={3} maxLength={1000} required placeholder="Причина будет сохранена в журнале" /></label>
+        {reason.trim().length < 3 && <small>Укажите причину: минимум 3 символа.</small>}
         {error && <div className="staff-error" role="alert">{error}</div>}
         <div className="staff-modal-actions">
           <button className="button button--secondary" type="button" onClick={onClose} disabled={busy}>Отмена</button>
-          <button className="button button--primary" type="submit" disabled={busy || handle !== user.handle || reason.trim().length < 3}>
+          <button className="button button--primary" type="submit" disabled={busy || !matches || reason.trim().length < 3}>
             {busy ? <LoaderCircle size={18} className="spin" /> : <Trash2 size={17} />} Удалить аккаунт
           </button>
         </div>

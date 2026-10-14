@@ -87,6 +87,7 @@ const toEditableContact = (contact: ProfileContact): EditableContact => ({
   kind: contact.kind,
   label: contact.label,
   value: contact.value,
+  latitude: contact.latitude, longitude: contact.longitude,
   label_font: contact.label_font,
   label_font_size: contact.label_font_size,
   value_font: contact.value_font,
@@ -119,24 +120,26 @@ const fetchPage = async (client: SupabaseClient, handle: string, reuse: AvatarRe
 
   const profileRow = row as Profile
   const reusedUrl = reuse && profileRow.avatar_path && reuse.path === profileRow.avatar_path ? reuse.url : null
-  const [linksResult, contactsResult, signed] = await Promise.all([
+  const [linksResult, contactsResult, signed, poster] = await Promise.all([
     client.from('profile_links').select('*').eq('profile_id', profileRow.id).order('position'),
     client.from('profile_contacts').select('*').eq('profile_id', profileRow.id).order('position'),
     profileRow.avatar_path && !reusedUrl
       ? client.storage.from('avatars').createSignedUrl(profileRow.avatar_path, 60 * 60)
       : Promise.resolve(null),
+    profileRow.avatar_poster_path ? client.storage.from('avatars').createSignedUrl(profileRow.avatar_poster_path, 60 * 60) : Promise.resolve(null),
   ])
   if (linksResult.error) throw linksResult.error
   if (contactsResult.error) throw contactsResult.error
 
   const avatarUrl = reusedUrl ?? signed?.data?.signedUrl ?? null
-  if (avatarUrl && !reusedUrl) await preloadImage(avatarUrl)
+  if (avatarUrl && !reusedUrl && profileRow.avatar_media !== 'video') await preloadImage(avatarUrl)
 
   return {
     profile: {
       ...profileRow,
       avatar_scale: Number(profileRow.avatar_scale) || ({ small: 12, medium: 28, large: 40 }[profileRow.avatar_size] ?? 28),
       avatar_preview_url: avatarUrl,
+      avatar_poster_url: poster?.data?.signedUrl ?? null,
     },
     links: ((linksResult.data ?? []) as ProfileLink[]).map(toEditable),
     contacts: ((contactsResult.data ?? []) as ProfileContact[]).map(toEditableContact),
@@ -297,7 +300,7 @@ export function PublicProfilePage({ handle }: { handle: string }) {
 
   return (
     <main className={`public-preview-page theme-${visibleData.profile.background_preset}`}>
-      {isOwner && <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> В редактор</button>}
+      {isOwner && <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> Личный кабинет</button>}
       <div className="public-preview-page__content"><ProfilePreview profile={visibleData.profile} links={visibleData.links} contacts={visibleData.contacts} interactive onLinkActivate={canTrack ? link => { if (link.id) recordProfileEvent(visibleData.profile.id, link.id) } : undefined} showPrivacy={!visibleData.profile.is_published} />
         {visibleData.profile.is_published && !isOwner && <button className="public-report-trigger" type="button" onClick={() => { setReportOpen(true); setReportSent(false); setReportError('') }}>Пожаловаться на страницу</button>}
       </div>

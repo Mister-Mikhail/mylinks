@@ -33,6 +33,7 @@ import { BrandMark } from './components/BrandMark'
 import { OnboardingWizard } from './components/OnboardingWizard'
 import { TemporaryAccountGate } from './components/TemporaryAccountGate'
 import { DeleteAccount } from './components/DeleteAccount'
+import { AvatarMedia } from './components/AvatarMedia'
 import { AvatarEditor } from './components/AvatarEditor'
 import { ProfilePreview } from './components/ProfilePreview'
 import { TypographyControls } from './components/TypographyControls'
@@ -53,7 +54,7 @@ import { useStaffRole } from './lib/useStaffRole'
 import { CONTACT_OPTIONS, contactPlaceholder, isValidContactValue } from './lib/contacts'
 import { isKnownSensitiveUrl } from './lib/sensitiveLinks'
 import { isValidDisplayName, isValidHandle, isValidNewHandle, isValidHttpUrl, normalizeDisplayNameInput, normalizeHandle, normalizeHandleInput, normalizeUrl } from './lib/validation'
-import type { AvatarDraft, ContactKind, EditableContact, EditableLink, LinkIcon as LinkIconName, Profile, ProfileContact, ProfileLink } from './types'
+import type { AvatarDraft, AvatarUploadOptions, ContactKind, EditableContact, EditableLink, LinkIcon as LinkIconName, Profile, ProfileContact, ProfileLink } from './types'
 
 type AuthMode = 'login' | 'register'
 const AdminPanel = lazy(() => import('./components/AdminPanel'))
@@ -73,6 +74,8 @@ interface PreviewLocationState {
 }
 
 let editorSnapshot: EditorSnapshot | null = null
+// React StrictMode and quick route remounts must not consume a one-use token twice.
+let emailVerification: { token: string; promise: ReturnType<typeof supabase.auth.verifyOtp> } | null = null
 
 const emptyProfile = (id = ''): Profile => ({
   id,
@@ -128,6 +131,7 @@ const toEditableContact = (contact: ProfileContact): EditableContact => ({
   kind: contact.kind,
   label: contact.label,
   value: contact.value,
+  latitude: contact.latitude, longitude: contact.longitude,
   label_font: contact.label_font,
   label_font_size: contact.label_font_size,
   value_font: contact.value_font,
@@ -144,8 +148,11 @@ const withAvatarPreview = async (profile: Profile) => {
     avatar_scale: Number(profile.avatar_scale) || ({ small: 12, medium: 28, large: 40 }[profile.avatar_size] ?? 28),
   }
   if (!profile.avatar_path) return { ...normalizedProfile, avatar_preview_url: null }
-  const { data } = await supabase.storage.from('avatars').createSignedUrl(profile.avatar_path, 60 * 60)
-  return { ...normalizedProfile, avatar_preview_url: data?.signedUrl ?? null }
+  const [avatar, poster] = await Promise.all([
+    supabase.storage.from('avatars').createSignedUrl(profile.avatar_path, 60 * 60),
+    profile.avatar_poster_path ? supabase.storage.from('avatars').createSignedUrl(profile.avatar_poster_path, 60 * 60) : Promise.resolve(null),
+  ])
+  return { ...normalizedProfile, avatar_preview_url: avatar.data?.signedUrl ?? null, avatar_poster_url: poster?.data?.signedUrl ?? null }
 }
 
 function App() {
@@ -196,28 +203,41 @@ function LoadingScreen() {
 }
 
 function AuthConfirmation({ session }: { session: Session | null }) {
+  const navigate = useNavigate()
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
   const search = new URLSearchParams(window.location.search)
   const errorCode = hash.get('error_code') ?? search.get('error_code')
-  const tokenHash = hash.get('token_hash') ?? search.get('token_hash')
+  const [tokenHash] = useState(() => hash.get('token_hash') ?? search.get('token_hash'))
   const [confirmed, setConfirmed] = useState(false)
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
-  const confirmEmail = async () => {
+  useEffect(() => {
     if (!tokenHash) return
+    let active = true
     setBusy(true)
     setError('')
-    const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'email' })
-    if (verifyError) setError('Ссылка уже использована или недействительна. Если вход работает, адрес подтверждён; иначе запросите новое письмо.')
-    else {
-      setConfirmed(true)
-      window.history.replaceState(null, '', '/auth/confirmed')
+    window.history.replaceState(null, '', '/auth/confirmed')
+    if (emailVerification?.token !== tokenHash) {
+      emailVerification = { token: tokenHash, promise: supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'email' }) }
     }
-    setBusy(false)
-  }
+    void emailVerification.promise.then(({ error: verifyError }) => {
+      if (!active) return
+      if (verifyError) setError('Ссылка уже использована или недействительна. Если почта уже подтверждена, войдите с email и паролем. Иначе запросите новое письмо.')
+      else setConfirmed(true)
+      setBusy(false)
+    }).catch(() => { if (active) { setBusy(false); setError('Не удалось подтвердить почту. Проверьте соединение и откройте ссылку ещё раз.') } })
+    return () => { active = false }
+  }, [tokenHash])
+
+  const isConfirmed = confirmed || Boolean(session?.user.email_confirmed_at && !tokenHash)
+  useEffect(() => {
+    if (!isConfirmed) return
+    const timer = window.setTimeout(() => navigate('/', { replace: true }), 1200)
+    return () => window.clearTimeout(timer)
+  }, [isConfirmed, navigate])
 
   const resendConfirmation = async (event: FormEvent) => {
     event.preventDefault()
@@ -236,15 +256,13 @@ function AuthConfirmation({ session }: { session: Session | null }) {
     setBusy(false)
   }
 
-  const isConfirmed = confirmed || Boolean(session && !tokenHash)
   return (
     <main className="private-access-page">
       <BrandMark />
       <div className="private-access-card">
         {isConfirmed ? <Check size={28} /> : <Mail size={28} />}
-        <h1>{isConfirmed ? 'Почта подтверждена' : tokenHash ? 'Подтвердите почту' : errorCode === 'otp_expired' ? 'Ссылка уже недействительна' : 'Подтверждение почты'}</h1>
-        <p>{isConfirmed ? 'Аккаунт готов. Можно перейти в личный кабинет.' : tokenHash ? 'Нажмите кнопку, чтобы завершить подтверждение адреса.' : 'Если ссылка истекла, укажите адрес регистрации и запросите новое письмо.'}</p>
-        {tokenHash && !confirmed && !error && <button className="button button--primary button--full" onClick={() => void confirmEmail()} disabled={busy}>{busy ? <LoaderCircle className="spin" size={18} /> : <Check size={18} />}{busy ? 'Подтверждаем…' : 'Подтвердить email'}</button>}
+        <h1>{isConfirmed ? 'Почта подтверждена' : busy && tokenHash ? 'Подтверждаем почту…' : errorCode === 'otp_expired' ? 'Ссылка уже недействительна' : 'Подтверждение почты'}</h1>
+        <p>{isConfirmed ? 'Переходим в личный кабинет mylinks.bar…' : busy && tokenHash ? 'Это займёт несколько секунд.' : 'Если ссылка истекла, укажите адрес регистрации и запросите новое письмо.'}</p>
         {(!tokenHash || Boolean(error)) && !isConfirmed && (
           <form className="confirmation-resend" onSubmit={resendConfirmation}>
             <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required /></label>
@@ -331,6 +349,34 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [pendingSignup, setPendingSignup] = useState<{ email: string; password: string } | null>(null)
+
+  useEffect(() => {
+    if (!pendingSignup) return
+    let active = true, checking = false, nextCheck = 0
+    const expires = Date.now() + 15 * 60 * 1000
+    const check = async () => {
+      if (!active || checking || document.visibilityState === 'hidden' || Date.now() < nextCheck || Date.now() > expires) return
+      checking = true; nextCheck = Date.now() + 10000
+      try {
+        // Credentials stay only in this form's memory, never local/session storage.
+        // This also covers confirmation in a different browser or on another device.
+        const { error: signInError } = await supabase.auth.signInWithPassword(pendingSignup)
+        if (active && signInError && signInError.code !== 'email_not_confirmed') {
+          if (signInError.status === 429) nextCheck = Date.now() + 60000
+          else if (signInError.code === 'invalid_credentials') {
+            setPendingSignup(null); setMode('login'); setMessage('Почта могла быть подтверждена. Введите пароль и нажмите «Войти».')
+          }
+        }
+      } catch {
+        // A temporary connection failure must not interrupt the registration form.
+      } finally { checking = false }
+    }
+    const interval = window.setInterval(() => void check(), 10000)
+    window.addEventListener('focus', check)
+    document.addEventListener('visibilitychange', check)
+    return () => { active = false; window.clearInterval(interval); window.removeEventListener('focus', check); document.removeEventListener('visibilitychange', check) }
+  }, [pendingSignup])
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -343,7 +389,7 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
         if (password.length < 6) throw new Error('Пароль должен содержать не менее 6 символов.')
 
         const { data, error: signUpError } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password,
           options: {
             data: { onboarding_version: 2 },
@@ -354,7 +400,10 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
         if (!data.session && data.user?.identities?.length === 0) {
           throw new Error('Этот email уже зарегистрирован. Переключитесь на вход и используйте прежний пароль.')
         }
-        if (!data.session) setMessage('Проверьте почту и подтвердите адрес. После этого вернитесь и войдите.')
+        if (!data.session) {
+          setPendingSignup({ email: email.trim(), password })
+          setMessage('Откройте ссылку из письма. После подтверждения эта вкладка автоматически продолжит регистрацию.')
+        }
       } else if (email.includes('@')) {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
         if (signInError) throw signInError
@@ -373,6 +422,7 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
   }
 
   const switchMode = () => {
+    setPendingSignup(null)
     setMode((current) => current === 'login' ? 'register' : 'login')
     setError('')
     setMessage('')
@@ -391,15 +441,15 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
         </div>
 
         <form onSubmit={submit} className="auth-form" autoComplete={mode === 'register' ? 'off' : 'on'} data-form-type={mode === 'register' ? 'other' : undefined}>
-          <label>{mode === 'register' ? 'Email' : 'Email или имя пользователя'}<input type={mode === 'register' ? 'email' : 'text'} value={email} onChange={(event) => setEmail(event.target.value)} placeholder={mode === 'register' ? 'you@example.com' : 'Email или логин страницы'} autoCapitalize="none" autoCorrect="off" inputMode={mode === 'register' ? 'email' : 'text'} autoComplete={mode === 'register' ? 'email' : 'username'} required /></label>
-          <label>Пароль<div className="password-field"><input type={showPassword ? 'text' : 'password'} name={mode === 'register' ? 'mylinks-registration-password' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === 'register' ? 'Минимум 6 символов' : 'Ваш пароль'} minLength={mode === 'register' ? 6 : undefined} autoComplete={mode === 'register' ? 'off' : 'current-password'} data-form-type={mode === 'register' ? 'other' : undefined} data-lpignore={mode === 'register' ? 'true' : undefined} data-1p-ignore={mode === 'register' ? 'true' : undefined} data-bwignore={mode === 'register' ? 'true' : undefined} required /><button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
+          <label>{mode === 'register' ? 'Email' : 'Email или имя пользователя'}<input type={mode === 'register' ? 'email' : 'text'} value={email} readOnly={Boolean(pendingSignup)} onChange={(event) => setEmail(event.target.value)} placeholder={mode === 'register' ? 'you@example.com' : 'Email или логин страницы'} autoCapitalize="none" autoCorrect="off" inputMode={mode === 'register' ? 'email' : 'text'} autoComplete={mode === 'register' ? 'email' : 'username'} required /></label>
+          <label>Пароль<div className="password-field"><input type={showPassword ? 'text' : 'password'} name={mode === 'register' ? 'mylinks-registration-password' : 'password'} value={password} readOnly={Boolean(pendingSignup)} onChange={(event) => setPassword(event.target.value)} placeholder={mode === 'register' ? 'Минимум 6 символов' : 'Ваш пароль'} minLength={mode === 'register' ? 6 : undefined} autoComplete={mode === 'register' ? 'off' : 'current-password'} data-form-type={mode === 'register' ? 'other' : undefined} data-lpignore={mode === 'register' ? 'true' : undefined} data-1p-ignore={mode === 'register' ? 'true' : undefined} data-bwignore={mode === 'register' ? 'true' : undefined} required /><button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
 
           {error && <div className="form-message form-message--error">{error}</div>}
           {message && <div className="form-message form-message--success">{message}</div>}
           {mode === 'register' && message && <Link className="auth-switch" to="/auth/confirmed">Письмо не пришло? Запросить ещё раз</Link>}
 
-          <button className="button button--primary button--full" type="submit" disabled={busy || Boolean(message)}>
-            {busy ? <LoaderCircle className="spin" size={18} /> : mode === 'register' ? 'Создать профиль' : 'Войти'}
+          <button className="button button--primary button--full" type="submit" disabled={busy || Boolean(pendingSignup)}>
+            {busy ? <LoaderCircle className="spin" size={18} /> : pendingSignup ? 'Ожидаем подтверждение почты…' : mode === 'register' ? 'Создать профиль' : 'Войти'}
           </button>
         </form>
         <button className="auth-switch" onClick={switchMode}>
@@ -491,6 +541,7 @@ function Dashboard({ user }: { user: User }) {
     }
     setLoading(false)
     setTemporaryCheckPending(false)
+    return nextProfile && nextLinks && nextContacts ? { profile: nextProfile, links: nextLinks, contacts: nextContacts } : null
   }
 
   useEffect(() => {
@@ -571,42 +622,40 @@ function Dashboard({ user }: { user: User }) {
     })
   }
 
-  const uploadAvatar = async (blob: Blob) => {
-    setAvatarUploading(true)
-    setError('')
-    setNotice('')
-
+  const uploadAvatar = async (blob: Blob, options?: AvatarUploadOptions) => {
+    setAvatarUploading(true); setError(''); setNotice('')
+    const uploadedPaths: string[] = []
+    let committed = false
     try {
-      const contentType = ['image/jpeg', 'image/png', 'image/webp'].includes(blob.type) ? blob.type : 'image/webp'
-      const extension = contentType === 'image/png' ? 'png' : contentType === 'image/jpeg' ? 'jpg' : 'webp'
-      const nextPath = `${user.id}/avatar-${crypto.randomUUID()}.${extension}`
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(nextPath, blob, {
-        cacheControl: '3600',
-        contentType,
-        upsert: false,
-      })
-      if (uploadError) throw uploadError
-
-      const { error: profileError } = await supabase.from('profiles').update({ avatar_path: nextPath, avatar_url: null }).eq('id', user.id)
-      if (profileError) {
-        await supabase.storage.from('avatars').remove([nextPath])
-        throw profileError
+      const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'video/mp4': 'mp4', 'video/webm': 'webm' }
+      if (!extensions[blob.type] || blob.size > 5 * 1024 * 1024) throw new Error('Допустимы фото, GIF и MP4/WebM до 5 МБ.')
+      const nextPath = `${user.id}/avatar-${crypto.randomUUID()}.${extensions[blob.type]}`
+      const upload = async (path: string, file: Blob) => {
+        const { error } = await supabase.storage.from('avatars').upload(path, file, { cacheControl: '3600', contentType: file.type, upsert: false })
+        if (error) throw error
+        uploadedPaths.push(path)
       }
-
-      const { data: signedData } = await supabase.storage.from('avatars').createSignedUrl(nextPath, 60 * 60)
-      const previousPath = profile.avatar_path
-      if (previousPath && previousPath !== nextPath) await supabase.storage.from('avatars').remove([previousPath])
-
-      setProfile(current => ({ ...current, avatar_url: null, avatar_path: nextPath, avatar_preview_url: signedData?.signedUrl ?? null }))
-      setNotice('Аватар обновлён')
-      window.setTimeout(() => setNotice(''), 2600)
+      await upload(nextPath, blob)
+      const posterPath = options?.poster ? `${user.id}/poster-${crypto.randomUUID()}.${extensions[options.poster.type]}` : null
+      if (posterPath && options?.poster) await upload(posterPath, options.poster)
+      const patch = { avatar_path: nextPath, avatar_url: null, avatar_media: options?.kind ?? 'image', avatar_crop: options?.crop ?? null, avatar_poster_path: posterPath }
+      const { error: profileError } = await supabase.from('profiles').update(patch).eq('id', user.id)
+      if (profileError) throw profileError
+      committed = true
+      const [signed, posterSigned] = await Promise.all([
+        supabase.storage.from('avatars').createSignedUrl(nextPath, 60 * 60),
+        posterPath ? supabase.storage.from('avatars').createSignedUrl(posterPath, 60 * 60) : Promise.resolve(null),
+      ])
+      setProfile(current => ({ ...current, ...patch, avatar_preview_url: signed.data?.signedUrl ?? null, avatar_poster_url: posterSigned?.data?.signedUrl ?? null }))
+      const previousPaths = [profile.avatar_path, profile.avatar_poster_path].filter((path): path is string => Boolean(path && path !== nextPath && path !== posterPath))
+      if (previousPaths.length) await supabase.storage.from('avatars').remove(previousPaths)
+      setNotice('Аватар обновлён'); window.setTimeout(() => setNotice(''), 2600)
       return true
     } catch (caught) {
+      if (!committed && uploadedPaths.length) await supabase.storage.from('avatars').remove(uploadedPaths)
       setError(caught instanceof Error ? caught.message : 'Не удалось загрузить аватар.')
       return false
-    } finally {
-      setAvatarUploading(false)
-    }
+    } finally { setAvatarUploading(false) }
   }
 
   const save = async () => {
@@ -615,7 +664,7 @@ function Dashboard({ user }: { user: User }) {
     setNotice('')
 
     try {
-      if (!isValidDisplayName(profile.display_name.trim())) throw new Error('Имя должно содержать только буквы и пробелы (до 60 символов).')
+      if (!isValidDisplayName(profile.display_name.trim())) throw new Error('Имя должно содержать только буквы и пробелы (до 30 символов).')
       if (!isValidHandle(profile.handle) || (profile.handle !== persistedHandle.current && !isValidNewHandle(profile.handle))) throw new Error('User name: 3–30 латинских букв и не более одной точки или подчёркивания между словами.')
       const readyLinks = links
         .filter((link) => link.label.trim() || link.url.trim())
@@ -770,7 +819,7 @@ function Dashboard({ user }: { user: User }) {
     </main>
   )
   if (temporaryAccount) return <TemporaryAccountGate account={temporaryAccount} onClaimed={() => { setTemporaryAccount(null); void loadData() }} />
-  if (profile.onboarding_completed === false) return <OnboardingWizard onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} userId={user.id} profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} avatarDraft={avatarDraft} onAvatarDraft={setAvatarDraft} uploadError={error} onFinish={() => { void loadData() }} />
+  if (profile.onboarding_completed === false) return <OnboardingWizard onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} userId={user.id} profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} avatarDraft={avatarDraft} onAvatarDraft={setAvatarDraft} uploadError={error} onFinish={async () => { const saved = await loadData(); if (saved) navigate(`/${saved.profile.handle}`, { state: saved }) }} />
 
   return (
     <div className={`dashboard-shell ${section === 'design' ? 'dashboard-shell--design' : ''} ${avatarDraft ? 'dashboard-shell--cropping' : ''}`}>
@@ -798,9 +847,7 @@ function Dashboard({ user }: { user: User }) {
           </div>
           <div className="editor-nav__account">
             <div className="avatar avatar--small">
-              {profile.avatar_preview_url || profile.avatar_url
-                ? <img src={profile.avatar_preview_url || profile.avatar_url || ''} alt="" />
-                : <span>{profile.display_name.slice(0, 2).toUpperCase() || 'ML'}</span>}
+              <AvatarMedia profile={profile} />
             </div>
             <div><strong>{profile.display_name}</strong><span>{user.email}</span></div>
           </div>
@@ -926,7 +973,7 @@ function ContentEditor({
       <section className="settings-card">
         <div className="settings-card__title"><UserRound size={18} /><div><h2>Профиль</h2><p>Имя, описание и адрес вашей страницы.</p></div></div>
         <div className="field-grid">
-          <div className="profile-text-field"><label>Отображаемое имя<input value={profile.display_name} onChange={(event) => setProfile({ ...profile, display_name: normalizeDisplayNameInput(event.target.value) })} maxLength={60} /></label><TypographyControls label="Имя" slot="name" font={profile.name_font} size={profile.name_font_size} onChange={(font, size) => setProfile({ ...profile, name_font: font, name_font_size: size })} /></div>
+          <div className="profile-text-field"><label>Отображаемое имя<input value={profile.display_name} onChange={(event) => setProfile({ ...profile, display_name: normalizeDisplayNameInput(event.target.value) })} maxLength={30} /></label><TypographyControls label="Имя" slot="name" font={profile.name_font} size={profile.name_font_size} onChange={(font, size) => setProfile({ ...profile, name_font: font, name_font_size: size })} /></div>
           <div className="profile-text-field"><label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandleInput(event.target.value) })} /><button type="button" className={`input-prefix__copy ${masterLinkCopied ? 'input-prefix__copy--done' : ''}`} onClick={(event) => { event.preventDefault(); void copyMasterLink() }} disabled={!profile.handle} aria-label={masterLinkCopied ? 'Мастер‑ссылка скопирована' : 'Скопировать мастер‑ссылку'} title="Скопировать ссылку">{masterLinkCopied ? <Check size={15} /> : <Copy size={15} />}</button></div></label><TypographyControls label="Мастер-ссылка" slot="handle" font={profile.handle_font} size={profile.handle_font_size} onChange={(font, size) => setProfile({ ...profile, handle_font: font, handle_font_size: size })} /></div>
           <div className="field-grid__full profile-text-field"><label>О себе<textarea aria-label="О себе" value={profile.bio} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} maxLength={160} rows={3} placeholder="Чем вы занимаетесь?" /><small>{profile.bio.length}/160</small></label><TypographyControls label="О себе" slot="bio" font={profile.bio_font} size={profile.bio_font_size} onChange={(font, size) => setProfile({ ...profile, bio_font: font, bio_font_size: size })} /></div>
         </div>
@@ -1085,7 +1132,7 @@ function DesignEditor({
   profile: Profile
   setProfile: (profile: Profile) => void
   avatarUploading: boolean
-  onAvatarUpload: (blob: Blob) => Promise<boolean>
+  onAvatarUpload: (blob: Blob, options?: AvatarUploadOptions) => Promise<boolean>
   onAvatarDraft: (draft: AvatarDraft | null) => void
 }) {
   return (
@@ -1172,7 +1219,7 @@ function ProfilePage({ session }: { session: Session | null }) {
 
   return (
     <main className={`public-preview-page theme-${profile.background_preset}`}>
-      {isOwner && <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> В редактор</button>}
+      {isOwner && <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> Личный кабинет</button>}
       <div className="public-preview-page__content"><ProfilePreview profile={profile} links={links} contacts={contacts} interactive showPrivacy={!profile.is_published} /></div>
     </main>
   )

@@ -171,7 +171,7 @@ test('visitor events count once and an adult click waits for confirmation', asyn
 test('owner public preview does not create events', async ({ page }) => {
   const { events } = await mock(page)
   await page.goto(`/${handle}`)
-  await expect(page.getByRole('button', { name: 'В редактор' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Личный кабинет' })).toBeVisible()
   await page.getByRole('link', { name: /Ссылка 3/ }).click()
   await page.getByRole('button', { name: 'Мне есть 18 — продолжить' }).click()
   expect(events).toEqual([])
@@ -201,7 +201,7 @@ test('largest fonts keep long text and mobile navigation inside their slots', as
   expect(heights.bio).toBeLessThanOrEqual(87)
   expect(heights.link).toBeLessThanOrEqual(39)
   if (isMobile) {
-    await page.getByRole('button', { name: 'В редактор', exact: true }).click()
+    await page.getByRole('button', { name: 'Личный кабинет', exact: true }).click()
     await page.getByRole('button', { name: 'Статистика', exact: true }).click()
     await expect(page.locator('.statistics__metrics')).toBeVisible()
   }

@@ -75,10 +75,13 @@ test('administrator must confirm the exact handle before account deletion', asyn
   await page.getByRole('button', { name: 'Удалить пользователя' }).click()
   const dialog = page.getByRole('dialog', { name: 'Удалить пользователя' })
   await expect(dialog).toContainText('без возможности восстановления')
-  await dialog.getByLabel('Введите адрес страницы @vasiliy').fill('vasilii')
+  await dialog.getByLabel('Адрес страницы или user name').fill('vasilii')
   await dialog.getByLabel('Причина').fill('Запрос на удаление')
   await expect(dialog.getByRole('button', { name: 'Удалить аккаунт' })).toBeDisabled()
-  await dialog.getByLabel('Введите адрес страницы @vasiliy').fill('vasiliy')
+  for (const accepted of ['vasiliy', '@vasiliy', 'mylinks.bar/vasiliy', 'https://mylinks.bar/vasiliy/']) {
+    await dialog.getByLabel('Адрес страницы или user name').fill(accepted)
+    await expect(dialog.getByRole('button', { name: 'Удалить аккаунт' })).toBeEnabled()
+  }
   await dialog.getByRole('button', { name: 'Удалить аккаунт' }).click()
   await expect.poll(() => deletion).toMatchObject({ target_id: targetId, expected_handle: 'vasiliy', reason: 'Запрос на удаление' })
   await expect(page).toHaveURL(/\/admin$/)

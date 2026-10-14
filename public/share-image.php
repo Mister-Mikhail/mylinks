@@ -11,7 +11,7 @@ function preview_image_fallback($reason) {
 }
 
 function preview_avatar_bytes($profile) {
-    $path = implode('/', array_map('rawurlencode', explode('/', $profile['avatar_path'])));
+    $path = implode('/', array_map('rawurlencode', explode('/', (!empty($profile['avatar_poster_path']) ? $profile['avatar_poster_path'] : $profile['avatar_path']))));
     $result = preview_api('/storage/v1/object/sign/avatars/' . $path, array('expiresIn' => 3600));
     if (!isset($result['signedURL']) || strpos($result['signedURL'], '/object/sign/avatars/') !== 0) { header('X-Mylinks-Avatar-Fetch: sign-failed'); return null; }
     $config = require __DIR__ . '/preview-config.php';

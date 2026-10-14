@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react'
 import { ArrowLeft, ArrowRight, Check, ChevronDown, LoaderCircle, Sparkles, Trash2 } from 'lucide-react'
-import type { AvatarDraft, EditableContact, EditableLink, LinkIcon as LinkIconKey, Profile } from '../types'
+import type { AvatarDraft, AvatarUploadOptions, EditableContact, EditableLink, LinkIcon as LinkIconKey, Profile } from '../types'
 import { ProfilePreview } from './ProfilePreview'
 import { DeleteAccount } from './DeleteAccount'
 import { AvatarEditor } from './AvatarEditor'
@@ -47,8 +47,8 @@ function FieldHint({ valid, invalid, children, id }: { valid?: boolean; invalid?
   return <small id={id} className={`field-hint ${invalid ? 'field-hint--error' : valid ? 'field-hint--valid' : ''}`} aria-live="polite">{valid && !invalid && <Check size={14} aria-hidden="true" />}{children}</small>
 }
 interface Props {
-  onDeleted: () => Promise<void>; userId: string; profile: Profile; setProfile: (profile: Profile) => void; onFinish: () => void
-  avatarUploading: boolean; onAvatarUpload: (blob: Blob) => Promise<boolean>
+  onDeleted: () => Promise<void>; userId: string; profile: Profile; setProfile: (profile: Profile) => void; onFinish: () => Promise<void>
+  avatarUploading: boolean; onAvatarUpload: (blob: Blob, options?: AvatarUploadOptions) => Promise<boolean>
   avatarDraft: AvatarDraft | null; onAvatarDraft: (draft: AvatarDraft | null) => void; uploadError: string
 }
 export function OnboardingWizard({ userId, profile, setProfile, onFinish, avatarUploading, onAvatarUpload, avatarDraft, onAvatarDraft, uploadError, onDeleted }: Props) {
@@ -109,7 +109,7 @@ export function OnboardingWizard({ userId, profile, setProfile, onFinish, avatar
       }
       const { error: completeError } = await supabase.rpc('complete_onboarding', { payload })
       if (completeError) throw completeError
-      onFinish()
+      await onFinish()
     } catch (caught) { setError(errorMessage(caught, 'Не удалось сохранить данные. Попробуйте ещё раз.')) }
     finally { setBusy(false) }
   }
@@ -117,7 +117,7 @@ export function OnboardingWizard({ userId, profile, setProfile, onFinish, avatar
   const previewProfile = { ...profile, ...data, is_published: data.publish }
   const previewLinks: EditableLink[] = data.links.filter(validLink).map((link, position) => ({ ...link, localId: `wizard-${position}`, label: link.label.trim() || getLinkPlatform(link.icon_key).label, url: linkUrl(link), position, is_visible: true, is_sensitive: false }))
   const previewContacts: EditableContact[] = data.contact.is_visible && validContact(data.contact) ? [{ ...data.contact, localId: 'wizard-contact', position: 0 }] : []
-  const showPreview = step === 1 || step === 4
+  const showPreview = step === 4
   const handleTaken = availability.value === data.handle && availability.status === 'taken'
   const handleAvailable = availability.value === data.handle && availability.status === 'available'
 
@@ -129,15 +129,15 @@ export function OnboardingWizard({ userId, profile, setProfile, onFinish, avatar
       <form className="onboarding-form" onSubmit={next} noValidate>
         {step === 0 && <div className="onboarding-fields">
           <label htmlFor="wizard-name">Укажите свое имя</label>
-          <input id="wizard-name" autoComplete="name" autoFocus value={data.display_name} maxLength={60} aria-describedby="name-hint" aria-invalid={Boolean(warnings.name) || ((attempted || Boolean(data.display_name)) && !nameValid)} data-valid={nameValid && !warnings.name} onChange={event => { const value = normalizeDisplayNameInput(event.target.value); warning('name', value !== event.target.value ? 'В имени допустимы только буквы и пробелы, без цифр и знаков.' : ''); patch('display_name', value) }} />
-          <FieldHint id="name-hint" valid={nameValid} invalid={Boolean(warnings.name) || (attempted && !nameValid)}>{warnings.name || 'Только буквы и пробелы, от 1 до 60 символов.'}</FieldHint>
+          <input id="wizard-name" autoComplete="name" autoFocus value={data.display_name} maxLength={30} aria-describedby="name-hint" aria-invalid={Boolean(warnings.name) || ((attempted || Boolean(data.display_name)) && !nameValid)} data-valid={nameValid && !warnings.name} onChange={event => { const value = normalizeDisplayNameInput(event.target.value); warning('name', value !== event.target.value ? 'В имени допустимы только буквы и пробелы, без цифр и знаков.' : ''); patch('display_name', value) }} />
+          <FieldHint id="name-hint" valid={nameValid} invalid={Boolean(warnings.name) || (attempted && !nameValid)}>{warnings.name || 'Только буквы и пробелы, от 1 до 30 символов.'}</FieldHint>
           <label htmlFor="wizard-handle">Придумайте user name</label>
           <div className="onboarding-handle" data-valid={handleValid && handleAvailable} data-invalid={Boolean(warnings.handle) || handleTaken || ((attempted || Boolean(data.handle)) && !handleValid)}><span>mylinks.bar/</span><input id="wizard-handle" value={data.handle} autoCapitalize="none" autoCorrect="off" maxLength={30} aria-describedby="handle-hint" aria-invalid={Boolean(warnings.handle) || handleTaken || ((attempted || Boolean(data.handle)) && !handleValid)} onChange={event => { const value = normalizeNewHandleInput(event.target.value); warning('handle', value !== event.target.value.toLowerCase() ? 'Допустимы латинские буквы и один разделитель: точка или подчёркивание.' : ''); patch('handle', value) }} placeholder="anna.petrova" /></div>
           <FieldHint id="handle-hint" valid={handleValid && handleAvailable} invalid={Boolean(warnings.handle) || handleTaken || ((attempted || Boolean(data.handle)) && !handleValid)}>{warnings.handle || (handleTaken ? 'Этот user name уже занят.' : !handleValid ? '3–30 символов: латинские буквы и не более одной точки или подчёркивания между словами.' : handleAvailable ? 'User name свободен' : availability.value === data.handle && availability.status === 'error' ? 'Проверка недоступна. Повторим при продолжении.' : 'Проверяем доступность…')}</FieldHint>
         </div>}
         {step === 1 && <div className="onboarding-fields">
           <label>Описание<textarea aria-label="Описание" autoFocus value={data.bio} onChange={event => patch('bio', event.target.value)} maxLength={160} rows={3} placeholder="Чем вы занимаетесь и что вам интересно" data-valid={Boolean(data.bio.trim())} /><small className="onboarding-counter">{data.bio.length} / 160</small></label>
-          <AvatarEditor profile={previewProfile} setProfile={nextProfile => setProfile({ ...profile, avatar_shape: nextProfile.avatar_shape, avatar_size: nextProfile.avatar_size, avatar_scale: nextProfile.avatar_scale })} uploading={avatarUploading} onUpload={onAvatarUpload} onDraftChange={onAvatarDraft} />
+          <AvatarEditor modal profile={previewProfile} setProfile={nextProfile => setProfile({ ...profile, avatar_shape: nextProfile.avatar_shape, avatar_size: nextProfile.avatar_size, avatar_scale: nextProfile.avatar_scale })} uploading={avatarUploading} onUpload={onAvatarUpload} onDraftChange={onAvatarDraft} />
           {uploadError && <p className="onboarding-error" role="alert">{uploadError}</p>}
           {avatarDraft && <FieldHint>Примените фото или отмените кадрирование перед продолжением.</FieldHint>}
         </div>}

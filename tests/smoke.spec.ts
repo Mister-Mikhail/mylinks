@@ -42,6 +42,6 @@ test('registration asks only for email and password and then awaits confirmation
   await expect.poll(() => submitted).toMatchObject({ email: 'anna@example.com', data: { onboarding_version: 2 } })
   expect((submitted?.data as Record<string, unknown>).handle).toBeUndefined()
   expect((submitted?.data as Record<string, unknown>).display_name).toBeUndefined()
-  await expect(page.getByText(/Проверьте почту и подтвердите адрес/)).toBeVisible()
+  await expect(page.getByText(/Откройте ссылку из письма/)).toBeVisible()
   await expect(page.getByText('Укажите свое имя', { exact: true })).toHaveCount(0)
 })

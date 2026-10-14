@@ -27,6 +27,7 @@ create function moderation.my_role() returns text language sql stable security d
 \i supabase/migrations/20261013123000_admin_delete_account.sql
 \i supabase/migrations/20261013155000_handle_availability.sql
 \i supabase/migrations/20261013165845_coherent_onboarding_and_self_delete.sql
+\i supabase/migrations/20261014124523_activation_avatar_followup.sql
 
 create policy profile_deleting on public.profiles as restrictive for update to authenticated using(public.account_editable()) with check(public.account_editable());
 create policy links_deleting on public.profile_links as restrictive for insert to authenticated with check(public.account_editable());
@@ -99,3 +100,18 @@ do $$ begin
 end; $$;
 select public.staff_prepare_account_deletion('00000000-0000-4000-8000-000000000002','draft-000040008000000000000002','Test deletion');
 reset role;
+
+-- New limits and media metadata are checked at the database boundary.
+set role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000003',false);
+do $$ begin
+ begin perform public.save_onboarding_identity(repeat('А',31),'administrator'); raise exception 'long name accepted'; exception when invalid_parameter_value then null; end;
+ perform public.save_onboarding_identity(repeat('А',30),'administrator');
+ update public.profiles set avatar_media='gif',avatar_crop='{"aspectRatio":1.5,"zoom":0.75,"x":0.4,"y":-0.2}',avatar_poster_path=auth.uid()::text||'/poster.webp' where id=auth.uid();
+ begin update public.profiles set avatar_crop='{"zoom":0}' where id=auth.uid(); raise exception 'bad crop accepted'; exception when check_violation then null; end;
+ begin update public.profiles set avatar_poster_path='another-user/poster.webp' where id=auth.uid(); raise exception 'foreign poster accepted'; exception when check_violation then null; end;
+end; $$;
+reset role;
+do $$ begin
+ if not exists(select 1 from storage.buckets where id='avatars' and file_size_limit=5242880 and allowed_mime_types @> array['image/gif','video/mp4','video/webm']) then raise exception 'media bucket limits missing'; end if;
+end; $$;

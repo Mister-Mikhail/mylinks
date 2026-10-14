@@ -98,7 +98,7 @@ test('published profile reuses the signed avatar URL on repeat visits', async ({
 test('session refresh does not reload the public page or replace it with a spinner', async ({ page }) => {
   const { state } = await mock(page, { owner: true })
   await page.goto(`/${handle}`)
-  await expect(page.getByRole('button', { name: 'В редактор' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Личный кабинет' })).toBeVisible()
   const requests = state.profileRequests.length
   await page.evaluate(async () => {
     const { supabase } = await import('/src/lib/supabase.ts')
@@ -114,7 +114,7 @@ test('editor and public profile buttons preserve navigation', async ({ page }) =
   await page.goto('/')
   await page.getByRole('button', { name: 'Открыть страницу', exact: true }).click()
   await expect(page).toHaveURL(new RegExp(`/${handle}$`))
-  await page.getByRole('button', { name: 'В редактор' }).click()
+  await page.getByRole('button', { name: 'Личный кабинет' }).click()
   await expect(page.getByRole('button', { name: 'Оформление', exact: true })).toBeVisible()
 })
 

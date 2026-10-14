@@ -59,7 +59,7 @@ export function LinkIcon({ name, url = '', size = 19 }: LinkIconProps) {
     return <span className="link-icon__brand link-icon__mono" style={{ WebkitMask: mask, mask }} aria-hidden />
   }
   if (localIcon && !state.localFailed) {
-    return <img className="link-icon__brand" src={localIcon.src} alt="" aria-hidden onError={() => setAttempt({ ...state, localFailed: true })} />
+    return <img className="link-icon__brand" src={localIcon.src} width={size} height={size} alt="" aria-hidden onError={() => setAttempt({ ...state, localFailed: true })} />
   }
   if (name === 'email') return <AtSign {...props} />
 

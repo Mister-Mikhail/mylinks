@@ -26,7 +26,7 @@ interface ImageSize {
 
 const DEFAULT_OFFSET: Point = { x: 0, y: 0 }
 
-const avatarStyle = (scale: number) => ({ '--avatar-size': `${Math.round(42 + scale * 2.1)}px` } as CSSProperties)
+const avatarStyle = (scale: number) => ({ '--avatar-size': `${Math.round(42 + scale * 2.1)}px`, '--avatar-width': `${scale}%` } as CSSProperties)
 
 export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraftChange, modal = false }: AvatarEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -36,6 +36,8 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
   const [kind, setKind] = useState<'image' | 'gif' | 'video'>('image')
   const viewportRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ pointerX: number; pointerY: number; offset: Point } | null>(null)
+  const pointers = useRef(new Map<number, Point>())
+  const pinch = useRef<{ distance: number; center: Point; offset: Point; zoom: number } | null>(null)
   const [source, setSource] = useState<string | null>(null)
   const [imageSize, setImageSize] = useState<ImageSize>({ width: 0, height: 0 })
   const [viewportSize, setViewportSize] = useState(320)
@@ -81,6 +83,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
   }, [source])
 
   const closeEditor = () => {
+    pointers.current.clear(); pinch.current = null; dragRef.current = null
     if (source) URL.revokeObjectURL(source)
     setSource(null)
     setSelectedFile(null)
@@ -142,12 +145,34 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
 
   const startDrag = (event: PointerEvent<HTMLDivElement>) => {
     if (!source || uploading) return
+    event.preventDefault()
     event.currentTarget.setPointerCapture(event.pointerId)
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()]
+      const rect = event.currentTarget.getBoundingClientRect()
+      pinch.current = { distance: Math.hypot(b.x - a.x, b.y - a.y), center: { x: (a.x + b.x) / 2 - rect.left - rect.width / 2, y: (a.y + b.y) / 2 - rect.top - rect.height / 2 }, zoom, offset }
+      dragRef.current = null
+      return
+    }
     dragRef.current = { pointerX: event.clientX, pointerY: event.clientY, offset }
   }
 
   const drag = (event: PointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current || uploading) return
+    if (uploading || !pointers.current.has(event.pointerId)) return
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    if (pinch.current && pointers.current.size >= 2) {
+      const [a, b] = [...pointers.current.values()]
+      const rect = event.currentTarget.getBoundingClientRect()
+      const initial = pinch.current
+      const nextZoom = Math.min(3, Math.max(.25, initial.zoom * Math.hypot(b.x - a.x, b.y - a.y) / Math.max(1, initial.distance)))
+      const ratio = nextZoom / initial.zoom
+      const center = { x: (a.x + b.x) / 2 - rect.left - rect.width / 2, y: (a.y + b.y) / 2 - rect.top - rect.height / 2 }
+      setZoom(nextZoom)
+      setOffset({ x: center.x - (initial.center.x - initial.offset.x) * ratio, y: center.y - (initial.center.y - initial.offset.y) * ratio })
+      return
+    }
+    if (!dragRef.current) return
     const nextOffset = {
       x: dragRef.current.offset.x + event.clientX - dragRef.current.pointerX,
       y: dragRef.current.offset.y + event.clientY - dragRef.current.pointerY,
@@ -162,8 +187,11 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
     setOffset(current => ({ x: current.x + delta[0], y: current.y + delta[1] }))
   }
 
-  const stopDrag = () => {
-    dragRef.current = null
+  const stopDrag = (event: PointerEvent<HTMLDivElement>) => {
+    pointers.current.delete(event.pointerId)
+    pinch.current = null
+    const remaining = [...pointers.current.values()][0]
+    dragRef.current = remaining ? { pointerX: remaining.x, pointerY: remaining.y, offset } : null
   }
 
   const saveCrop = async () => {
@@ -223,7 +251,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
                   onError={() => setError('Не удалось прочитать изображение.')}
                   onLoad={event => { const img = event.currentTarget; if (kind === 'gif' && (img.naturalWidth > 1920 || img.naturalHeight > 1920)) { setError('GIF: не больше 1920 пикселей по каждой стороне.'); setImageSize({ width: 0, height: 0 }) } else setImageSize({ width: img.naturalWidth, height: img.naturalHeight }) }} />}
               <span className="avatar-cropper__grid" />
-              <span className="avatar-cropper__move"><Move size={15} /> Перемещайте фото</span>
+              <span className="avatar-cropper__move"><Move size={15} /> Перемещайте фото · масштаб двумя пальцами</span>
             </div>
 
             <label className="crop-zoom-control">

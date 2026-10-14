@@ -38,6 +38,7 @@ import { AvatarEditor } from './components/AvatarEditor'
 import { ProfilePreview } from './components/ProfilePreview'
 import { TypographyControls } from './components/TypographyControls'
 import { LinkIcon } from './components/LinkIcon'
+import { ProfileTools } from './components/ProfileTools'
 import { StatisticsPanel } from './components/StatisticsPanel'
 import './components/extras.css'
 import { capabilitiesForTier, FREE_CAPABILITIES } from './config/capabilities'
@@ -859,6 +860,7 @@ function Dashboard({ user }: { user: User }) {
             <span className="autosave-hint">{section === 'stats' ? 'Только для владельца' : 'Сохраняется вручную'}</span>
           </div>
 
+          <ProfileTools userId={user.id} handle={persistedHandle.current || profile.handle} published={profile.is_published} />
           {!staffRole && <DeleteAccount onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
           {notice && <div className="toast toast--success"><Check size={16} /> {notice}</div>}
           {error && <div className="toast toast--error">{error}</div>}
@@ -1220,6 +1222,7 @@ function ProfilePage({ session }: { session: Session | null }) {
   return (
     <main className={`public-preview-page theme-${profile.background_preset}`}>
       {isOwner && <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> Личный кабинет</button>}
+      {profile.is_published && <ProfileTools handle={profile.handle} published />}
       <div className="public-preview-page__content"><ProfilePreview profile={profile} links={links} contacts={contacts} interactive showPrivacy={!profile.is_published} /></div>
     </main>
   )

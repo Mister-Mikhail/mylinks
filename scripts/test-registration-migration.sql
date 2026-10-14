@@ -115,3 +115,21 @@ reset role;
 do $$ begin
  if not exists(select 1 from storage.buckets where id='avatars' and file_size_limit=5242880 and allowed_mime_types @> array['image/gif','video/mp4','video/webm']) then raise exception 'media bucket limits missing'; end if;
 end; $$;
+
+-- Additional Auth/analytics columns model the production tables for trash tests.
+alter table auth.users add column created_at timestamptz default now(), add column last_sign_in_at timestamptz, add column email_confirmed_at timestamptz, add column banned_until timestamptz;
+create unique index test_auth_email_unique on auth.users(lower(email));
+create table auth.sessions(id uuid primary key default gen_random_uuid(),user_id uuid references auth.users on delete cascade);
+alter table moderation.restrictions add column created_at timestamptz default now();
+create function moderation.allowed(target uuid) returns boolean language sql stable security definer set search_path='' as $$ select not exists(select 1 from moderation.restrictions where target_id=target); $$;
+create table public.profile_events(id uuid primary key default gen_random_uuid(),profile_id uuid references public.profiles on delete cascade);
+alter table public.profile_events enable row level security;
+grant select on public.profile_events to authenticated;
+create policy test_events_owner on public.profile_events for select to authenticated using(profile_id=auth.uid());
+grant usage on schema auth,moderation to anon;
+grant select on public.profiles,public.profile_links,public.profile_contacts to anon;
+create policy test_public_profile on public.profiles for select to anon using(is_published and moderation.allowed(id));
+create policy test_public_links on public.profile_links for select to anon using(exists(select 1 from public.profiles where id=profile_id and is_published));
+create policy test_public_contacts on public.profile_contacts for select to anon using(is_visible and exists(select 1 from public.profiles where id=profile_id and is_published));
+\i supabase/migrations/20261014195826_admin_trash_and_sharing.sql
+\i scripts/test-trash.sql

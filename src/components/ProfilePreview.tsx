@@ -72,7 +72,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
       </div>
 
       <div className="profile-card__identity">
-        <div className={`avatar avatar--${profile.avatar_shape}`} style={{ '--avatar-size': `${Math.round(42 + (profile.avatar_scale || 28) * 2.1)}px` } as CSSProperties}>
+        <div className={`avatar avatar--${profile.avatar_shape}`} style={{ '--avatar-size': `${Math.round(42 + (profile.avatar_scale || 28) * 2.1)}px`, '--avatar-width': `${profile.avatar_scale || 28}%` } as CSSProperties}>
           <AvatarMedia profile={profile} draft={avatarDraft} />
         </div>
         <h1 style={textStyle(profile.name_font, profile.name_font_size, 'name')}>{profile.display_name || 'Ваше имя'}</h1>

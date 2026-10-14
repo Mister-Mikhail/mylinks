@@ -126,3 +126,6 @@
 .avatar-crop-dialog .avatar-cropper__actions { display:flex; gap:10px; }
 .avatar-crop-dialog .avatar-cropper__actions button { flex:1; min-height:44px; padding:10px; }
 .avatar-crop-dialog .form-message { margin:10px 0; }
+
+.avatar-cropper__viewport { touch-action:none; }
+.avatar-cropper__move { max-width:95%; text-align:center; font-size:10px; pointer-events:none; }

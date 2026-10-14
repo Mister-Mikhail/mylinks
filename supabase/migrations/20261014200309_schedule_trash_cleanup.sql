@@ -1,5 +1,5 @@
 create extension if not exists pg_net;
-create extension if not exists pg_cron;
+-- pg_cron is already enabled by the project. Avoid re-running its hosted grants hook.
 
 create function moderation.enqueue_trash_cleanup() returns bigint
 language plpgsql security definer set search_path='' as $$

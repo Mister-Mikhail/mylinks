@@ -28,7 +28,7 @@ function preview_handle($value) {
 
 function preview_profile($handle) {
     if (!$handle) return null;
-    $rows = preview_api('/rest/v1/profiles?select=handle,display_name,bio,avatar_path,is_published,updated_at&handle=eq.' . rawurlencode($handle) . '&is_published=eq.true&limit=1');
+    $rows = preview_api('/rest/v1/profiles?select=handle,display_name,bio,avatar_path,avatar_poster_path,is_published,updated_at&handle=eq.' . rawurlencode($handle) . '&is_published=eq.true&limit=1');
     return is_array($rows) && isset($rows[0]) && !empty($rows[0]['is_published']) ? $rows[0] : null;
 }
 

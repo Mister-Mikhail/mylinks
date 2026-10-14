@@ -21,6 +21,10 @@ export interface Profile {
   avatar_url: string | null
   avatar_path: string | null
   avatar_preview_url?: string | null
+  avatar_media?: 'image' | 'gif' | 'video'
+  avatar_crop?: AvatarCrop | null
+  avatar_poster_path?: string | null
+  avatar_poster_url?: string | null
   background_preset: BackgroundPreset
   card_preset: CardPreset
   avatar_shape: AvatarShape
@@ -85,6 +89,10 @@ export interface AvatarDraft {
   zoom: number
   x: number
   y: number
+  kind?: 'image' | 'gif' | 'video'
 }
+
+export interface AvatarCrop { aspectRatio: number; zoom: number; x: number; y: number }
+export interface AvatarUploadOptions { kind: 'image' | 'gif' | 'video'; crop?: AvatarCrop; poster?: Blob }
 
 

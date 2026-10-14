@@ -1,0 +1,107 @@
+import { expect, test, type Page } from '@playwright/test'
+import { mockWizard } from './helpers/wizard'
+import { gif, shortVideo, longVideo } from './helpers/media'
+
+const id = '00000000-0000-4000-8000-000000000091'
+const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: id, exp: 2100000000, role: 'authenticated' })).toString('base64url')}.signature`
+const user = { id, email: 'test@example.com', email_confirmed_at: '2026-10-14T12:00:00Z', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2026-10-13T00:00:00Z' }
+const session = { access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user }
+async function signup(page: Page) {
+  await page.route('**/auth/v1/signup**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...user, identities: [{ id: 'one' }], email_confirmed_at: null }) }))
+  await page.getByRole('button', { name: 'Создать профиль' }).first().click()
+  await page.getByPlaceholder('you@example.com').fill(user.email)
+  await page.getByPlaceholder('Минимум 6 символов').fill('example-password')
+  await page.getByRole('button', { name: 'Создать профиль' }).last().click()
+  await expect(page.getByText('Откройте ссылку из письма.', { exact: false })).toBeVisible()
+}
+
+test('confirming in another tab automatically opens the wizard in both tabs', async ({ page, context }) => {
+  await mockWizard(page, false)
+  await page.route('**/auth/v1/token**', route => route.fulfill({ status: 400, contentType: 'application/json', body: '{"code":"email_not_confirmed","msg":"Email not confirmed"}' }))
+  await signup(page)
+  const confirmation = await context.newPage()
+  await mockWizard(confirmation, false)
+  let requests = 0
+  await confirmation.route('**/auth/v1/verify**', route => { requests++; return route.fulfill({ contentType: 'application/json', body: JSON.stringify(session) }) })
+  await confirmation.goto('/auth/confirmed#token_hash=confirmation-test&type=email')
+  await expect(confirmation.getByRole('heading', { name: 'Почта подтверждена' })).toBeVisible()
+  await expect(confirmation.getByRole('button', { name: 'Подтвердить email' })).toHaveCount(0)
+  await expect(confirmation.getByRole('heading', { name: 'Давайте познакомимся' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Давайте познакомимся' })).toBeVisible()
+  expect(requests).toBe(1)
+})
+
+test('original form resumes after confirmation on another device and password login still works', async ({ page }) => {
+  await mockWizard(page, false)
+  let confirmedElsewhere = false, attempts = 0
+  await page.route('**/auth/v1/token**', route => {
+    attempts++
+    expect(route.request().postDataJSON()).toMatchObject({ email: user.email, password: 'example-password' })
+    return route.fulfill({ status: confirmedElsewhere ? 200 : 400, contentType: 'application/json', body: JSON.stringify(confirmedElsewhere ? session : { code: 'email_not_confirmed', msg: 'Email not confirmed' }) })
+  })
+  await signup(page)
+  confirmedElsewhere = true
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await expect(page.getByRole('heading', { name: 'Давайте познакомимся' })).toBeVisible()
+  expect(attempts).toBeGreaterThan(0)
+  expect(await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage }))).not.toContain('example-password')
+  await page.evaluate(() => localStorage.clear())
+  await page.reload()
+  await page.getByRole('button', { name: 'У меня уже есть профиль', exact: true }).click()
+  await page.getByPlaceholder('Email или логин страницы').fill(user.email)
+  await page.getByPlaceholder('Ваш пароль').fill('example-password')
+  await page.getByRole('button', { name: 'Войти', exact: true }).last().click()
+  await expect(page.getByRole('heading', { name: 'Давайте познакомимся' })).toBeVisible()
+})
+
+async function avatarStep(page: Page) {
+  const state = await mockWizard(page)
+  await page.getByLabel('Укажите свое имя', { exact: true }).fill('Анна')
+  await page.getByLabel('Придумайте user name', { exact: true }).fill('anna.page')
+  await page.getByRole('button', { name: 'Продолжить' }).click()
+  await expect(page.locator('.avatar-settings__preview')).toHaveText('')
+  return state
+}
+
+for (const media of [{ name: 'motion.gif', mime: 'image/gif', data: gif, kind: 'gif' }, { name: 'motion.webm', mime: 'video/webm', data: shortVideo, kind: 'video' }]) {
+  test(`${media.kind} keeps animation, crop and poster after saving and reload`, async ({ page }) => {
+    const state = await avatarStep(page)
+    await page.locator('input[type=file]').setInputFiles({ name: media.name, mimeType: media.mime, buffer: Buffer.from(media.data, 'base64') })
+    const dialog = page.getByRole('dialog', { name: 'Настройте кадр' })
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Применить фото' })).toBeEnabled()
+    await page.getByLabel('Масштаб фото', { exact: true }).fill('0.75')
+    await page.getByRole('group', { name: /Положение фото/ }).press('ArrowDown')
+    await dialog.getByRole('button', { name: 'Применить фото' }).click()
+    await expect(dialog).toHaveCount(0)
+    expect(state.uploads).toBe(2)
+    expect(state.profile).toMatchObject({ avatar_media: media.kind, avatar_crop: { zoom: .75 } })
+    expect(state.profile.avatar_path).toMatch(media.kind === 'gif' ? /\.gif$/ : /\.webm$/)
+    expect(state.profile.avatar_poster_path).toMatch(/poster-.*\.webp$/)
+    await page.reload()
+    if (media.kind === 'video') {
+      const video = page.locator('.avatar-settings__preview video')
+      await expect(video).toBeVisible()
+      await expect(video).toHaveJSProperty('muted', true)
+      await expect(video).toHaveJSProperty('loop', true)
+      await expect(video).toHaveJSProperty('paused', false)
+    } else await expect(page.locator('.avatar-settings__preview img')).toHaveAttribute('src', /\.gif/)
+    await page.getByRole('button', { name: 'Продолжить' }).click()
+    await page.getByRole('button', { name: 'Добавлю позже' }).click()
+    await page.getByRole('button', { name: 'Пропустить', exact: true }).click()
+    await page.getByRole('button', { name: 'Готово' }).click()
+    await expect(page).toHaveURL(/\/anna.page$/)
+    await expect(page.getByRole('button', { name: 'Личный кабинет' })).toBeVisible()
+    await expect(page.locator('.profile-card .avatar ' + (media.kind === 'video' ? 'video' : 'img'))).toBeVisible()
+  })
+}
+
+test('oversized files and videos longer than ten seconds cannot be uploaded', async ({ page }) => {
+  const state = await avatarStep(page)
+  await page.locator('input[type=file]').setInputFiles({ name: 'big.gif', mimeType: 'image/gif', buffer: Buffer.alloc(5 * 1024 * 1024 + 1) })
+  await expect(page.getByText('Размер файла не должен превышать 5 МБ.')).toBeVisible()
+  await page.locator('input[type=file]').setInputFiles({ name: 'long.webm', mimeType: 'video/webm', buffer: Buffer.from(longVideo, 'base64') })
+  await expect(page.getByText('Видео: до 10 секунд', { exact: false })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Применить фото' })).toBeDisabled()
+  expect(state.uploads).toBe(0)
+})

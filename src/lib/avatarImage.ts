@@ -34,7 +34,7 @@ const encodeBest = async (canvas: HTMLCanvasElement, type: string) => {
  * and encodes it as a compact WebP (JPEG where the browser cannot encode WebP).
  * Photos smaller than 512 px are never enlarged.
  */
-export async function cropAvatarToBlob(image: HTMLImageElement, sourceX: number, sourceY: number, sourceSize: number): Promise<Blob> {
+export async function cropAvatarToBlob(image: CanvasImageSource, sourceX: number, sourceY: number, sourceSize: number): Promise<Blob> {
   const side = Math.max(1, Math.round(Math.min(MAX_SIDE, sourceSize)))
   let current: CanvasImageSource = image
   let x = sourceX

@@ -9,6 +9,7 @@ import { copyText, profileUrl } from '../lib/clipboard'
 import { BrandMark } from './BrandMark'
 import { LinkIcon } from './LinkIcon'
 import { ProfileContacts } from './ProfileContacts'
+import { AvatarMedia } from './AvatarMedia'
 import './extras.css'
 
 interface ProfilePreviewProps {
@@ -21,7 +22,6 @@ interface ProfilePreviewProps {
   onLinkActivate?: (link: EditableLink) => void
 }
 
-const initials = (name: string) => name.trim().slice(0, 2).toUpperCase() || 'ML'
 
 export function ProfilePreview({ profile, links, contacts = [], interactive = false, showPrivacy = true, avatarDraft = null, onLinkActivate }: ProfilePreviewProps) {
   const visibleLinks = links.filter((link) => link.is_visible && link.label && link.url)
@@ -73,7 +73,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
 
       <div className="profile-card__identity">
         <div className={`avatar avatar--${profile.avatar_shape}`} style={{ '--avatar-size': `${Math.round(42 + (profile.avatar_scale || 28) * 2.1)}px` } as CSSProperties}>
-          {avatarDraft ? <img className="avatar__draft" src={avatarDraft.src} alt="" style={{ position: 'absolute', width: `${Math.max(1, avatarDraft.aspectRatio) * avatarDraft.zoom * 100}%`, height: `${Math.max(1, 1 / avatarDraft.aspectRatio) * avatarDraft.zoom * 100}%`, left: `${50 + avatarDraft.x * 100}%`, top: `${50 + avatarDraft.y * 100}%`, maxWidth: 'none', transform: 'translate(-50%, -50%)' }} /> : profile.avatar_preview_url || profile.avatar_url ? <img src={profile.avatar_preview_url || profile.avatar_url || ''} alt="" /> : <span>{initials(profile.display_name)}</span>}
+          <AvatarMedia profile={profile} draft={avatarDraft} />
         </div>
         <h1 style={textStyle(profile.name_font, profile.name_font_size, 'name')}>{profile.display_name || 'Ваше имя'}</h1>
         <button className="profile-card__handle" style={textStyle(profile.handle_font, profile.handle_font_size, 'handle')} type="button" onClick={() => void copyProfileLink()} aria-label="Скопировать ссылку на профиль">

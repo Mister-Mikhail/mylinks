@@ -114,3 +114,15 @@
   .dashboard-shell--design .profile-card__handle { --profile-display-size: calc(var(--profile-font-size) * .8); }
   .dashboard-shell--design .profile-link__label { --profile-display-size: calc(var(--profile-font-size) * .9); }
 }
+
+.avatar { position:relative; }
+.avatar video { display:block; width:100%; height:100%; object-fit:cover; }
+.avatar-cropper__viewport > video { position:absolute; top:50%; left:50%; max-width:none; pointer-events:none; }
+.avatar-crop-dialog { padding:0; border:0; border-radius:20px; background:transparent; color:var(--text); width:min(430px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); }
+.avatar-crop-dialog::backdrop { background:rgba(3,5,8,.82); backdrop-filter:blur(8px); }
+.avatar-crop-dialog .avatar-cropper { width:100%; max-height:calc(100dvh - 24px); padding:20px; }
+.avatar-crop-dialog .avatar-cropper__viewport { width:min(320px,calc(100vw - 68px),calc(100dvh - 270px)); }
+.avatar-crop-dialog .crop-zoom-control { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; }
+.avatar-crop-dialog .avatar-cropper__actions { display:flex; gap:10px; }
+.avatar-crop-dialog .avatar-cropper__actions button { flex:1; min-height:44px; padding:10px; }
+.avatar-crop-dialog .form-message { margin:10px 0; }

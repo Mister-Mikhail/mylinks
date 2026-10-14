@@ -32,6 +32,7 @@ import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } fr
 import { BrandMark } from './components/BrandMark'
 import { OnboardingWizard } from './components/OnboardingWizard'
 import { TemporaryAccountGate } from './components/TemporaryAccountGate'
+import { DeleteAccount } from './components/DeleteAccount'
 import { AvatarEditor } from './components/AvatarEditor'
 import { ProfilePreview } from './components/ProfilePreview'
 import { TypographyControls } from './components/TypographyControls'
@@ -51,7 +52,7 @@ import { copyText, profileUrl } from './lib/clipboard'
 import { useStaffRole } from './lib/useStaffRole'
 import { CONTACT_OPTIONS, contactPlaceholder, isValidContactValue } from './lib/contacts'
 import { isKnownSensitiveUrl } from './lib/sensitiveLinks'
-import { isValidHandle, isValidHttpUrl, normalizeHandle, normalizeHandleInput, normalizeUrl } from './lib/validation'
+import { isValidDisplayName, isValidHandle, isValidNewHandle, isValidHttpUrl, normalizeDisplayNameInput, normalizeHandle, normalizeHandleInput, normalizeUrl } from './lib/validation'
 import type { AvatarDraft, ContactKind, EditableContact, EditableLink, LinkIcon as LinkIconName, Profile, ProfileContact, ProfileLink } from './types'
 
 type AuthMode = 'login' | 'register'
@@ -327,8 +328,6 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [displayName, setDisplayName] = useState('')
-  const [handle, setHandle] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -341,15 +340,13 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
 
     try {
       if (mode === 'register') {
-        const safeHandle = normalizeHandle(handle)
-        if (!isValidHandle(safeHandle)) throw new Error('Имя ссылки: 3–30 латинских букв, цифр, точек, дефисов или нижних подчёркиваний; в начале и конце — буква или цифра. Имена admin и auth зарезервированы.')
         if (password.length < 6) throw new Error('Пароль должен содержать не менее 6 символов.')
 
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { handle: safeHandle, display_name: displayName.trim() || safeHandle },
+            data: { onboarding_version: 2 },
             emailRedirectTo: `${window.location.origin}/auth/confirmed`,
           },
         })
@@ -389,17 +386,11 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
         <BrandMark />
         <div className="auth-dialog__heading">
           <span className="eyebrow">{mode === 'register' ? 'Новый профиль' : 'С возвращением'}</span>
-          <h2 id="auth-title">{mode === 'register' ? 'Создайте мастер‑ссылку' : 'Войдите в редактор'}</h2>
+          <h2 id="auth-title">{mode === 'register' ? 'Создайте страницу' : 'Войдите в редактор'}</h2>
           <p>{mode === 'register' ? 'Первый профиль полностью бесплатный.' : 'Продолжите настраивать свой профиль.'}</p>
         </div>
 
         <form onSubmit={submit} className="auth-form" autoComplete={mode === 'register' ? 'off' : 'on'} data-form-type={mode === 'register' ? 'other' : undefined}>
-          {mode === 'register' && (
-            <>
-              <label>Имя<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Михаил" autoComplete="name" /></label>
-              <label>Адрес мастер‑ссылки<div className="input-prefix"><span>mylinks.bar/</span><input value={handle} onChange={(event) => setHandle(normalizeHandleInput(event.target.value))} placeholder="mikhail" autoCapitalize="none" /></div></label>
-            </>
-          )}
           <label>{mode === 'register' ? 'Email' : 'Email или имя пользователя'}<input type={mode === 'register' ? 'email' : 'text'} value={email} onChange={(event) => setEmail(event.target.value)} placeholder={mode === 'register' ? 'you@example.com' : 'Email или логин страницы'} autoCapitalize="none" autoCorrect="off" inputMode={mode === 'register' ? 'email' : 'text'} autoComplete={mode === 'register' ? 'email' : 'username'} required /></label>
           <label>Пароль<div className="password-field"><input type={showPassword ? 'text' : 'password'} name={mode === 'register' ? 'mylinks-registration-password' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === 'register' ? 'Минимум 6 символов' : 'Ваш пароль'} minLength={mode === 'register' ? 6 : undefined} autoComplete={mode === 'register' ? 'off' : 'current-password'} data-form-type={mode === 'register' ? 'other' : undefined} data-lpignore={mode === 'register' ? 'true' : undefined} data-1p-ignore={mode === 'register' ? 'true' : undefined} data-bwignore={mode === 'register' ? 'true' : undefined} required /><button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
 
@@ -425,6 +416,7 @@ function Dashboard({ user }: { user: User }) {
   const cachedSnapshot = editorSnapshot?.userId === user.id ? editorSnapshot : null
   const skipInitialLoad = useRef(Boolean(cachedSnapshot))
   const [profile, setProfile] = useState<Profile>(cachedSnapshot?.profile ?? emptyProfile(user.id))
+  const persistedHandle = useRef(cachedSnapshot?.profile.handle ?? '')
   const [links, setLinks] = useState<EditableLink[]>(cachedSnapshot?.links ?? [])
   const [contacts, setContacts] = useState<EditableContact[]>(cachedSnapshot?.contacts ?? [])
   const [originalLinkIds, setOriginalLinkIds] = useState<string[]>(cachedSnapshot?.links.flatMap((link) => link.id ? [link.id] : []) ?? [])
@@ -483,7 +475,7 @@ function Dashboard({ user }: { user: User }) {
     const nextLinks = !linksResult.error ? (linksResult.data as ProfileLink[]).map(toEditable) : null
     const nextContacts = !contactsResult.error ? (contactsResult.data as ProfileContact[]).map(toEditableContact) : null
 
-    if (nextProfile) setProfile(nextProfile)
+    if (nextProfile) { setProfile(nextProfile); persistedHandle.current = nextProfile.handle }
 
     if (nextLinks) {
       setLinks(nextLinks)
@@ -623,7 +615,8 @@ function Dashboard({ user }: { user: User }) {
     setNotice('')
 
     try {
-      if (!isValidHandle(profile.handle)) throw new Error('Адрес мастер‑ссылки должен содержать 3–30 латинских букв, цифр, точек, дефисов или нижних подчёркиваний; в начале и конце — буква или цифра.')
+      if (!isValidDisplayName(profile.display_name.trim())) throw new Error('Имя должно содержать только буквы и пробелы (до 60 символов).')
+      if (!isValidHandle(profile.handle) || (profile.handle !== persistedHandle.current && !isValidNewHandle(profile.handle))) throw new Error('User name: 3–30 латинских букв и не более одной точки или подчёркивания между словами.')
       const readyLinks = links
         .filter((link) => link.label.trim() || link.url.trim())
         .map((link) => ({ ...link, label: link.label.trim() || inferLinkLabel(link.url) }))
@@ -709,6 +702,8 @@ function Dashboard({ user }: { user: User }) {
         kind: contact.kind,
         label: contact.label.trim(),
         value: contact.value.trim(),
+        latitude: contact.kind === 'address' ? contact.latitude ?? null : null,
+        longitude: contact.kind === 'address' ? contact.longitude ?? null : null,
         label_font: contact.label_font ?? 'manrope',
         label_font_size: contact.label_font_size ?? 10,
         value_font: contact.value_font ?? 'manrope',
@@ -726,6 +721,8 @@ function Dashboard({ user }: { user: User }) {
         kind: contact.kind,
         label: contact.label.trim(),
         value: contact.value.trim(),
+        latitude: contact.kind === 'address' ? contact.latitude ?? null : null,
+        longitude: contact.kind === 'address' ? contact.longitude ?? null : null,
         label_font: contact.label_font ?? 'manrope',
         label_font_size: contact.label_font_size ?? 10,
         value_font: contact.value_font ?? 'manrope',
@@ -773,7 +770,7 @@ function Dashboard({ user }: { user: User }) {
     </main>
   )
   if (temporaryAccount) return <TemporaryAccountGate account={temporaryAccount} onClaimed={() => { setTemporaryAccount(null); void loadData() }} />
-  if (!error && profile.onboarding_completed === false) return <OnboardingWizard userId={user.id} profile={profile} onFinish={() => { void loadData() }} />
+  if (profile.onboarding_completed === false) return <OnboardingWizard onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} userId={user.id} profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} avatarDraft={avatarDraft} onAvatarDraft={setAvatarDraft} uploadError={error} onFinish={() => { void loadData() }} />
 
   return (
     <div className={`dashboard-shell ${section === 'design' ? 'dashboard-shell--design' : ''} ${avatarDraft ? 'dashboard-shell--cropping' : ''}`}>
@@ -815,6 +812,7 @@ function Dashboard({ user }: { user: User }) {
             <span className="autosave-hint">{section === 'stats' ? 'Только для владельца' : 'Сохраняется вручную'}</span>
           </div>
 
+          {!staffRole && <DeleteAccount onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
           {notice && <div className="toast toast--success"><Check size={16} /> {notice}</div>}
           {error && <div className="toast toast--error">{error}</div>}
 
@@ -928,8 +926,8 @@ function ContentEditor({
       <section className="settings-card">
         <div className="settings-card__title"><UserRound size={18} /><div><h2>Профиль</h2><p>Имя, описание и адрес вашей страницы.</p></div></div>
         <div className="field-grid">
-          <div className="profile-text-field"><label>Отображаемое имя<input value={profile.display_name} onChange={(event) => setProfile({ ...profile, display_name: event.target.value })} maxLength={60} /></label><TypographyControls label="Имя" slot="name" font={profile.name_font} size={profile.name_font_size} onChange={(font, size) => setProfile({ ...profile, name_font: font, name_font_size: size })} /></div>
-          <div className="profile-text-field"><label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandle(event.target.value) })} /><button type="button" className={`input-prefix__copy ${masterLinkCopied ? 'input-prefix__copy--done' : ''}`} onClick={(event) => { event.preventDefault(); void copyMasterLink() }} disabled={!profile.handle} aria-label={masterLinkCopied ? 'Мастер‑ссылка скопирована' : 'Скопировать мастер‑ссылку'} title="Скопировать ссылку">{masterLinkCopied ? <Check size={15} /> : <Copy size={15} />}</button></div></label><TypographyControls label="Мастер-ссылка" slot="handle" font={profile.handle_font} size={profile.handle_font_size} onChange={(font, size) => setProfile({ ...profile, handle_font: font, handle_font_size: size })} /></div>
+          <div className="profile-text-field"><label>Отображаемое имя<input value={profile.display_name} onChange={(event) => setProfile({ ...profile, display_name: normalizeDisplayNameInput(event.target.value) })} maxLength={60} /></label><TypographyControls label="Имя" slot="name" font={profile.name_font} size={profile.name_font_size} onChange={(font, size) => setProfile({ ...profile, name_font: font, name_font_size: size })} /></div>
+          <div className="profile-text-field"><label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandleInput(event.target.value) })} /><button type="button" className={`input-prefix__copy ${masterLinkCopied ? 'input-prefix__copy--done' : ''}`} onClick={(event) => { event.preventDefault(); void copyMasterLink() }} disabled={!profile.handle} aria-label={masterLinkCopied ? 'Мастер‑ссылка скопирована' : 'Скопировать мастер‑ссылку'} title="Скопировать ссылку">{masterLinkCopied ? <Check size={15} /> : <Copy size={15} />}</button></div></label><TypographyControls label="Мастер-ссылка" slot="handle" font={profile.handle_font} size={profile.handle_font_size} onChange={(font, size) => setProfile({ ...profile, handle_font: font, handle_font_size: size })} /></div>
           <div className="field-grid__full profile-text-field"><label>О себе<textarea aria-label="О себе" value={profile.bio} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} maxLength={160} rows={3} placeholder="Чем вы занимаетесь?" /><small>{profile.bio.length}/160</small></label><TypographyControls label="О себе" slot="bio" font={profile.bio_font} size={profile.bio_font_size} onChange={(font, size) => setProfile({ ...profile, bio_font: font, bio_font_size: size })} /></div>
         </div>
         <label className="publish-setting">
@@ -1048,7 +1046,7 @@ function ContentEditor({
               </div>
               <div className="link-editor__body">
                 <div className="link-editor__row">
-                  <select aria-label="Тип контакта" value={contact.kind} onChange={(event) => updateContact(contact.localId, { kind: event.target.value as ContactKind })}>
+                  <select aria-label="Тип контакта" value={contact.kind} onChange={(event) => updateContact(contact.localId, { kind: event.target.value as ContactKind, latitude: null, longitude: null })}>
                     {CONTACT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                   <input aria-label="Подпись контакта" value={contact.label} onChange={(event) => updateContact(contact.localId, { label: event.target.value })} placeholder="Подпись (необязательно)" maxLength={80} />
@@ -1059,7 +1057,7 @@ function ContentEditor({
                   type={contact.kind === 'email' ? 'email' : contact.kind === 'phone' ? 'tel' : 'text'}
                   inputMode={contact.kind === 'email' ? 'email' : contact.kind === 'phone' ? 'tel' : 'text'}
                   value={contact.value}
-                  onChange={(event) => updateContact(contact.localId, { value: event.target.value })}
+                  onChange={(event) => updateContact(contact.localId, { value: event.target.value, latitude: null, longitude: null })}
                   placeholder={contactPlaceholder(contact.kind)}
                 />
                 <TypographyControls label="Значение контакта" slot="contactValue" font={contact.value_font} size={contact.value_font_size} onChange={(font, size) => updateContact(contact.localId, { value_font: font, value_font_size: size })} />
@@ -1181,4 +1179,5 @@ function ProfilePage({ session }: { session: Session | null }) {
 }
 
 export default App
+
 

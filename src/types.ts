@@ -58,6 +58,8 @@ export interface ProfileContact {
   id: string
   profile_id: string
   kind: ContactKind
+  latitude?: number | null
+  longitude?: number | null
   label: string
   value: string
   label_font?: FontKey
@@ -84,4 +86,5 @@ export interface AvatarDraft {
   x: number
   y: number
 }
+
 

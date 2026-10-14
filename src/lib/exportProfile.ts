@@ -22,11 +22,11 @@ export async function exportOwnProfile(expectedUserId:string,options:ExportOptio
  if(authError||!user||user.id!==expectedUserId)throw new Error('Войдите в свой аккаунт повторно.')
  const [p,l,c]=await Promise.all([
   supabase.from('profiles').select('*').eq('id',user.id).single(),
-  options.links?supabase.from('profile_links').select('*').eq('profile_id',user.id).order('position').range(0,1000):Promise.resolve({data:[],error:null}),
-  options.contacts?supabase.from('profile_contacts').select('*').eq('profile_id',user.id).order('position').range(0,1000):Promise.resolve({data:[],error:null}),
+  options.links?supabase.from('profile_links').select('*',{count:'exact'}).eq('profile_id',user.id).order('position').range(0,1000):Promise.resolve({data:[],error:null,count:0}),
+  options.contacts?supabase.from('profile_contacts').select('*',{count:'exact'}).eq('profile_id',user.id).order('position').range(0,1000):Promise.resolve({data:[],error:null,count:0}),
  ])
  if(p.error||l.error||c.error||!p.data||p.data.id!==user.id)throw new Error('Не удалось загрузить ваши данные. Повторите попытку.')
- if((l.data?.length??0)>1000||(c.data?.length??0)>1000)throw new Error('Слишком много записей для одного экспорта.')
+ if((l.count??l.data?.length??0)>1000||(c.count??c.data?.length??0)>1000)throw new Error('Слишком много записей для одного экспорта.')
  const profile=p.data as Profile, result=buildProfileExport(profile,(l.data||[]) as ProfileLink[],(c.data||[]) as ProfileContact[],options)
  if(options.assets){
   const assets=[]

@@ -9,9 +9,10 @@ async function setup(page:Page,handle='anna.page'){
  const state=await mockWizard(page)
  state.profile={...state.profile,handle,display_name:'Анна',onboarding_completed:true}
  state.links=[{id:'link',profile_id:id,label:'VK',url:'https://vk.com/anna',position:0,is_visible:true,icon_key:'vk'}]
- state.contacts=[{id:'public',profile_id:id,kind:'email',value:'public@example.com',position:0,is_visible:true},{id:'private',profile_id:id,kind:'phone',value:'+79990000000',position:1,is_visible:false}]
+ state.contacts=[{id:'public',profile_id:id,kind:'email',label:'Email',value:'public@example.com',position:0,is_visible:true},{id:'private',profile_id:id,kind:'phone',label:'Телефон',value:'+79990000000',position:1,is_visible:false}]
  await page.route('**/auth/v1/user',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({id,email:'test@example.com',app_metadata:{},user_metadata:{}})}))
  await page.reload()
+ await expect(page.getByRole('button',{name:'Экспорт данных'})).toBeVisible()
  return state
 }
 async function bytes(download:Download){const stream=await download.createReadStream();const chunks:Buffer[]=[];for await(const chunk of stream!)chunks.push(chunk);return Buffer.concat(chunks)}
@@ -55,7 +56,7 @@ test('export refuses changed identity and provides short-lived URLs only when ex
  const state=await setup(page)
  state.profile.avatar_path=id+'/avatar.gif'
  let ttl=0
- await page.route('**/storage/v1/object/sign/**',route=>{ttl=route.request().postDataJSON().expiresIn;return route.fulfill({contentType:'application/json',body:'{"signedURL":"/object/sign/avatars/test?token=short-lived"}'})})
+ await page.route('**/storage/v1/object/sign/**',route=>{if(route.request().method()==='GET')return route.fulfill({status:404});ttl=route.request().postDataJSON().expiresIn;return route.fulfill({contentType:'application/json',body:'{"signedURL":"/object/sign/avatars/test?token=short-lived"}'})})
  await page.getByRole('button',{name:'Экспорт данных'}).click()
  await page.getByLabel('Добавить ссылки на скачивание файлов на 5 минут').check()
  const pending=page.waitForEvent('download');await page.getByRole('button',{name:'Скачать JSON'}).click()

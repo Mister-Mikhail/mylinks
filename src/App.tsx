@@ -52,7 +52,7 @@ import { copyText, profileUrl } from './lib/clipboard'
 import { useStaffRole } from './lib/useStaffRole'
 import { CONTACT_OPTIONS, contactPlaceholder, isValidContactValue } from './lib/contacts'
 import { isKnownSensitiveUrl } from './lib/sensitiveLinks'
-import { isValidDisplayName, isValidHandle, isValidHttpUrl, normalizeDisplayNameInput, normalizeHandle, normalizeHandleInput, normalizeUrl } from './lib/validation'
+import { isValidDisplayName, isValidHandle, isValidNewHandle, isValidHttpUrl, normalizeDisplayNameInput, normalizeHandle, normalizeHandleInput, normalizeUrl } from './lib/validation'
 import type { AvatarDraft, ContactKind, EditableContact, EditableLink, LinkIcon as LinkIconName, Profile, ProfileContact, ProfileLink } from './types'
 
 type AuthMode = 'login' | 'register'
@@ -416,6 +416,7 @@ function Dashboard({ user }: { user: User }) {
   const cachedSnapshot = editorSnapshot?.userId === user.id ? editorSnapshot : null
   const skipInitialLoad = useRef(Boolean(cachedSnapshot))
   const [profile, setProfile] = useState<Profile>(cachedSnapshot?.profile ?? emptyProfile(user.id))
+  const persistedHandle = useRef(cachedSnapshot?.profile.handle ?? '')
   const [links, setLinks] = useState<EditableLink[]>(cachedSnapshot?.links ?? [])
   const [contacts, setContacts] = useState<EditableContact[]>(cachedSnapshot?.contacts ?? [])
   const [originalLinkIds, setOriginalLinkIds] = useState<string[]>(cachedSnapshot?.links.flatMap((link) => link.id ? [link.id] : []) ?? [])
@@ -474,7 +475,7 @@ function Dashboard({ user }: { user: User }) {
     const nextLinks = !linksResult.error ? (linksResult.data as ProfileLink[]).map(toEditable) : null
     const nextContacts = !contactsResult.error ? (contactsResult.data as ProfileContact[]).map(toEditableContact) : null
 
-    if (nextProfile) setProfile(nextProfile)
+    if (nextProfile) { setProfile(nextProfile); persistedHandle.current = nextProfile.handle }
 
     if (nextLinks) {
       setLinks(nextLinks)
@@ -615,7 +616,7 @@ function Dashboard({ user }: { user: User }) {
 
     try {
       if (!isValidDisplayName(profile.display_name.trim())) throw new Error('Имя должно содержать только буквы и пробелы (до 60 символов).')
-      if (!isValidHandle(profile.handle)) throw new Error('Адрес мастер‑ссылки должен содержать 3–30 латинских букв, цифр, точек, дефисов или нижних подчёркиваний; в начале и конце — буква или цифра.')
+      if (!isValidHandle(profile.handle) || (profile.handle !== persistedHandle.current && !isValidNewHandle(profile.handle))) throw new Error('User name: 3–30 латинских букв и не более одной точки или подчёркивания между словами.')
       const readyLinks = links
         .filter((link) => link.label.trim() || link.url.trim())
         .map((link) => ({ ...link, label: link.label.trim() || inferLinkLabel(link.url) }))
@@ -1045,7 +1046,7 @@ function ContentEditor({
               </div>
               <div className="link-editor__body">
                 <div className="link-editor__row">
-                  <select aria-label="Тип контакта" value={contact.kind} onChange={(event) => updateContact(contact.localId, { kind: event.target.value as ContactKind })}>
+                  <select aria-label="Тип контакта" value={contact.kind} onChange={(event) => updateContact(contact.localId, { kind: event.target.value as ContactKind, latitude: null, longitude: null })}>
                     {CONTACT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                   <input aria-label="Подпись контакта" value={contact.label} onChange={(event) => updateContact(contact.localId, { label: event.target.value })} placeholder="Подпись (необязательно)" maxLength={80} />
@@ -1056,7 +1057,7 @@ function ContentEditor({
                   type={contact.kind === 'email' ? 'email' : contact.kind === 'phone' ? 'tel' : 'text'}
                   inputMode={contact.kind === 'email' ? 'email' : contact.kind === 'phone' ? 'tel' : 'text'}
                   value={contact.value}
-                  onChange={(event) => updateContact(contact.localId, { value: event.target.value })}
+                  onChange={(event) => updateContact(contact.localId, { value: event.target.value, latitude: null, longitude: null })}
                   placeholder={contactPlaceholder(contact.kind)}
                 />
                 <TypographyControls label="Значение контакта" slot="contactValue" font={contact.value_font} size={contact.value_font_size} onChange={(font, size) => updateContact(contact.localId, { value_font: font, value_font_size: size })} />

@@ -24,6 +24,22 @@ function avatar_run($args) {
     if (proc_close($proc) !== 0) avatar_error(422, 'Не удалось обработать файл. Проверьте формат.');
     return $out;
 }
+function avatar_first_visible_frame($path, $duration) {
+    if ($duration <= 0.3) return 0.0;
+    // Scan only the opening seconds on the server, at a reduced frame rate.
+    $scan=min(6.0, max(0.0, $duration-0.1));
+    $args=array(avatar_bin('ffmpeg'),'-nostdin','-hide_banner','-i',$path,'-t',(string)$scan,
+        '-vf','fps=6,blackdetect=d=0.15:pix_th=0.10','-an','-f','null','-');
+    $command=implode(' ',array_map('escapeshellarg',array_merge(array(avatar_bin('timeout'),'20s'),$args)));
+    $proc=proc_open($command,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes);
+    if (!is_resource($proc)) return 0.0;
+    fclose($pipes[0]); stream_get_contents($pipes[1]); fclose($pipes[1]);
+    $log=stream_get_contents($pipes[2]); fclose($pipes[2]);
+    if (proc_close($proc)!==0) return 0.0;
+    if (preg_match('/black_start:\s*0(?:\.\d+)?\s+black_end:\s*([\d.]+)/',$log,$match) && (float)$match[1] < $scan-0.18)
+        return min((float)$match[1]+0.12,max(0.0,$duration-0.1),$scan);
+    return 0.0;
+}
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'health') {
     $available=!!avatar_bin('ffmpeg') && !!avatar_bin('ffprobe') && !!avatar_bin('timeout') && function_exists('proc_open');
     $encoders=$available?avatar_run(array(avatar_bin('ffmpeg'),'-hide_banner','-encoders')):'';
@@ -79,9 +95,11 @@ if ($action === 'prepare') {
     $animated=$mime==='image/gif' || strncmp($mime,'video/',6)===0;
     $duration=(float)($stream['duration'] ?? $info['format']['duration'] ?? 0);
     if ($animated && $duration<0) avatar_error(422,'Не удалось определить длительность видео.');
+    $start=strncmp($mime,'video/',6)===0 ? avatar_first_visible_frame($path,$duration) : 0.0;
+    if ($start>0) file_put_contents($root.'/'.$token.'-start', (string)$start);
     $thumb=$root.'/'.$token.'-preview.jpg';
-    avatar_run(array(avatar_bin('ffmpeg'),'-nostdin','-v','error','-y','-i',$path,'-frames:v','1',
-        '-vf','scale=800:800:force_original_aspect_ratio=decrease','-q:v','3',$thumb));
+    avatar_run(array_merge(array(avatar_bin('ffmpeg'),'-nostdin','-v','error','-y'),$start>0?array('-ss',(string)$start):array(),array('-i',$path,'-frames:v','1',
+        '-vf','scale=800:800:force_original_aspect_ratio=decrease','-q:v','3',$thumb)));
     $dimensions=getimagesize($thumb);
     if (!$dimensions || filesize($thumb)>1000000) avatar_error(422,'Не удалось подготовить предпросмотр.');
     echo json_encode(array('token'=>$token,'kind'=>$mime==='image/gif'?'gif':($animated?'video':'image'),
@@ -109,11 +127,12 @@ $crop=max(1,min($width,$height,(int)round($size*$width/$preview[0])));
 $cx=max(0,min($width-$crop,(int)round($x*$width/$preview[0])));
 $cy=max(0,min($height-$crop,(int)round($y*$height/$preview[1])));
 $animated=in_array(strtolower(pathinfo($source,PATHINFO_EXTENSION)),array('gif','mp4','webm','mov','m4v','3gp'),true);
-$encode=function($side,$video) use($root,$token,$source,$crop,$cx,$cy,$rotation) {
+$start=is_file($root.'/'.$token.'-start') ? max(0.0,min(6.0,(float)file_get_contents($root.'/'.$token.'-start'))) : 0.0;
+$encode=function($side,$video) use($root,$token,$source,$crop,$cx,$cy,$rotation,$start) {
     $target=$root.'/'.$token.'-'.$side.($video?'.mp4':'.webp');
     $filter=($rotation==0?'':'rotate='.$rotation.'*PI/180:ow=iw:oh=ih:c=black,').
         'crop='.$crop.':'.$crop.':'.$cx.':'.$cy.',scale='.$side.':'.$side.':flags=lanczos';
-    $args=array(avatar_bin('ffmpeg'),'-nostdin','-v','error','-y','-i',$source);
+    $args=array_merge(array(avatar_bin('ffmpeg'),'-nostdin','-v','error','-y'),$start>0?array('-ss',(string)$start):array(),array('-i',$source));
     if ($video) $args=array_merge($args,array('-t','10','-an','-vf',$filter.',fps=24,format=yuv420p',
         '-c:v','libx264','-preset','veryfast','-b:v',$side===1000?'1500k':'700k',
         '-maxrate',$side===1000?'1800k':'900k','-bufsize','3000k','-movflags','+faststart',$target));

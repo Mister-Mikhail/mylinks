@@ -10,6 +10,7 @@ import { BrandMark } from './BrandMark'
 import { LinkIcon } from './LinkIcon'
 import { ProfileContacts } from './ProfileContacts'
 import { PublicShareTools } from './PublicShareTools'
+import { shareProfileUrl } from '../lib/profileUrl'
 import { AvatarMedia } from './AvatarMedia'
 import './extras.css'
 
@@ -40,7 +41,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
   }
 
   const copyProfileLink = async () => {
-    await copyText(profileUrl(profile.handle))
+    await copyText(profile.is_published ? shareProfileUrl(profile.handle, profile.updated_at, profile.avatar_path) : profileUrl(profile.handle))
     setProfileLinkCopied(true)
     window.setTimeout(() => setProfileLinkCopied(false), 1800)
   }
@@ -110,7 +111,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
         )}
       </div>
 
-      {interactive && profile.is_published && <PublicShareTools handle={profile.handle} name={profile.display_name} contacts={contacts} showQr={Boolean(profile.show_qr)} size={profile.qr_size ?? 176} />}
+      {interactive && profile.is_published && <PublicShareTools handle={profile.handle} name={profile.display_name} contacts={contacts} showQr={Boolean(profile.show_qr)} size={profile.qr_size ?? 176} updatedAt={profile.updated_at} avatarPath={profile.avatar_path} />}
       </div>
 
       <div className="profile-card__footer">

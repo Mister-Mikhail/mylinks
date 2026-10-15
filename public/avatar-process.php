@@ -25,7 +25,12 @@ function avatar_run($args) {
     return $out;
 }
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'health') {
-    echo json_encode(array('available'=>!!avatar_bin('ffmpeg') && !!avatar_bin('ffprobe') && !!avatar_bin('timeout') && function_exists('proc_open'),
+    $available=!!avatar_bin('ffmpeg') && !!avatar_bin('ffprobe') && !!avatar_bin('timeout') && function_exists('proc_open');
+    $encoders=$available?avatar_run(array(avatar_bin('ffmpeg'),'-hide_banner','-encoders')):'';
+    $videoEncoder=strpos($encoders,'libx264')!==false;
+    $imageEncoder=strpos($encoders,'libwebp')!==false;
+    echo json_encode(array('available'=>$available && $videoEncoder && $imageEncoder,
+        'video_encoder'=>$videoEncoder,'image_encoder'=>$imageEncoder,
         'upload_limit'=>ini_get('upload_max_filesize'),'post_limit'=>ini_get('post_max_size')));
     exit;
 }
@@ -57,8 +62,13 @@ if ($action === 'prepare') {
     if (!$file || $file['error'] !== UPLOAD_ERR_OK || $file['size'] > 50*1024*1024)
         avatar_error(413,'Выберите файл до 50 МБ.');
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
-    $types = array('image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/gif'=>'gif','video/mp4'=>'mp4','video/webm'=>'webm');
-    if (!isset($types[$mime])) avatar_error(415,'Выберите JPG, PNG, WebP, GIF, MP4 или WebM.');
+    $types = array('image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/gif'=>'gif',
+        'video/mp4'=>'mp4','video/webm'=>'webm','video/quicktime'=>'mov','video/x-m4v'=>'m4v','video/3gpp'=>'3gp');
+    // Some phones label MOV and M4V as generic binary; ffprobe still validates the actual stream.
+    $extension=strtolower(pathinfo($file['name'] ?? '',PATHINFO_EXTENSION));
+    if ($mime==='application/octet-stream' && in_array($extension,array('mov','m4v','mp4'),true))
+        $mime=$extension==='mov'?'video/quicktime':'video/mp4';
+    if (!isset($types[$mime])) avatar_error(415,'Выберите JPG, PNG, WebP, GIF, MP4, MOV или WebM.');
     $token=bin2hex(random_bytes(16)); $path=$root.'/'.$token.'.'.$types[$mime];
     if (!move_uploaded_file($file['tmp_name'],$path)) avatar_error(503,'Не удалось подготовить файл.');
     foreach (glob($root.'/*') ?: array() as $old) if ($old!==$path && is_file($old)) @unlink($old);
@@ -68,7 +78,7 @@ if ($action === 'prepare') {
     if (!$width || !$height || $width*$height>100000000) avatar_error(422,'Слишком большое разрешение файла.');
     $animated=$mime==='image/gif' || strncmp($mime,'video/',6)===0;
     $duration=(float)($stream['duration'] ?? $info['format']['duration'] ?? 0);
-    if ($animated && (!$duration || $duration>10.05)) avatar_error(422,'Анимация должна длиться не более 10 секунд.');
+    if ($animated && $duration<0) avatar_error(422,'Не удалось определить длительность видео.');
     $thumb=$root.'/'.$token.'-preview.jpg';
     avatar_run(array(avatar_bin('ffmpeg'),'-nostdin','-v','error','-y','-i',$path,'-frames:v','1',
         '-vf','scale=800:800:force_original_aspect_ratio=decrease','-q:v','3',$thumb));
@@ -92,15 +102,17 @@ $width=(int)($info['streams'][0]['width'] ?? 0); $height=(int)($info['streams'][
 if ($preview && $width && $height && abs($preview[0]/$preview[1]-$height/$width)<0.02)
     list($width,$height)=array($height,$width);
 $x=(float)($_POST['x'] ?? NAN); $y=(float)($_POST['y'] ?? NAN); $size=(float)($_POST['size'] ?? NAN);
-if (!$preview || !$width || !$height || !is_finite($x) || !is_finite($y) || !is_finite($size) || $size<=0)
+$rotation=(float)($_POST['rotation'] ?? 0);
+if (!$preview || !$width || !$height || !is_finite($x) || !is_finite($y) || !is_finite($size) || $size<=0 || !is_finite($rotation) || abs($rotation)>30)
     avatar_error(400,'Проверьте положение кадра.');
 $crop=max(1,min($width,$height,(int)round($size*$width/$preview[0])));
 $cx=max(0,min($width-$crop,(int)round($x*$width/$preview[0])));
 $cy=max(0,min($height-$crop,(int)round($y*$height/$preview[1])));
-$animated=in_array(strtolower(pathinfo($source,PATHINFO_EXTENSION)),array('gif','mp4','webm'),true);
-$encode=function($side,$video) use($root,$token,$source,$crop,$cx,$cy) {
+$animated=in_array(strtolower(pathinfo($source,PATHINFO_EXTENSION)),array('gif','mp4','webm','mov','m4v','3gp'),true);
+$encode=function($side,$video) use($root,$token,$source,$crop,$cx,$cy,$rotation) {
     $target=$root.'/'.$token.'-'.$side.($video?'.mp4':'.webp');
-    $filter='crop='.$crop.':'.$crop.':'.$cx.':'.$cy.',scale='.$side.':'.$side.':flags=lanczos';
+    $filter=($rotation==0?'':'rotate='.$rotation.'*PI/180:ow=iw:oh=ih:c=black,').
+        'crop='.$crop.':'.$crop.':'.$cx.':'.$cy.',scale='.$side.':'.$side.':flags=lanczos';
     $args=array(avatar_bin('ffmpeg'),'-nostdin','-v','error','-y','-i',$source);
     if ($video) $args=array_merge($args,array('-t','10','-an','-vf',$filter.',fps=24,format=yuv420p',
         '-c:v','libx264','-preset','veryfast','-b:v',$side===1000?'1500k':'700k',

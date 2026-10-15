@@ -7,7 +7,14 @@ import { downloadBlob, profileFilename, profileUrl } from '../lib/profileUrl'
 
 export function QRCodeDialog({ handle, published, onClose }: { handle: string; published: boolean; onClose: () => void }) {
  const [size,setSize]=useState(1024),[preview,setPreview]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState('')
+ const [mobileShare,setMobileShare]=useState(false)
  const url=profileUrl(handle)
+ useEffect(()=>{
+  const query=window.matchMedia('(hover: none) and (pointer: coarse)')
+  const update=()=>setMobileShare(query.matches&&typeof navigator.share==='function')
+  update();query.addEventListener('change',update)
+  return()=>query.removeEventListener('change',update)
+ },[])
  useEffect(()=>{
   let active=true
   setPreview('');setError('')
@@ -32,6 +39,6 @@ export function QRCodeDialog({ handle, published, onClose }: { handle: string; p
   <div className="profile-dialog__fields"><label>Размер PNG<select aria-label="Размер PNG" value={size} onChange={e=>setSize(Number(e.target.value))}><option value={1024}>1024 × 1024</option><option value={2048}>2048 × 2048</option></select></label></div>
   <p className="profile-dialog__hint">QR-код сохраняется в тёмном оформлении. Проверьте его камерой телефона перед печатью тиража. После смены user name понадобится новый QR-код.</p>
   {error&&<p className="toast toast--error" role="alert">{error}</p>}{notice&&<p role="status">{notice}</p>}
-  <div className="profile-dialog__actions"><button className="button button--primary" disabled={!preview} onClick={()=>void download('png')}><Download size={16}/>PNG</button><button className="button button--secondary" disabled={!preview} onClick={()=>void download('svg')}><Download size={16}/>SVG</button><button className="button button--secondary" onClick={async()=>setNotice(await copyText(url)?'Ссылка скопирована.':'Не удалось скопировать. Выделите адрес выше.')}><Copy size={16}/>Ссылка</button>{typeof navigator.share==='function'&&<button className="button button--secondary" onClick={()=>void share()}><Share2 size={16}/>Поделиться</button>}</div>
+  <div className="profile-dialog__actions"><button className="button button--primary" disabled={!preview} onClick={()=>void download('png')}><Download size={16}/>PNG</button><button className="button button--secondary" disabled={!preview} onClick={()=>void download('svg')}><Download size={16}/>SVG</button><button className="button button--secondary" onClick={async()=>setNotice(await copyText(url)?'Ссылка скопирована.':'Не удалось скопировать. Выделите адрес выше.')}><Copy size={16}/>Ссылка</button>{mobileShare&&<button className="button button--secondary" onClick={()=>void share()}><Share2 size={16}/>Поделиться</button>}</div>
  </Modal>
 }

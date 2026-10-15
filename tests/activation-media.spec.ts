@@ -75,7 +75,7 @@ for (const media of [{ name: 'motion.gif', mime: 'image/gif', data: gif, kind: '
     await dialog.getByRole('button', { name: 'Применить фото' }).click()
     await expect(dialog).toHaveCount(0)
     expect(state.uploads).toBe(2)
-    expect(state.profile).toMatchObject({ avatar_media: media.kind, avatar_crop: { zoom: .75 } })
+    expect(state.profile).toMatchObject(media.kind === 'gif' ? { avatar_media: 'gif', avatar_crop: { zoom: .75 } } : { avatar_media: 'video', avatar_crop: null })
     expect(state.profile.avatar_path).toMatch(media.kind === 'gif' ? /\.gif$/ : /\.webm$/)
     expect(state.profile.avatar_poster_path).toMatch(/poster-.*\.webp$/)
     await page.reload()
@@ -98,10 +98,38 @@ for (const media of [{ name: 'motion.gif', mime: 'image/gif', data: gif, kind: '
 
 test('oversized files and videos longer than ten seconds cannot be uploaded', async ({ page }) => {
   const state = await avatarStep(page)
-  await page.locator('input[type=file]').setInputFiles({ name: 'big.gif', mimeType: 'image/gif', buffer: Buffer.alloc(5 * 1024 * 1024 + 1) })
-  await expect(page.getByText('Размер файла не должен превышать 5 МБ.')).toBeVisible()
+  await page.locator('input[type=file]').evaluate((element: HTMLInputElement) => {
+    const files = new DataTransfer()
+    files.items.add(new File([new Uint8Array(60 * 1024 * 1024 + 1)], 'big.gif', { type: 'image/gif' }))
+    element.files = files.files
+    element.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  await expect(page.getByText('Размер исходного файла не должен превышать 60 МБ.')).toBeVisible()
   await page.locator('input[type=file]').setInputFiles({ name: 'long.webm', mimeType: 'video/webm', buffer: Buffer.from(longVideo, 'base64') })
-  await expect(page.getByText('Видео: до 10 секунд', { exact: false })).toBeVisible()
+  await expect(page.getByText('Видео должно длиться не более 10 секунд.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Применить фото' })).toBeDisabled()
   expect(state.uploads).toBe(0)
+})
+
+test('a photo larger than 5 MB is cropped before upload', async ({ page }) => {
+  const state = await avatarStep(page)
+  await page.locator('input[type=file]').evaluate((element: HTMLInputElement) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 1200
+    const context = canvas.getContext('2d')!
+    context.fillStyle = '#728ca5'
+    context.fillRect(0, 0, 1200, 1200)
+    const raw = atob(canvas.toDataURL('image/jpeg', .94).split(',')[1])
+    const data = Uint8Array.from(raw, character => character.charCodeAt(0))
+    const files = new DataTransfer()
+    files.items.add(new File([data, new Uint8Array(6 * 1024 * 1024)], 'camera.jpg', { type: 'image/jpeg' }))
+    element.files = files.files
+    element.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  const dialog = page.getByRole('dialog', { name: 'Настройте кадр' })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: 'Применить фото' }).click()
+  await expect(dialog).toHaveCount(0)
+  expect(state.uploads).toBe(1)
+  expect(state.profile.avatar_path).toMatch(/\.webp$/)
 })

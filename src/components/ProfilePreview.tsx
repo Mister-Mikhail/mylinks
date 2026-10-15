@@ -64,7 +64,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
   }
 
   return (
-    <section className={`profile-card theme-${profile.background_preset}`} aria-label={`Профиль ${profile.display_name}`}>
+    <section className={`profile-card theme-${profile.background_preset}`} style={{ '--card-radius': `${Math.min(28, Math.max(4, profile.card_radius ?? 13))}px` } as CSSProperties} aria-label={`Профиль ${profile.display_name}`}>
       <div className="profile-card__noise" />
       <div className="profile-card__topline">
         {showPrivacy ? (
@@ -110,7 +110,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
         )}
       </div>
 
-      {profile.is_published && (interactive || profile.show_qr) && <PublicShareTools handle={profile.handle} name={profile.display_name} contacts={contacts} showQr={Boolean(profile.show_qr)} />}
+      {profile.is_published && <PublicShareTools handle={profile.handle} name={profile.display_name} contacts={contacts} showQr={Boolean(profile.show_qr)} size={profile.qr_size ?? 176} />}
       </div>
 
       <div className="profile-card__footer">

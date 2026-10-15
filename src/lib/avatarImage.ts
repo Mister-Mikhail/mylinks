@@ -1,8 +1,8 @@
-/** Longest side of the stored avatar. It is shown at ~100–250 px, so 512 px covers high-DPI screens. */
-const MAX_SIDE = 512
+/** Source photos may be large; store at most a sharp 1000 px square. */
+const MAX_SIDE = 1000
 /** Quality is lowered step by step until the file fits this size. */
-const TARGET_BYTES = 60 * 1024
-const QUALITIES = [0.84, 0.74, 0.64, 0.54]
+const TARGET_BYTES = 320 * 1024
+const QUALITIES = [0.92, 0.87, 0.81, 0.74]
 
 const makeCanvas = (side: number) => {
   const canvas = document.createElement('canvas')
@@ -30,7 +30,7 @@ const encodeBest = async (canvas: HTMLCanvasElement, type: string) => {
 }
 
 /**
- * Cuts the chosen square out of the photo, scales it down to at most 512×512
+ * Cuts the chosen square out of the photo, scales it down to at most 1000×1000
  * and encodes it as a compact WebP (JPEG where the browser cannot encode WebP).
  * Photos smaller than 512 px are never enlarged.
  */

@@ -150,6 +150,11 @@ test('published QR and share tools appear below contacts without leaking hidden 
   await expect(page.getByRole('button',{name:'Скопировать ссылку',exact:true})).toBeVisible()
   const shareAvailable=await page.evaluate(()=>matchMedia('(hover: none) and (pointer: coarse)').matches&&typeof navigator.share==='function')
   await expect(page.getByRole('button',{name:'Поделиться страницей'})).toHaveCount(shareAvailable?1:0)
+  if (!shareAvailable) {
+    await page.waitForTimeout(900)
+    await expect(page.getByRole('button',{name:'Скопировать ссылку',exact:true})).toBeVisible()
+  }
+  await page.mouse.move(0,0)
   await expect(page.getByRole('button',{name:'Скопировать ссылку',exact:true})).toHaveCount(0,{timeout:2500})
   await page.getByRole('button',{name:'Действия с QR-кодом'}).click()
   await page.getByRole('button',{name:'Скопировать ссылку',exact:true}).click()

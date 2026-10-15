@@ -132,3 +132,22 @@ test('a photo larger than 5 MB is cropped before upload', async ({ page }) => {
   expect(state.profile.avatar_path).toMatch(/\.webp$/)
   expect(state.profile.avatar_master_path).toMatch(/master-.*\.webp$/)
 })
+
+test('cancel keeps the editor usable when server rendering takes too long', async ({ page }) => {
+  const state = await avatarStep(page)
+  await page.locator('input[type=file]').setInputFiles({ name: 'motion.gif', mimeType: 'image/gif', buffer: Buffer.from(gif, 'base64') })
+  const dialog = page.getByRole('dialog', { name: 'Настройте кадр' })
+  await expect(dialog).toBeVisible()
+  await page.route('**/avatar-process.php', async route => {
+    if (!route.request().postData()?.includes('render')) return route.fallback()
+    await new Promise(resolve => setTimeout(resolve, 1800))
+    await route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Время обработки истекло."}' }).catch(() => undefined)
+  })
+  await dialog.getByRole('button', { name: 'Применить фото' }).click()
+  await expect(dialog.getByText('Обрабатываем…')).toBeVisible()
+  await dialog.getByRole('button', { name: 'Отмена' }).click()
+  await expect(dialog).toHaveCount(0)
+  expect(state.uploads).toBe(0)
+  await page.locator('input[type=file]').setInputFiles({ name: 'motion.gif', mimeType: 'image/gif', buffer: Buffer.from(gif, 'base64') })
+  await expect(dialog).toBeVisible()
+})

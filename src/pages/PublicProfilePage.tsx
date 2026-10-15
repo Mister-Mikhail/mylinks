@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, LockKeyhole, RefreshCw } from 'lucide-react'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { BrandMark } from '../components/BrandMark'
+import { ActivationChecklist } from '../components/ActivationChecklist'
 import { ProfilePreview } from '../components/ProfilePreview'
 import { supabase } from '../lib/supabase'
 import { recordProfileEvent } from '../lib/analytics'
@@ -301,6 +302,7 @@ export function PublicProfilePage({ handle }: { handle: string }) {
   return (
     <main className={`public-preview-page theme-${visibleData.profile.background_preset}`}>
       {isOwner && <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> Личный кабинет</button>}
+      {isOwner && visibleData.profile.is_published && <ActivationChecklist id={visibleData.profile.id} handle={visibleData.profile.handle} />}
       <div className="public-preview-page__content"><ProfilePreview profile={visibleData.profile} links={visibleData.links} contacts={visibleData.contacts} interactive onLinkActivate={canTrack ? link => { if (link.id) recordProfileEvent(visibleData.profile.id, link.id) } : undefined} showPrivacy={!visibleData.profile.is_published} />
         {visibleData.profile.is_published && !isOwner && <button className="public-report-trigger" type="button" onClick={() => { setReportOpen(true); setReportSent(false); setReportError('') }}>Пожаловаться на страницу</button>}
       </div>

@@ -85,7 +85,7 @@ test('wizard avatar crop and shape persist into final preview', async ({ page },
   await page.screenshot({ path: `/tmp/wizard-modal-${info.project.name}.png` })
   await page.getByRole('button', { name: 'Применить фото' }).click()
   await expect(page.getByRole('button', { name: 'Продолжить' })).toBeEnabled()
-  await expect(page.locator('.avatar-settings__preview img')).toHaveJSProperty('naturalWidth', 107)
+  await expect(page.locator('.avatar-settings__preview img')).toHaveJSProperty('naturalWidth', 560)
   await page.getByRole('button', { name: 'Продолжить' }).click()
   await page.getByRole('button', { name: 'Добавлю позже' }).click()
   await page.getByRole('button', { name: 'Пропустить', exact: true }).click()
@@ -95,7 +95,7 @@ test('wizard avatar crop and shape persist into final preview', async ({ page },
   expect(await page.locator('.onboarding-preview-frame').evaluate(el => el.scrollHeight <= el.clientHeight + 1)).toBeTruthy()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
   await page.getByRole('button', { name: 'Готово' }).click()
-  expect(state.uploads).toBe(1)
+  expect(state.uploads).toBe(2)
   expect(state.submitted).toMatchObject({ avatar_shape: 'square', avatar_scale: 65, background_preset: 'mist' })
 })
 

@@ -889,7 +889,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
     </main>
   )
   if (!targetId && temporaryAccount) return <TemporaryAccountGate account={temporaryAccount} onClaimed={() => { setTemporaryAccount(null); void loadData() }} />
-  if (!targetId && profile.onboarding_completed === false) return <OnboardingWizard onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} userId={user.id} profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} avatarDraft={avatarDraft} onAvatarDraft={setAvatarDraft} uploadError={error} onFinish={async () => { const saved = await loadData(); if (saved) navigate(`/${saved.profile.handle}`, { state: saved }) }} />
+  if (!targetId && profile.onboarding_completed === false) return <OnboardingWizard onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} userId={user.id} profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} avatarDraft={avatarDraft} onAvatarDraft={setAvatarDraft} uploadError={error} onFinish={async () => { const saved = await loadData(); if (saved) { if (saved.profile.is_published) { try { sessionStorage.setItem(`mylinks:welcome:${user.id}`, 'show') } catch { /* restricted storage */ } } navigate(`/${saved.profile.handle}`, { state: saved }) } }} />
 
   return (
     <div className={`dashboard-shell ${section === 'design' ? 'dashboard-shell--design' : section === 'links' ? 'dashboard-shell--links' : ''} ${avatarDraft ? 'dashboard-shell--cropping' : ''}`}>

@@ -29,7 +29,10 @@ export async function mockWizard(page: Page, seedSession = true) {
   const stored = new Map<string, { body: Buffer; type: string }>()
   let sourceKind: 'image' | 'video' | 'gif' = 'image'
   const still = readFileSync('tests/fixtures/avatar.webp').toString('base64')
-  const motion = readFileSync('tests/fixtures/avatar.mp4').toString('base64')
+  const deliveryImage = readFileSync('tests/fixtures/avatar-delivery.webp').toString('base64')
+  const masterImage = readFileSync('tests/fixtures/avatar-master.webp').toString('base64')
+  const deliveryVideo = readFileSync('tests/fixtures/avatar-delivery.mp4').toString('base64')
+  const masterVideo = readFileSync('tests/fixtures/avatar-master.mp4').toString('base64')
   await page.route('**/avatar-process.php', route => {
     const data = route.request().postDataBuffer()?.toString('latin1') || ''
     if (data.includes('prepare')) {
@@ -43,9 +46,9 @@ export async function mockWizard(page: Page, seedSession = true) {
     const animated = sourceKind !== 'image'
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
       kind: animated ? 'video' : 'image',
-      delivery: { mime: animated ? 'video/mp4' : 'image/webp', data: animated ? motion : still },
-      master: { mime: animated ? 'video/mp4' : 'image/webp', data: animated ? motion : still },
-      poster: animated ? { mime: 'image/webp', data: still } : null,
+      delivery: { mime: animated ? 'video/mp4' : 'image/webp', data: animated ? deliveryVideo : deliveryImage },
+      master: { mime: animated ? 'video/mp4' : 'image/webp', data: animated ? masterVideo : masterImage },
+      poster: animated ? { mime: 'image/webp', data: deliveryImage } : null,
     }) })
   })
   await page.route('**/storage/v1/**', route => {

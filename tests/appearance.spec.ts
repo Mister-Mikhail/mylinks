@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 
 export async function mockAppearance(page: Page, failUpload = false) {
   const id = '00000000-0000-4000-8000-000000000001'
@@ -10,6 +11,15 @@ export async function mockAppearance(page: Page, failUpload = false) {
   let savedImage: Buffer | null = null
   const pageErrors: string[] = []
   page.on('pageerror', error => pageErrors.push(error.message))
+  const preview = readFileSync('tests/fixtures/avatar.webp').toString('base64')
+  const delivery = readFileSync('tests/fixtures/avatar-delivery.webp').toString('base64')
+  const master = readFileSync('tests/fixtures/avatar-master.webp').toString('base64')
+  await page.route('**/avatar-process.php', route => {
+    const data = route.request().postDataBuffer()?.toString('latin1') || ''
+    if (data.includes('prepare')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ token: 'abcdef0123456789abcdef0123456789', kind: 'image', preview: `data:image/webp;base64,${preview}`, width: 64, height: 64 }) })
+    if (data.includes('discard')) return route.fulfill({ contentType: 'application/json', body: '{"discarded":true}' })
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ kind: 'image', delivery: { mime: 'image/webp', data: delivery }, master: { mime: 'image/webp', data: master }, poster: null }) })
+  })
   await page.route('**/rest/v1/**', async route => {
     const request = route.request()
     const name = new URL(request.url()).pathname.split('/').pop()
@@ -117,17 +127,16 @@ test('crop applies a real image and preserves settings changed during upload', a
   await page.getByRole('button', { name: 'Кобальт', exact: true }).click()
   await expect(page.getByText('Аватар обновлён')).toBeVisible()
   await expect(page.locator('.preview-panel .profile-card')).toHaveClass(/theme-cobalt/)
-  expect(uploads).toHaveLength(1)
+  expect(uploads).toHaveLength(2)
   expect(uploads[0].includes(Buffer.from('WEBP'))).toBeTruthy()
   expect(patches[0]).toHaveProperty('avatar_path')
   expect(pageErrors).toEqual([])
   await expect(page.locator('.avatar-cropper__viewport')).toHaveCount(0)
-  // This fixture crops a 160px source region at 1.5×; small photos are not enlarged.
-  await expect(page.locator('.preview-panel .avatar img')).toHaveJSProperty('naturalWidth', 107)
+  await expect(page.locator('.preview-panel .avatar img')).toHaveJSProperty('naturalWidth', 560)
   await page.getByRole('button', { name: 'Изменить кадр' }).click()
   await expect(page.getByRole('heading', { name: 'Настройте кадр' })).toBeVisible()
   await page.getByRole('button', { name: 'Отмена', exact: true }).click()
-  expect(uploads).toHaveLength(1)
+  expect(uploads).toHaveLength(2)
 })
 
 

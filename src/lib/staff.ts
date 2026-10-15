@@ -51,7 +51,7 @@ export interface StaffDetail {
   profile: { display_name: string; handle: string; bio: string } | null
   links: ModeratedLink[]
 }
-export type StaffAction = UserRole | 'restrict_profile' | 'restore_profile' | 'restrict_link' | 'restore_link' | 'deactivate_account' | 'account_delete_requested' | 'account_deleted'
+export type StaffAction = UserRole | 'restrict_profile' | 'restore_profile' | 'restrict_link' | 'restore_link' | 'deactivate_account' | 'account_delete_requested' | 'account_deleted' | 'account_trashed' | 'account_restored' | 'account_purged'
 export interface StaffEvent {
   id: number
   actor_handle: string | null
@@ -67,7 +67,7 @@ export interface StaffEvent {
 export const actionLabels: Record<StaffAction, string> = {
   admin: 'Назначен администратор', moderator: 'Назначен модератор', user: 'Снята роль сотрудника',
   restrict_profile: 'Публикация профиля ограничена', restore_profile: 'Публикация профиля восстановлена',
-  restrict_link: 'Ссылка ограничена', restore_link: 'Ссылка восстановлена', deactivate_account: 'Аккаунт деактивирован', account_delete_requested: 'Запрошено удаление аккаунта', account_deleted: 'Аккаунт удалён',
+  restrict_link: 'Ссылка ограничена', restore_link: 'Ссылка восстановлена', deactivate_account: 'Аккаунт деактивирован', account_delete_requested: 'Запрошено удаление аккаунта', account_deleted: 'Аккаунт удалён', account_trashed: 'Профиль перенесён в корзину', account_restored: 'Профиль восстановлен', account_purged: 'Профиль удалён окончательно',
 }
 export const roleLabels: Record<UserRole, string> = { admin: 'Администратор', moderator: 'Модератор', user: 'Пользователь' }
 export async function staffRole(): Promise<StaffRole | null> {
@@ -121,9 +121,9 @@ export async function deactivateStaffAccount(target_id: string, reason: string) 
   if (!data?.deactivated) throw new Error(data?.error || 'Не удалось деактивировать аккаунт.')
 }
 
-export async function deleteStaffUser(target_id: string, expected_handle: string, reason: string) {
+export async function deleteStaffUser(target_id: string, reason: string, retention_days = 30) {
   const { data, error } = await supabase.functions.invoke('admin-delete-user', {
-    body: { target_id, expected_handle, reason },
+    body: { target_id, reason, retention_days, action: 'trash' },
   })
   if (error) {
     const response = (error as { context?: Response }).context
@@ -133,3 +133,22 @@ export async function deleteStaffUser(target_id: string, expected_handle: string
   if (!data?.deleted) throw new Error(data?.error || 'Не удалось удалить пользователя.')
 }
 
+
+export interface TrashUser {
+  id: string; email: string; handle: string; display_name: string; reason: string
+  deleted_at: string; expires_at: string; state: 'pending' | 'trashed' | 'restoring' | 'purging'; restore_blocked: string | null
+}
+export async function staffTrash(page: number): Promise<{ total: number; items: TrashUser[] }> {
+  const { data, error } = await supabase.rpc('staff_trash', { page })
+  if (error) throw error
+  return data
+}
+export async function restoreStaffUser(target_id: string) {
+  const { data, error } = await supabase.functions.invoke('admin-delete-user', { body: { target_id, action: 'restore' } })
+  if (error) {
+    const response = (error as { context?: Response }).context
+    const details = response?.json ? await response.json().catch(() => null) as { error?: string } | null : null
+    throw new Error(details?.error || error.message)
+  }
+  if (!data?.restored) throw new Error(data?.error || 'Не удалось восстановить профиль.')
+}

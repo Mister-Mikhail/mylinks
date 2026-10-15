@@ -1,2 +1,2 @@
-import { deletionHandler } from '../_shared/delete-account.ts'
-Deno.serve(deletionHandler(false))
+import { trashHandler } from '../_shared/user-trash.ts'
+Deno.serve(trashHandler())

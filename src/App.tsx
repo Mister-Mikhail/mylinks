@@ -38,6 +38,7 @@ import { AvatarEditor } from './components/AvatarEditor'
 import { ProfilePreview } from './components/ProfilePreview'
 import { TypographyControls } from './components/TypographyControls'
 import { LinkIcon } from './components/LinkIcon'
+import { ProfileTools } from './components/ProfileTools'
 import { StatisticsPanel } from './components/StatisticsPanel'
 import './components/extras.css'
 import { capabilitiesForTier, FREE_CAPABILITIES } from './config/capabilities'
@@ -467,6 +468,7 @@ function Dashboard({ user }: { user: User }) {
   const skipInitialLoad = useRef(Boolean(cachedSnapshot))
   const [profile, setProfile] = useState<Profile>(cachedSnapshot?.profile ?? emptyProfile(user.id))
   const persistedHandle = useRef(cachedSnapshot?.profile.handle ?? '')
+  const persistedPublished = useRef(cachedSnapshot?.profile.is_published ?? false)
   const [links, setLinks] = useState<EditableLink[]>(cachedSnapshot?.links ?? [])
   const [contacts, setContacts] = useState<EditableContact[]>(cachedSnapshot?.contacts ?? [])
   const [originalLinkIds, setOriginalLinkIds] = useState<string[]>(cachedSnapshot?.links.flatMap((link) => link.id ? [link.id] : []) ?? [])
@@ -525,7 +527,7 @@ function Dashboard({ user }: { user: User }) {
     const nextLinks = !linksResult.error ? (linksResult.data as ProfileLink[]).map(toEditable) : null
     const nextContacts = !contactsResult.error ? (contactsResult.data as ProfileContact[]).map(toEditableContact) : null
 
-    if (nextProfile) { setProfile(nextProfile); persistedHandle.current = nextProfile.handle }
+    if (nextProfile) { setProfile(nextProfile); persistedHandle.current = nextProfile.handle; persistedPublished.current = nextProfile.is_published }
 
     if (nextLinks) {
       setLinks(nextLinks)
@@ -859,6 +861,7 @@ function Dashboard({ user }: { user: User }) {
             <span className="autosave-hint">{section === 'stats' ? 'Только для владельца' : 'Сохраняется вручную'}</span>
           </div>
 
+          <ProfileTools userId={user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} />
           {!staffRole && <DeleteAccount onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
           {notice && <div className="toast toast--success"><Check size={16} /> {notice}</div>}
           {error && <div className="toast toast--error">{error}</div>}
@@ -1220,6 +1223,7 @@ function ProfilePage({ session }: { session: Session | null }) {
   return (
     <main className={`public-preview-page theme-${profile.background_preset}`}>
       {isOwner && <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> Личный кабинет</button>}
+      {profile.is_published && <ProfileTools handle={profile.handle} published />}
       <div className="public-preview-page__content"><ProfilePreview profile={profile} links={links} contacts={contacts} interactive showPrivacy={!profile.is_published} /></div>
     </main>
   )

@@ -17,4 +17,4 @@ export async function copyText(text: string) {
   }
 }
 
-export const profileUrl = (handle: string) => `${window.location.origin}/${handle}`
+export { profileUrl } from './profileUrl'

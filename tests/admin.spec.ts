@@ -64,27 +64,35 @@ test('moderator has no role-assignment control and mobile does not overflow', as
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy()
 })
 
-test('administrator must confirm the exact handle before account deletion', async ({ page }) => {
+test('administrator moves selected profile to trash with optional reason and no username input', async ({ page }) => {
   await mockStaff(page, 'admin')
   let deletion: Record<string, unknown> | null = null
-  await page.route('**/functions/v1/admin-delete-user', route => {
-    deletion = route.request().postDataJSON()
-    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ deleted: true }) })
-  })
+  await page.route('**/functions/v1/admin-delete-user', route => { deletion=route.request().postDataJSON(); return route.fulfill({contentType:'application/json',body:'{"deleted":true,"trashed":true}'}) })
   await page.goto('/admin/users/' + targetId)
-  await page.getByRole('button', { name: 'Удалить пользователя' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Удалить пользователя' })
-  await expect(dialog).toContainText('без возможности восстановления')
-  await dialog.getByLabel('Адрес страницы или user name').fill('vasilii')
-  await dialog.getByLabel('Причина').fill('Запрос на удаление')
-  await expect(dialog.getByRole('button', { name: 'Удалить аккаунт' })).toBeDisabled()
-  for (const accepted of ['vasiliy', '@vasiliy', 'mylinks.bar/vasiliy', 'https://mylinks.bar/vasiliy/']) {
-    await dialog.getByLabel('Адрес страницы или user name').fill(accepted)
-    await expect(dialog.getByRole('button', { name: 'Удалить аккаунт' })).toBeEnabled()
-  }
-  await dialog.getByRole('button', { name: 'Удалить аккаунт' }).click()
-  await expect.poll(() => deletion).toMatchObject({ target_id: targetId, expected_handle: 'vasiliy', reason: 'Запрос на удаление' })
+  await page.getByRole('button', {name:'Удалить пользователя'}).click()
+  const dialog=page.getByRole('dialog',{name:'Перенести профиль в корзину?'})
+  await expect(dialog).toBeVisible()
+  await expect(dialog.locator('input')).toHaveCount(0)
+  await expect(dialog.getByRole('button',{name:'В корзину',exact:true})).toBeEnabled()
+  await dialog.getByLabel('Комментарий причины удаления', {exact:false}).fill('Запрос на удаление')
+  await dialog.getByLabel('Срок хранения в корзине').selectOption('7')
+  await dialog.getByRole('button',{name:'В корзину',exact:true}).click()
+  await expect.poll(()=>deletion).toMatchObject({target_id:targetId,action:'trash',reason:'Запрос на удаление',retention_days:7})
   await expect(page).toHaveURL(/\/admin$/)
+})
+
+test('trash restores eligible users and blocks previously reused identities',async({page})=>{
+ await mockStaff(page,'admin')
+ let restored=false
+ const item={id:targetId,email:'test@example.com',handle:'vasiliy',display_name:'Василий',reason:'Test',state:'trashed',deleted_at:'2026-10-14',expires_at:'2026-11-14',restore_blocked:null}
+ await page.route('**/rest/v1/rpc/staff_trash',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({total:restored?1:2,items:[...(!restored?[item]:[]),{...item,id:ownerId,handle:'taken',restore_blocked:'Email уже использован другим аккаунтом.'}]})}))
+ await page.route('**/functions/v1/admin-delete-user',route=>{expect(route.request().postDataJSON()).toMatchObject({target_id:targetId,action:'restore'});restored=true;return route.fulfill({contentType:'application/json',body:'{"restored":true}'})})
+ await page.goto('/admin/trash')
+ await expect(page.locator('.staff-trash-item').filter({hasText:'@taken'}).getByRole('button',{name:'Восстановить'})).toBeDisabled()
+ await page.locator('.staff-trash-item').filter({hasText:'@vasiliy'}).getByRole('button',{name:'Восстановить'}).click()
+ await page.getByRole('button',{name:'Подтвердить восстановление'}).click()
+ await expect(page.getByText('Профиль восстановлен.',{exact:true})).toBeVisible()
+ await expect(page.locator('.staff-trash-item')).toHaveCount(1)
 })
 
 test('moderator cannot access the delete action', async ({ page }) => {

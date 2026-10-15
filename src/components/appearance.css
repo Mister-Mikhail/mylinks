@@ -8,6 +8,9 @@
 .avatar-cropper-inline .avatar-cropper__heading .eyebrow { display: none; }
 .avatar-cropper-inline .crop-zoom-control { grid-template-columns: auto minmax(0, 1fr) auto auto; }
 .crop-zoom-value { color: #b9c5d2; font-size: 10px; font-variant-numeric: tabular-nums; }
+.crop-rotation-control { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:10px; color:#c7d5e2; font-size:11px; }
+.crop-rotation-control input { min-width:0; width:100%; accent-color:#9bd6f4; }
+.crop-rotation-control output { min-width:34px; text-align:right; font-variant-numeric:tabular-nums; }
 .appearance-settings button:focus-visible, .appearance-settings input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .appearance-settings input[type='range'] { min-height: 32px; touch-action: pan-y; background: linear-gradient(90deg, var(--accent), #2a3340) center / 100% 4px no-repeat; }
 
@@ -82,15 +85,16 @@
   .dashboard-shell--design .avatar-cropper__heading { grid-column: 1 / -1; align-items: center; margin: 0; }
   .dashboard-shell--design .avatar-cropper__heading h2 { font-size: 12px; margin: 0; }
   .dashboard-shell--design .avatar-cropper__heading .icon-button { width: 32px; height: 32px; }
-  .dashboard-shell--design .avatar-cropper__viewport { width: 100%; grid-row: 2 / 4; align-self: center; }
+  .dashboard-shell--design .avatar-cropper__viewport { width: 100%; grid-row: 2 / 5; align-self: center; }
   .dashboard-shell--design .avatar-cropper__viewport--square { border-radius: 10px; }
   .dashboard-shell--design .avatar-cropper__move { bottom: 6px; font-size: 7px; padding: 3px 5px; white-space: nowrap; }
   .dashboard-shell--design .avatar-cropper__move > svg { display: none; }
   .dashboard-shell--design .crop-zoom-control { grid-template-columns: minmax(0, 1fr) auto auto; grid-column: 2; gap: 6px; margin: 0; align-self: end; }
   .dashboard-shell--design .crop-zoom-control input { min-width: 0; width: 100%; }
   .dashboard-shell--design .crop-zoom-control > svg { display: none; }
+  .dashboard-shell--design .crop-rotation-control { grid-column:2; grid-row:3; gap:5px; }
   .dashboard-shell--design .crop-zoom-control .icon-button { width: 32px; height: 32px; }
-  .dashboard-shell--design .avatar-cropper__actions { grid-column: 2; grid-template-columns: 1fr; gap: 4px; margin: 0; }
+  .dashboard-shell--design .avatar-cropper__actions { grid-column: 2; grid-row:4; grid-template-columns: 1fr; gap: 4px; margin: 0; }
   .dashboard-shell--design .avatar-cropper__actions .button { min-height: 38px; padding: 6px 5px; font-size: 10px; }
   .dashboard-shell--design .avatar-cropper__actions .button > svg { width: 13px; }
   .dashboard-shell--design .avatar-cropper > .form-message { grid-column: 1 / -1; }

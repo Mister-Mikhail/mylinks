@@ -12,6 +12,7 @@ export function PublicShareTools({ handle, name, contacts, showQr, size }: Props
   const [qr, setQr] = useState('')
   const [notice, setNotice] = useState('')
   const [open, setOpen] = useState(false)
+  const [overlayMounted, setOverlayMounted] = useState(false)
   const [mobileShare, setMobileShare] = useState(false)
   const qrRef = useRef<HTMLDivElement>(null)
   const url = profileUrl(handle)
@@ -31,13 +32,18 @@ export function PublicShareTools({ handle, name, contacts, showQr, size }: Props
   }, [showQr, url])
   useEffect(() => {
     if (!open) return
-    const timer = window.setTimeout(() => setOpen(false), 500)
+    const timer = window.setTimeout(() => setOpen(false), 1500)
     const outside = (event: PointerEvent) => { if (!qrRef.current?.contains(event.target as Node)) setOpen(false) }
     const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
     document.addEventListener('pointerdown', outside)
     document.addEventListener('keydown', escape)
     return () => { window.clearTimeout(timer); document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape) }
   }, [open])
+  useEffect(() => {
+    if (open || !overlayMounted) return
+    const timer = window.setTimeout(() => setOverlayMounted(false), 220)
+    return () => window.clearTimeout(timer)
+  }, [open, overlayMounted])
 
   const copy = async () => { setNotice(await copyText(url) ? 'Ссылка скопирована.' : 'Не удалось скопировать ссылку.'); setOpen(false) }
   const saveQr = async () => {
@@ -57,10 +63,10 @@ export function PublicShareTools({ handle, name, contacts, showQr, size }: Props
   return <div className="profile-share" aria-label="Поделиться профилем">
     {showQr && qr && <div className="profile-share__qr" ref={qrRef} style={{ '--qr-size': `${qrSize}px` } as CSSProperties}>
       <div className="profile-share__image">
-        <button type="button" className="profile-share__open" onClick={() => setOpen(value => !value)} aria-label="Действия с QR-кодом" aria-expanded={open}>
+        <button type="button" className="profile-share__open" onClick={() => { setOverlayMounted(true); setOpen(value => !value) }} aria-label="Действия с QR-кодом" aria-expanded={open}>
           <img src={qr} width={qrSize} height={qrSize} alt={`QR-код страницы mylinks.bar/${handle}`} />
         </button>
-        {open && <div className="profile-share__overlay" aria-label="Действия с QR-кодом">
+        {overlayMounted && <div className={`profile-share__overlay ${open ? 'profile-share__overlay--open' : ''}`} aria-label="Действия с QR-кодом" aria-hidden={!open}>
           {mobileShare && <button type="button" onClick={() => void share()} aria-label="Поделиться страницей" title="Поделиться"><Share2 size={20} /></button>}
           <button type="button" onClick={() => void saveQr()} aria-label="Сохранить QR-код" title="Сохранить"><Download size={20} /></button>
           <button type="button" onClick={() => void copy()} aria-label="Скопировать ссылку" title="Скопировать"><Copy size={20} /></button>

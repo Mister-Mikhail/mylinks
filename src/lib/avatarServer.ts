@@ -25,9 +25,9 @@ const decode = (encoded: Encoded): Blob => {
   const bytes = Uint8Array.from(atob(encoded.data), character => character.charCodeAt(0))
   return new Blob([bytes], { type: encoded.mime })
 }
-export const renderAvatar = async (token: string, x: number, y: number, size: number, signal: AbortSignal) => {
+export const renderAvatar = async (token: string, x: number, y: number, size: number, rotation: number, signal: AbortSignal) => {
   const body = new FormData()
-  for (const [key, value] of Object.entries({ action: 'render', token, x, y, size })) body.append(key, String(value))
+  for (const [key, value] of Object.entries({ action: 'render', token, x, y, size, rotation })) body.append(key, String(value))
   const result = await request<Rendered>(body, signal)
   return { delivery: decode(result.delivery), master: decode(result.master), poster: result.poster ? decode(result.poster) : undefined, kind: result.kind }
 }

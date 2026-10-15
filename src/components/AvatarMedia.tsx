@@ -21,15 +21,16 @@ export function AvatarMedia({ profile, draft, alt = '' }: { profile: Profile; dr
   useEffect(() => setVideoFailed(false), [src])
   if (!src) return null
   const kind = draft?.kind || profile.avatar_media || 'image'
-  const crop = draft || profile.avatar_crop
+  // Stored files are already cropped and rotated on the server. Only the live draft needs CSS positioning.
+  const crop = draft
   const style: CSSProperties | undefined = crop ? {
     position: 'absolute', width: `${Math.max(1, crop.aspectRatio) * crop.zoom * 100}%`,
     height: `${Math.max(1, 1 / crop.aspectRatio) * crop.zoom * 100}%`,
     left: `${50 + crop.x * 100}%`, top: `${50 + crop.y * 100}%`,
-    maxWidth: 'none', transform: 'translate(-50%, -50%)',
+    maxWidth: 'none', transform: `translate(-50%, -50%) rotate(${draft?.rotation || 0}deg)`,
   } : undefined
   if ((reduceMotion || videoFailed) && !draft && profile.avatar_poster_url) return <img className="avatar__media" src={profile.avatar_poster_url} alt={alt} />
-  return kind === 'video'
+  return kind === 'video' && !draft
     ? <video ref={video} className="avatar__media" src={src} poster={profile.avatar_poster_url || undefined} onError={() => setVideoFailed(true)} aria-label={alt || 'Видеоаватар'} style={style} autoPlay={!reduceMotion} muted loop playsInline preload="metadata" />
     : <img className={draft ? 'avatar__draft' : 'avatar__media'} src={src} alt={alt} style={style} />
 }

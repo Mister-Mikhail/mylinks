@@ -71,11 +71,12 @@ for (const media of [{ name: 'motion.gif', mime: 'image/gif', data: gif, kind: '
     await expect(dialog).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'Применить фото' })).toBeEnabled()
     await page.getByLabel('Масштаб фото', { exact: true }).fill('0.75')
+    await page.getByLabel('Наклон аватара').fill('18')
     await page.getByRole('group', { name: /Положение фото/ }).press('ArrowDown')
     await dialog.getByRole('button', { name: 'Применить фото' }).click()
     await expect(dialog).toHaveCount(0)
     expect(state.uploads).toBe(3)
-    expect(state.profile).toMatchObject({ avatar_media: 'video', avatar_crop: null })
+    expect(state.profile).toMatchObject({ avatar_media: 'video', avatar_crop: { rotation: 18 } })
     expect(state.profile.avatar_path).toMatch(/\.mp4$/)
     expect(state.profile.avatar_master_path).toMatch(/master-.*\.mp4$/)
     expect(state.profile.avatar_poster_path).toMatch(/poster-.*\.webp$/)
@@ -95,7 +96,7 @@ for (const media of [{ name: 'motion.gif', mime: 'image/gif', data: gif, kind: '
   })
 }
 
-test('oversized files and videos longer than ten seconds cannot be uploaded', async ({ page }) => {
+test('oversized files are rejected but a longer MOV opens for a ten-second excerpt', async ({ page }) => {
   const state = await avatarStep(page)
   await page.locator('input[type=file]').evaluate((element: HTMLInputElement) => {
     const files = new DataTransfer()
@@ -104,8 +105,8 @@ test('oversized files and videos longer than ten seconds cannot be uploaded', as
     element.dispatchEvent(new Event('change', { bubbles: true }))
   })
   await expect(page.getByText('Размер исходного файла не должен превышать 50 МБ.')).toBeVisible()
-  await page.locator('input[type=file]').setInputFiles({ name: 'long.webm', mimeType: 'video/webm', buffer: Buffer.from(longVideo, 'base64') })
-  await expect(page.getByText('Анимация должна длиться не более 10 секунд.')).toBeVisible()
+  await page.locator('input[type=file]').setInputFiles({ name: 'iphone.mov', mimeType: 'video/quicktime', buffer: Buffer.from(longVideo, 'base64') })
+  await expect(page.getByRole('dialog', { name: 'Настройте кадр' })).toBeVisible()
   expect(state.uploads).toBe(0)
 })
 

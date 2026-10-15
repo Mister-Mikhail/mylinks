@@ -13,8 +13,8 @@ interface ProfileContactsProps {
 
 const ContactCopy = ({ contact, status }: { contact: EditableContact; status?: string }) => (
   <span className="profile-contact__copy">
-    <strong style={textStyle(contact.label_font, contact.label_font_size, 'contactLabel')}>{contact.label.trim() || contactKindLabel(contact.kind)}</strong>
-    <small style={textStyle(contact.value_font, contact.value_font_size, 'contactValue')}>{status || contact.value}</small>
+    <strong style={textStyle(contact.label_font, contact.label_font_size, 'contactLabel', contact.label_color)}>{contact.label.trim() || contactKindLabel(contact.kind)}</strong>
+    <small style={textStyle(contact.value_font, contact.value_font_size, 'contactValue', contact.value_color)}>{status || contact.value}</small>
   </span>
 )
 

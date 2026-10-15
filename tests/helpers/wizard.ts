@@ -36,8 +36,7 @@ export async function mockWizard(page: Page, seedSession = true) {
   await page.route('**/avatar-process.php', route => {
     const data = route.request().postDataBuffer()?.toString('latin1') || ''
     if (data.includes('prepare')) {
-      if (data.includes('long.webm')) return route.fulfill({ status: 422, contentType: 'application/json', body: '{"error":"Анимация должна длиться не более 10 секунд."}' })
-      sourceKind = data.includes('motion.gif') ? 'gif' : data.includes('motion.webm') ? 'video' : 'image'
+      sourceKind = data.includes('motion.gif') ? 'gif' : /motion\.webm|long\.webm|iphone\.mov/.test(data) ? 'video' : 'image'
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
         token: 'abcdef0123456789abcdef0123456789', kind: sourceKind,
         preview: `data:image/webp;base64,${still}`, width: 64, height: 64,

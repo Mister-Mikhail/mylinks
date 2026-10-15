@@ -18,6 +18,7 @@ const text = (value: unknown, max: number) => {
   if (typeof value !== 'string' || value.length > max) throw new Error('Слишком длинное значение.')
   return value.trim()
 }
+const color = (value: unknown) => value == null || value === '' ? null : /^#[0-9a-fA-F]{6}$/.test(String(value)) ? String(value) : (() => { throw new Error('Проверьте цвет шрифта.') })()
 const url = (value: unknown) => {
   const result = text(value, 2048)
   const parsed = new URL(result)
@@ -32,6 +33,7 @@ const formatProfile = (raw: Record<string, unknown>, currentHandle: string) => {
   return {
     handle, display_name: displayName, bio: text(raw.bio, 160),
     name_font: font(raw.name_font), bio_font: font(raw.bio_font), handle_font: font(raw.handle_font),
+    name_color: color(raw.name_color), bio_color: color(raw.bio_color), handle_color: color(raw.handle_color),
     name_font_size: number(raw.name_font_size,21,5,60), bio_font_size: number(raw.bio_font_size,10,5,60), handle_font_size: number(raw.handle_font_size,10,5,60),
     background_preset: raw.background_preset, card_preset: raw.card_preset, avatar_shape: raw.avatar_shape,
     avatar_size: ['small','medium','large'].includes(String(raw.avatar_size)) ? raw.avatar_size : 'medium',
@@ -43,6 +45,7 @@ const formatLink = (raw: Record<string, unknown>, owner: string, position: numbe
   profile_id: owner, label: text(raw.label,80), url: url(raw.url), icon_key: text(raw.icon_key,30),
   position, is_visible: raw.is_visible === true, is_sensitive: raw.is_sensitive === true,
   label_font: font(raw.label_font), label_font_size: number(raw.label_font_size,11,5,60),
+  label_color: color(raw.label_color),
 })
 const formatContact = (raw: Record<string, unknown>, owner: string, position: number) => {
   const kind = text(raw.kind,10), value = text(raw.value,500)
@@ -56,6 +59,7 @@ const formatContact = (raw: Record<string, unknown>, owner: string, position: nu
     longitude: kind === 'address' && raw.longitude != null ? number(raw.longitude,0,-180,180) : null,
     label_font: font(raw.label_font), label_font_size: number(raw.label_font_size,10,5,60),
     value_font: font(raw.value_font), value_font_size: number(raw.value_font_size,9,5,60),
+    label_color: color(raw.label_color), value_color: color(raw.value_color),
   }
 }
 

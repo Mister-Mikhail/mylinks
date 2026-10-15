@@ -1,5 +1,5 @@
-alter table public.profiles add column qr_size integer not null default 176 check (qr_size between 120 and 280);
-alter table public.profiles add column card_radius integer not null default 13 check (card_radius between 4 and 28);
+alter table public.profiles add column if not exists qr_size integer not null default 176 check (qr_size between 120 and 280);
+alter table public.profiles add column if not exists card_radius integer not null default 13 check (card_radius between 4 and 28);
 alter table public.profiles alter column show_qr set default true;
 -- QR appears when an existing profile is published; owners may turn it off later.
 update public.profiles set show_qr=true where not show_qr;

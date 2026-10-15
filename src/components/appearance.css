@@ -12,43 +12,43 @@
 .appearance-settings input[type='range'] { min-height: 32px; touch-action: pan-y; background: linear-gradient(90deg, var(--accent), #2a3340) center / 100% 4px no-repeat; }
 
 @media (max-width: 650px), (max-width: 950px) and (max-height: 500px) {
-  .dashboard-shell--design { position: fixed; inset: 0; height: 100dvh; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
-  .dashboard-shell--design .dashboard-topbar { flex: 0 0 60px; position: relative; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) { position: fixed; inset: 0; height: 100dvh; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .dashboard-topbar { flex: 0 0 60px; position: relative; }
   .dashboard-shell--design .dashboard-topbar > .brand { display: none; }
   .dashboard-shell--design .appearance-topbar-title { display: block; margin-right: auto; font-size: 17px; font-weight: 700; }
   .dashboard-shell--design .dashboard-topbar__meta .button--primary { width: auto; padding: 0 12px; min-height: 44px; }
   .dashboard-shell--design .dashboard-topbar__meta .button--primary .button__label { display: inline; }
-  .dashboard-shell--design .dashboard-grid { display: flex; flex: 1; min-height: 0; flex-direction: column; padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
-  .dashboard-shell--design .editor-nav { position: fixed; inset: auto 0 0; z-index: 40; display: block; width: 100%; height: calc(64px + env(safe-area-inset-bottom)); padding: 7px 12px calc(7px + env(safe-area-inset-bottom)); border: 0; border-top: 1px solid var(--line); }
-  .dashboard-shell--design .editor-nav > div:first-child { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; gap: 7px; }
-  .dashboard-shell--design .editor-nav > div:first-child:has(.editor-nav__staff-link) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .dashboard-shell--design .editor-nav button, .dashboard-shell--design .editor-nav__staff-link { display: flex; align-items: center; justify-content: center; width: 100%; min-width: 0; height: 48px; margin: 0; padding: 0 5px; gap: 5px; font-size: 10px; }
-  .dashboard-shell--design .editor-nav button span { display: inline; }
-  .dashboard-shell--design .editor-nav__label, .dashboard-shell--design .editor-nav__account { display: none; }
-  .dashboard-shell--design .editor-panel { flex: 1; min-height: 0; width: 100%; order: 2; padding: 12px 12px 18px; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; }
-  .dashboard-shell--design .editor-panel__heading { display: none; }
-  .dashboard-shell--design .editor-panel .toast { position: sticky; top: 0; z-index: 5; margin: 0 0 10px; font-size: 11px; }
-  .dashboard-shell--design .preview-panel { display: flex; position: relative; top: auto; flex: 0 0 auto; order: 1; width: 100%; height: auto; min-height: 0; padding: 8px 12px 10px; border: 0; border-bottom: 1px solid var(--line); background: #0e1523; }
-  .dashboard-shell--design .preview-panel__heading { margin: 0 0 6px; }
-  .dashboard-shell--design .preview-panel__heading > div { font-size: 10px; }
-  .dashboard-shell--design .preview-panel__heading > button, .dashboard-shell--design .privacy-note, .dashboard-shell--design .device-frame__speaker { display: none; }
-  .dashboard-shell--design .device-frame { width: 100%; height: 146px; min-height: 0; flex: none; border: 1px solid #28364c; border-radius: 14px; box-shadow: none; }
-  .dashboard-shell--design .device-frame .profile-card { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); align-content: center; align-items: center; gap: 8px; padding: 10px; height: 100%; min-height: 0; overflow: hidden; }
-  .dashboard-shell--design .profile-card__topline, .dashboard-shell--design .profile-card__footer { display: none; }
-  .dashboard-shell--design .profile-card__identity { align-self: center; min-width: 0; gap: 3px; padding: 0; }
-  .dashboard-shell--design .profile-card__identity > .avatar { width: calc(var(--avatar-size, 101px) * 0.35); height: calc(var(--avatar-size, 101px) * 0.35); margin: 0 0 2px; flex: none; border-width: 1px; font-size: 11px; }
-  .dashboard-shell--design .profile-card__identity > .avatar--square { border-radius: 7px; }
-  .dashboard-shell--design .profile-card__identity h1 { width: 100%; margin: 0; font-size: 12px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .dashboard-shell--design .profile-card__handle { font-size: 9px; max-width: 100%; }
-  .dashboard-shell--design .profile-card__handle span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .dashboard-shell--design .profile-card__bio { display: none; }
-  .dashboard-shell--design .profile-card__body { display: block; min-width: 0; max-height: 120px; overflow-y: auto; scrollbar-width: thin; }
-  .dashboard-shell--design .profile-card__links, .dashboard-shell--design .profile-card__contacts { gap: 5px; margin: 0; padding: 1px; }
-  .dashboard-shell--design .profile-card__contacts { margin-bottom: 5px; }
-  .dashboard-shell--design .profile-card .profile-link { min-height: 38px; padding: 6px 8px; border-radius: 9px; font-size: 10px; gap: 7px; }
-  .dashboard-shell--design .profile-link__icon { width: 23px; height: 23px; border-radius: 6px; }
-  .dashboard-shell--design .profile-link__icon svg { width: 13px; height: 13px; }
-  .dashboard-shell--design .profile-link__arrow { display: none; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .dashboard-grid { display: flex; flex: 1; min-height: 0; flex-direction: column; padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .editor-nav { position: fixed; inset: auto 0 0; z-index: 40; display: block; width: 100%; height: calc(64px + env(safe-area-inset-bottom)); padding: 7px 12px calc(7px + env(safe-area-inset-bottom)); border: 0; border-top: 1px solid var(--line); }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .editor-nav > div:first-child { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; gap: 7px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .editor-nav > div:first-child:has(.editor-nav__staff-link) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .editor-nav button, :is(.dashboard-shell--design, .dashboard-shell--links) .editor-nav__staff-link { display: flex; align-items: center; justify-content: center; width: 100%; min-width: 0; height: 48px; margin: 0; padding: 0 5px; gap: 5px; font-size: 10px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .editor-nav button span { display: inline; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .editor-nav__label, :is(.dashboard-shell--design, .dashboard-shell--links) .editor-nav__account { display: none; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .editor-panel { flex: 1; min-height: 0; width: 100%; order: 2; padding: 12px 12px 18px; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .editor-panel__heading { display: none; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .editor-panel .toast { position: sticky; top: 0; z-index: 5; margin: 0 0 10px; font-size: 11px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .preview-panel { display: flex; position: relative; top: auto; flex: 0 0 auto; order: 1; width: 100%; height: auto; min-height: 0; padding: 8px 12px 10px; border: 0; border-bottom: 1px solid var(--line); background: #0e1523; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .preview-panel__heading { margin: 0 0 6px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .preview-panel__heading > div { font-size: 10px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .preview-panel__heading > button, :is(.dashboard-shell--design, .dashboard-shell--links) .privacy-note, :is(.dashboard-shell--design, .dashboard-shell--links) .device-frame__speaker { display: none; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .device-frame { width: 100%; height: 146px; min-height: 0; flex: none; border: 1px solid #28364c; border-radius: 14px; box-shadow: none; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .device-frame .profile-card { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); align-content: center; align-items: center; gap: 8px; padding: 10px; height: 100%; min-height: 0; overflow: hidden; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__topline, :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__footer { display: none; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__identity { align-self: center; min-width: 0; gap: 3px; padding: 0; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__identity > .avatar { width: calc(var(--avatar-size, 101px) * 0.35); height: calc(var(--avatar-size, 101px) * 0.35); margin: 0 0 2px; flex: none; border-width: 1px; font-size: 11px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__identity > .avatar--square { border-radius: 7px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__identity h1 { width: 100%; margin: 0; font-size: 12px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__handle { font-size: 9px; max-width: 100%; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__handle span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__bio { display: none; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__body { display: block; min-width: 0; max-height: 120px; overflow-y: auto; scrollbar-width: thin; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__links, :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__contacts { gap: 5px; margin: 0; padding: 1px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__contacts { margin-bottom: 5px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card .profile-link { min-height: 38px; padding: 6px 8px; border-radius: 9px; font-size: 10px; gap: 7px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-link__icon { width: 23px; height: 23px; border-radius: 6px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-link__icon svg { width: 13px; height: 13px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-link__arrow { display: none; }
   .dashboard-shell--design .appearance-settings { gap: 10px; }
   .dashboard-shell--design .settings-card { padding: 10px 12px; background: linear-gradient(135deg, #121d30, #111a2a); border-color: #253149; border-radius: 13px; }
   .dashboard-shell--design .settings-card__title { gap: 6px; }
@@ -96,9 +96,9 @@
   .dashboard-shell--design .avatar-cropper > .form-message { grid-column: 1 / -1; }
 }
 @media (max-width: 650px) and (max-height: 690px) {
-  .dashboard-shell--design .device-frame { height: 120px; }
-  .dashboard-shell--design .profile-card__body { max-height: 94px; }
-  .dashboard-shell--design .profile-card__identity > .avatar { width: calc(var(--avatar-size, 101px) * 0.29); height: calc(var(--avatar-size, 101px) * 0.29); }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .device-frame { height: 120px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__body { max-height: 94px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__identity > .avatar { width: calc(var(--avatar-size, 101px) * 0.29); height: calc(var(--avatar-size, 101px) * 0.29); }
 }
 
 @media (max-width: 650px), (max-width: 950px) and (max-height: 500px) {
@@ -110,9 +110,9 @@
 
 
 @media (max-width: 650px), (max-width: 950px) and (max-height: 500px) {
-  .dashboard-shell--design .profile-card__identity h1 { --profile-display-size: calc(var(--profile-font-size) * .6); }
-  .dashboard-shell--design .profile-card__handle { --profile-display-size: calc(var(--profile-font-size) * .8); }
-  .dashboard-shell--design .profile-link__label { --profile-display-size: calc(var(--profile-font-size) * .9); }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__identity h1 { --profile-display-size: calc(var(--profile-font-size) * .6); }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__handle { --profile-display-size: calc(var(--profile-font-size) * .8); }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-link__label { --profile-display-size: calc(var(--profile-font-size) * .9); }
 }
 
 .avatar { position:relative; }

@@ -101,7 +101,7 @@ test('moderator cannot access the delete action', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Удалить пользователя' })).toHaveCount(0)
 })
 
-test('administrator opens the filled page and saves through the regular editor', async ({ page }) => {
+test('administrator opens the filled page and saves through the regular editor', async ({ page, isMobile }) => {
   await mockStaff(page, 'admin')
   const profile = { ...target, avatar_path: null, avatar_url: null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', show_qr: false, onboarding_completed: true }
   const links = [{ id: 'a1000000-0000-4000-8000-000000000001', profile_id: targetId, label: 'Сайт', url: 'https://example.com', icon_key: 'website', position: 0, is_visible: true, is_sensitive: false }]
@@ -119,7 +119,8 @@ test('administrator opens the filled page and saves through the regular editor',
   await expect(page.getByText('hello@example.com')).toBeVisible()
   await expect(page).toHaveURL(/\/preview$/)
   await page.getByRole('link', { name: 'Открыть редактор' }).click()
-  await expect(page.getByRole('heading', { name: 'Ссылки и контакты' })).toBeVisible()
+  if (isMobile) await expect(page.locator('.dashboard-shell--links .preview-panel')).toBeVisible()
+  else await expect(page.getByRole('heading', { name: 'Ссылки и контакты' })).toBeVisible()
   await page.getByRole('textbox', { name: 'О себе' }).fill('Фотограф и путешественник')
   await page.getByRole('checkbox', { name: /QR-код на странице/ }).check()
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click()

@@ -886,7 +886,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
   if (!targetId && profile.onboarding_completed === false) return <OnboardingWizard onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} userId={user.id} profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} avatarDraft={avatarDraft} onAvatarDraft={setAvatarDraft} uploadError={error} onFinish={async () => { const saved = await loadData(); if (saved) navigate(`/${saved.profile.handle}`, { state: saved }) }} />
 
   return (
-    <div className={`dashboard-shell ${section === 'design' ? 'dashboard-shell--design' : ''} ${avatarDraft ? 'dashboard-shell--cropping' : ''}`}>
+    <div className={`dashboard-shell ${section === 'design' ? 'dashboard-shell--design' : section === 'links' ? 'dashboard-shell--links' : ''} ${avatarDraft ? 'dashboard-shell--cropping' : ''}`}>
       <header className="dashboard-topbar">
         <BrandMark />
         {targetId && <Link className="button button--secondary button--small" to={`/admin/users/${targetId}`}>← Карточка пользователя</Link>}

@@ -10,6 +10,16 @@ SITE_URL="${SITE_URL:-https://mylinks.bar}"
 if [ -z "$HOST" ] || [ -z "$USER_NAME" ] || [ -z "$PASS" ]; then
   echo "Secrets BEGET_FTP_HOST / BEGET_FTP_USER / BEGET_FTP_PASSWORD are not set"; exit 1
 fi
+if [ "${REQUIRE_AVATAR_SERVER:-false}" = true ]; then
+  echo "== Avatar processor preflight"
+  curl -fsS --max-time 15 "$SITE_URL/avatar-process.php?action=health" | node -e '
+    let raw="";process.stdin.on("data",chunk=>raw+=chunk);process.stdin.on("end",()=>{
+      const h=JSON.parse(raw);const bytes=s=>{const m=String(s).match(/^(\d+)([MG])?$/i);return m?Number(m[1])*({M:1048576,G:1073741824}[m[2]?.toUpperCase()]||1):0};
+      if(!h.available||bytes(h.upload_limit)<50*1048576||bytes(h.post_limit)<50*1048576)
+        throw Error("Beget needs PHP 8 and FFmpeg/ffprobe/timeout with 50 MB PHP upload limits");
+      process.stdout.write("FFmpeg and 50 MB upload: ready\n");
+    });'
+fi
 # Tolerate a host written as ftp://host/ or with spaces
 HOST="$(echo "$HOST" | sed -E 's#^[a-z]+://##; s#/.*$##; s/[[:space:]]//g')"
 echo "FTP host: $HOST (user: $USER_NAME)"

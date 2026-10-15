@@ -23,6 +23,7 @@ env:
   SITE_URL: https://mylinks.bar
   DEPLOY_LOG_ISSUE: 5
   IS_PR: ${{ github.event_name == 'pull_request' }}
+  REQUIRE_AVATAR_SERVER: 'true'
 
 jobs:
   registration_db:

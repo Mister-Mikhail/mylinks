@@ -45,6 +45,13 @@ if (!is_dir($root) && !mkdir($root,0700,true)) avatar_error(503,'Временн�
 foreach (glob($root.'/*') ?: array() as $old)
     if (is_file($old) && filemtime($old) < time()-3600) @unlink($old);
 $action = $_POST['action'] ?? '';
+if ($action === 'discard') {
+    $discard=$_POST['token'] ?? '';
+    if (preg_match('/^[a-f0-9]{32}$/D',$discard))
+        foreach (glob($root.'/'.$discard.'*') ?: array() as $item) if (is_file($item)) @unlink($item);
+    echo '{"discarded":true}';
+    exit;
+}
 if ($action === 'prepare') {
     $file = $_FILES['file'] ?? null;
     if (!$file || $file['error'] !== UPLOAD_ERR_OK || $file['size'] > 50*1024*1024)
@@ -81,6 +88,9 @@ $source=$sources[0]; $preview=getimagesize($root.'/'.$token.'-preview.jpg');
 $info=json_decode(avatar_run(array(avatar_bin('ffprobe'),'-v','error','-select_streams','v:0',
     '-show_entries','stream=width,height','-of','json',$source)),true);
 $width=(int)($info['streams'][0]['width'] ?? 0); $height=(int)($info['streams'][0]['height'] ?? 0);
+// Auto orientation (phone EXIF/video display matrix) may rotate decoded frames.
+if ($preview && $width && $height && abs($preview[0]/$preview[1]-$height/$width)<0.02)
+    list($width,$height)=array($height,$width);
 $x=(float)($_POST['x'] ?? NAN); $y=(float)($_POST['y'] ?? NAN); $size=(float)($_POST['size'] ?? NAN);
 if (!$preview || !$width || !$height || !is_finite($x) || !is_finite($y) || !is_finite($size) || $size<=0)
     avatar_error(400,'Проверьте положение кадра.');
@@ -101,5 +111,4 @@ $encode=function($side,$video) use($root,$token,$source,$crop,$cx,$cy) {
     return array('mime'=>$video?'video/mp4':'image/webp','data'=>base64_encode(file_get_contents($target)));
 };
 $master=$encode(1000,$animated); $delivery=$encode(560,$animated); $poster=$animated?$encode(560,false):null;
-foreach (glob($root.'/'.$token.'*') ?: array() as $item) if (is_file($item)) @unlink($item);
 echo json_encode(array('master'=>$master,'delivery'=>$delivery,'poster'=>$poster,'kind'=>$animated?'video':'image'));

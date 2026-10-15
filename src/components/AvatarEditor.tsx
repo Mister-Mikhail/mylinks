@@ -3,8 +3,7 @@ import { Camera, Check, Crop, LoaderCircle, Move, RotateCcw, X, ZoomIn } from 'l
 import type { AvatarDraft, AvatarUploadOptions, Profile } from '../types'
 import { createPortal } from 'react-dom'
 import { AvatarMedia } from './AvatarMedia'
-import { cropAvatarToBlob } from '../lib/avatarImage'
-import { optimizeAnimatedAvatar } from '../lib/avatarAnimation'
+import { discardAvatar, prepareAvatar, renderAvatar } from '../lib/avatarServer'
 
 interface AvatarEditorProps {
   profile: Profile
@@ -33,6 +32,8 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
   const inputRef = useRef<HTMLInputElement>(null)
   const dialogRef = useRef<HTMLDialogElement>(null)
   const mediaRef = useRef<HTMLImageElement | HTMLVideoElement | null>(null)
+  const processingRef = useRef<AbortController | null>(null)
+  const [preparedToken, setPreparedToken] = useState('')
   const [selectedFile, setSelectedFile] = useState<Blob | null>(null)
   const [kind, setKind] = useState<'image' | 'gif' | 'video'>('image')
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -84,20 +85,25 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
   }, [source])
 
   const closeEditor = () => {
+    processingRef.current?.abort()
+    processingRef.current = null
+    setPreparing(false)
+    void discardAvatar(preparedToken)
     pointers.current.clear(); pinch.current = null; dragRef.current = null
     if (source) URL.revokeObjectURL(source)
     setSource(null)
     setSelectedFile(null)
+    setPreparedToken('')
     setImageSize({ width: 0, height: 0 })
     setZoom(1)
     setOffset(DEFAULT_OFFSET)
     setError('')
   }
 
-  const openEditor = (file: Blob, restore = false) => {
-    const nextSource = URL.createObjectURL(file)
+  const openEditor = (file: Blob, nextSource: string, token: string, mediaKind: 'image' | 'gif' | 'video', restore = false) => {
     setSelectedFile(file)
-    setKind(file.type.startsWith('video/') ? 'video' : file.type === 'image/gif' ? 'gif' : 'image')
+    setPreparedToken(token)
+    setKind(mediaKind)
     if (source) URL.revokeObjectURL(source)
     setSource(nextSource)
     setImageSize({ width: 0, height: 0 })
@@ -105,7 +111,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
     setOffset(restore && profile.avatar_crop ? { x: profile.avatar_crop.x * viewportSize, y: profile.avatar_crop.y * viewportSize } : DEFAULT_OFFSET)
   }
 
-  const selectFile = (event: ChangeEvent<HTMLInputElement>) => {
+  const selectFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
@@ -115,28 +121,40 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
       setError('Выберите JPG, PNG, WebP, GIF или видео MP4/WebM.')
       return
     }
-    if (file.size > 60 * 1024 * 1024) {
-      setError('Размер исходного файла не должен превышать 60 МБ.')
+    if (file.size > 50 * 1024 * 1024) {
+      setError('Размер исходного файла не должен превышать 50 МБ.')
       return
     }
-
-    openEditor(file)
+    const controller = new AbortController()
+    processingRef.current = controller
+    setPreparing(true)
+    try {
+      const result = await prepareAvatar(file, controller.signal)
+      if (!controller.signal.aborted) openEditor(file, result.preview, result.token, result.kind)
+    } catch (caught) {
+      if (!controller.signal.aborted) setError(caught instanceof Error ? caught.message : 'Не удалось обработать файл.')
+    } finally {
+      if (processingRef.current === controller) { processingRef.current = null; setPreparing(false) }
+    }
   }
 
   const editCurrentAvatar = async () => {
     const currentAvatar = profile.avatar_preview_url || profile.avatar_url
     if (!currentAvatar) return
-
+    const controller = new AbortController()
+    processingRef.current = controller
     setPreparing(true)
     setError('')
     try {
-      const response = await fetch(currentAvatar)
+      const response = await fetch(currentAvatar, { signal: controller.signal })
       if (!response.ok) throw new Error('Не удалось загрузить текущее фото для кадрирования.')
-      openEditor(await response.blob(), true)
+      const file = await response.blob()
+      const prepared = await prepareAvatar(file, controller.signal)
+      if (!controller.signal.aborted) openEditor(file, prepared.preview, prepared.token, prepared.kind, true)
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Не удалось открыть редактор изображения.')
+      if (!controller.signal.aborted) setError(caught instanceof Error ? caught.message : 'Не удалось открыть редактор изображения.')
     } finally {
-      setPreparing(false)
+      if (processingRef.current === controller) { processingRef.current = null; setPreparing(false) }
     }
   }
 
@@ -196,13 +214,13 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
   }
 
   const saveCrop = async () => {
-    if (!source || !imageSize.width || !viewportSize || !selectedFile || !mediaRef.current) return
+    if (!source || !imageSize.width || !viewportSize || !selectedFile || !mediaRef.current || !preparedToken) return
+    const controller = new AbortController()
+    processingRef.current = controller
     setError('')
     setPreparing(true)
 
     try {
-      const image = mediaRef.current
-
       const coverScale = Math.max(viewportSize / imageSize.width, viewportSize / imageSize.height)
       const renderedScale = coverScale * zoom
       const renderedWidth = imageSize.width * renderedScale
@@ -211,23 +229,16 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
       const sourceY = ((renderedHeight - viewportSize) / 2 - offset.y) / renderedScale
       const sourceSize = viewportSize / renderedScale
 
-      // Photos and the preview frame are stored at no more than 1000 px.
-      const poster = await cropAvatarToBlob(image, sourceX, sourceY, sourceSize)
-      let media = kind === 'image' ? poster : selectedFile
-      let mediaKind = kind
-      let crop = kind === 'image' ? null : { aspectRatio: imageSize.width / imageSize.height, zoom, x: offset.x / viewportSize, y: offset.y / viewportSize }
-      if (kind !== 'image' && (kind === 'video' || selectedFile.size > 5 * 1024 * 1024 || (typeof window.ImageDecoder !== 'undefined' && Math.max(imageSize.width, imageSize.height) > 1000))) {
-        media = await optimizeAnimatedAvatar(selectedFile, image, kind, sourceX, sourceY, sourceSize)
-        mediaKind = 'video'
-        crop = null // Animation was already cropped into the uploaded square.
-      }
-      const uploaded = await onUpload(media, mediaKind === 'image' ? undefined : { kind: mediaKind, poster, crop: crop ?? undefined })
+      const result = await renderAvatar(preparedToken, sourceX, sourceY, sourceSize, controller.signal)
+      if (controller.signal.aborted) return
+      const uploaded = await onUpload(result.delivery, { kind: result.kind, poster: result.poster, master: result.master })
+      if (controller.signal.aborted) return
       if (uploaded) closeEditor()
       else setError('Не удалось сохранить фото. Попробуйте ещё раз.')
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Не удалось обработать изображение.')
+      if (!controller.signal.aborted) setError(caught instanceof Error ? caught.message : 'Не удалось обработать изображение.')
     } finally {
-      setPreparing(false)
+      if (processingRef.current === controller) { processingRef.current = null; setPreparing(false) }
     }
   }
 
@@ -240,7 +251,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
           <section className="avatar-cropper" aria-labelledby="avatar-crop-title">
             <div className="avatar-cropper__heading">
               <div><span className="eyebrow">Редактор фото</span><h2 id="avatar-crop-title">Настройте кадр</h2></div>
-              <button className="icon-button" type="button" onClick={closeEditor} disabled={uploading || preparing} aria-label="Закрыть редактор"><X size={18} /></button>
+              <button className="icon-button" type="button" onClick={closeEditor} disabled={uploading} aria-label="Закрыть редактор"><X size={18} /></button>
             </div>
 
             <div
@@ -256,12 +267,9 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
               onPointerUp={stopDrag}
               onPointerCancel={stopDrag}
             >
-              {kind === 'video' ? <video ref={element => { mediaRef.current = element }} src={source || undefined} autoPlay muted loop playsInline preload="auto" style={mediaStyle}
-                onLoadedData={event => { const v = event.currentTarget; if (!Number.isFinite(v.duration) || v.duration > 10) { setError('Видео должно длиться не более 10 секунд.'); setImageSize({ width: 0, height: 0 }); v.pause() } else setImageSize({ width: v.videoWidth, height: v.videoHeight }) }}
-                onError={() => { setImageSize({ width: 0, height: 0 }); setError('Не удалось прочитать видео. Попробуйте другой MP4 или WebM.') }} />
-                : <img ref={element => { mediaRef.current = element }} src={source || undefined} alt="Область будущего аватара" draggable="false" style={mediaStyle}
+              <img ref={element => { mediaRef.current = element }} src={source || undefined} alt="Область будущего аватара" draggable="false" style={mediaStyle}
                   onError={() => setError('Не удалось прочитать изображение.')}
-                  onLoad={event => { const img = event.currentTarget; setImageSize({ width: img.naturalWidth, height: img.naturalHeight }) }} />}
+                  onLoad={event => { const img = event.currentTarget; setImageSize({ width: img.naturalWidth, height: img.naturalHeight }) }} />
               <span className="avatar-cropper__grid" />
               <span className="avatar-cropper__move"><Move size={15} /> Перемещайте фото · масштаб двумя пальцами</span>
             </div>
@@ -275,7 +283,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
 
             {error && <div className="form-message form-message--error">{error}</div>}
             <div className="avatar-cropper__actions">
-              <button className="button button--ghost" type="button" disabled={uploading || preparing} onClick={closeEditor}>Отмена</button>
+              <button className="button button--ghost" type="button" disabled={uploading} onClick={closeEditor}>Отмена</button>
               <button className="button button--primary" type="button" onClick={saveCrop} disabled={uploading || preparing || !imageSize.width}>
                 {uploading || preparing ? <LoaderCircle className="spin" size={17} /> : <Check size={17} />}
                 {preparing ? 'Обрабатываем…' : uploading ? 'Сохраняем…' : 'Применить фото'}
@@ -294,7 +302,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
         </div>
         <div className="avatar-settings__upload">
           <strong>Аватар профиля</strong>
-          <span>Исходное фото, GIF или видео до 60 МБ. Фото и видео оптимизируются после кадрирования; видео до 10 секунд.</span>
+          <span>Исходное фото, GIF или видео до 50 МБ. Файл обрабатывается на сервере; видео и GIF до 10 секунд.</span>
           <div className="avatar-settings__upload-actions">
             <button className="button button--secondary button--small" type="button" onClick={() => inputRef.current?.click()} disabled={uploading || preparing}>
               {uploading ? <LoaderCircle className="spin" size={16} /> : <Camera size={16} />}
@@ -307,6 +315,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
               </button>
             )}
           </div>
+          {preparing && <button className="button button--ghost button--small" type="button" onClick={closeEditor}>Отменить обработку</button>}
           <input ref={inputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" onChange={selectFile} />
         </div>
       </div>

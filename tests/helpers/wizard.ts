@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 
 const id = '00000000-0000-4000-8000-000000000091'
 const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: id, exp: 2100000000, role: 'authenticated' })).toString('base64url')}.signature`
@@ -26,6 +27,30 @@ export async function mockWizard(page: Page, seedSession = true) {
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify(data) })
   })
   const stored = new Map<string, { body: Buffer; type: string }>()
+  let sourceKind: 'image' | 'video' | 'gif' = 'image'
+  const still = readFileSync('tests/fixtures/avatar.webp').toString('base64')
+  const deliveryImage = readFileSync('tests/fixtures/avatar-delivery.webp').toString('base64')
+  const masterImage = readFileSync('tests/fixtures/avatar-master.webp').toString('base64')
+  const deliveryVideo = readFileSync('tests/fixtures/avatar-delivery.mp4').toString('base64')
+  const masterVideo = readFileSync('tests/fixtures/avatar-master.mp4').toString('base64')
+  await page.route('**/avatar-process.php', route => {
+    const data = route.request().postDataBuffer()?.toString('latin1') || ''
+    if (data.includes('prepare')) {
+      if (data.includes('long.webm')) return route.fulfill({ status: 422, contentType: 'application/json', body: '{"error":"Анимация должна длиться не более 10 секунд."}' })
+      sourceKind = data.includes('motion.gif') ? 'gif' : data.includes('motion.webm') ? 'video' : 'image'
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+        token: 'abcdef0123456789abcdef0123456789', kind: sourceKind,
+        preview: `data:image/webp;base64,${still}`, width: 64, height: 64,
+      }) })
+    }
+    const animated = sourceKind !== 'image'
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      kind: animated ? 'video' : 'image',
+      delivery: { mime: animated ? 'video/mp4' : 'image/webp', data: animated ? deliveryVideo : deliveryImage },
+      master: { mime: animated ? 'video/mp4' : 'image/webp', data: animated ? masterVideo : masterImage },
+      poster: animated ? { mime: 'image/webp', data: deliveryImage } : null,
+    }) })
+  })
   await page.route('**/storage/v1/**', route => {
     const request = route.request(), url = new URL(request.url())
     const path = decodeURIComponent(url.pathname.split('/avatars/')[1] || '')

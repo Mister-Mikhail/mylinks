@@ -15,7 +15,7 @@ export function PublicShareTools({ handle, name, contacts, showQr, size }: Props
   const [mobileShare, setMobileShare] = useState(false)
   const qrRef = useRef<HTMLDivElement>(null)
   const url = profileUrl(handle)
-  const qrSize = Number.isFinite(size) ? Math.min(280, Math.max(120, size)) : 176
+  const qrSize = Number.isFinite(size) ? Math.min(220, Math.max(80, size)) : 176
 
   useEffect(() => {
     const query = window.matchMedia('(hover: none) and (pointer: coarse)')
@@ -31,11 +31,12 @@ export function PublicShareTools({ handle, name, contacts, showQr, size }: Props
   }, [showQr, url])
   useEffect(() => {
     if (!open) return
+    const timer = window.setTimeout(() => setOpen(false), 500)
     const outside = (event: PointerEvent) => { if (!qrRef.current?.contains(event.target as Node)) setOpen(false) }
     const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
     document.addEventListener('pointerdown', outside)
     document.addEventListener('keydown', escape)
-    return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape) }
+    return () => { window.clearTimeout(timer); document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape) }
   }, [open])
 
   const copy = async () => { setNotice(await copyText(url) ? 'Ссылка скопирована.' : 'Не удалось скопировать ссылку.'); setOpen(false) }
@@ -65,7 +66,6 @@ export function PublicShareTools({ handle, name, contacts, showQr, size }: Props
           <button type="button" onClick={() => void copy()} aria-label="Скопировать ссылку" title="Скопировать"><Copy size={20} /></button>
         </div>}
       </div>
-      <span>Нажмите на QR-код для действий</span>
     </div>}
     {contacts.some(contact => contact.is_visible && contact.value.trim()) && <button className="profile-share__contact" type="button" onClick={saveContact}><ContactRound size={15} /> Сохранить контакт</button>}
     {notice && <p role="status">{notice}</p>}

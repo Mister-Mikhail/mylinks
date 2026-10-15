@@ -181,5 +181,6 @@ export async function uploadStaffAvatar(target_id: string, blob: Blob, options?:
   })
   const data = await toBase64(blob)
   const poster = options?.poster ? { mime: options.poster.type, data: await toBase64(options.poster) } : null
-  return await staffProfileCall({ action: 'avatar', target_id, mime: blob.type, data, kind: options?.kind, crop: options?.crop, poster })
+  const master = options?.master ? { mime: options.master.type, data: await toBase64(options.master) } : null
+  return await staffProfileCall({ action: 'avatar', target_id, mime: blob.type, data, kind: options?.kind, crop: options?.crop, poster, master })
 }

@@ -694,9 +694,11 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         uploadedPaths.push(path)
       }
       await upload(nextPath, blob)
+      const masterPath = options?.master ? `${user.id}/master-${crypto.randomUUID()}.${extensions[options.master.type]}` : null
+      if (masterPath && options?.master) await upload(masterPath, options.master)
       const posterPath = options?.poster ? `${user.id}/poster-${crypto.randomUUID()}.${extensions[options.poster.type]}` : null
       if (posterPath && options?.poster) await upload(posterPath, options.poster)
-      const patch = { avatar_path: nextPath, avatar_url: null, avatar_media: options?.kind ?? 'image', avatar_crop: options?.crop ?? null, avatar_poster_path: posterPath }
+      const patch = { avatar_path: nextPath, avatar_master_path: masterPath, avatar_url: null, avatar_media: options?.kind ?? 'image', avatar_crop: options?.crop ?? null, avatar_poster_path: posterPath }
       const { error: profileError } = await supabase.from('profiles').update(patch).eq('id', user.id)
       if (profileError) throw profileError
       committed = true
@@ -705,7 +707,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         posterPath ? supabase.storage.from('avatars').createSignedUrl(posterPath, 60 * 60) : Promise.resolve(null),
       ])
       setProfile(current => ({ ...current, ...patch, avatar_preview_url: signed.data?.signedUrl ?? null, avatar_poster_url: posterSigned?.data?.signedUrl ?? null }))
-      const previousPaths = [profile.avatar_path, profile.avatar_poster_path].filter((path): path is string => Boolean(path && path !== nextPath && path !== posterPath))
+      const previousPaths = [profile.avatar_path, profile.avatar_master_path, profile.avatar_poster_path].filter((path): path is string => Boolean(path && path !== nextPath && path !== masterPath && path !== posterPath))
       if (previousPaths.length) await supabase.storage.from('avatars').remove(previousPaths)
       setNotice('Аватар обновлён'); window.setTimeout(() => setNotice(''), 2600)
       return true
@@ -1059,7 +1061,7 @@ function ContentEditor({
         </label>
         {profile.show_qr && <label className="avatar-size-control">
           <span><span className="field-caption">Размер QR-кода на странице</span><strong>{profile.qr_size ?? 176} px</strong></span>
-          <input aria-label="Размер QR-кода на странице" type="range" min="120" max="280" step="8" value={profile.qr_size ?? 176} onChange={(event) => setProfile({ ...profile, qr_size: Number(event.target.value) })} />
+          <input aria-label="Размер QR-кода на странице" type="range" min="80" max="220" step="4" value={Math.min(220, Math.max(80, profile.qr_size ?? 176))} onChange={(event) => setProfile({ ...profile, qr_size: Number(event.target.value) })} />
           <small><span>Компактный</span><span>Крупный</span></small>
         </label>}
       </section>

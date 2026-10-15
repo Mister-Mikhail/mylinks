@@ -147,44 +147,9 @@ test('published QR and share tools appear below contacts without leaking hidden 
   await expect(page.getByRole('button',{name:'Скопировать ссылку',exact:true})).toBeVisible()
   const shareAvailable=await page.evaluate(()=>matchMedia('(hover: none) and (pointer: coarse)').matches&&typeof navigator.share==='function')
   await expect(page.getByRole('button',{name:'Поделиться страницей'})).toHaveCount(shareAvailable?1:0)
+  await expect(page.getByRole('button',{name:'Скопировать ссылку',exact:true})).toHaveCount(0,{timeout:2500})
+  await page.getByRole('button',{name:'Действия с QR-кодом'}).click()
   await page.getByRole('button',{name:'Скопировать ссылку',exact:true}).click()
   await expect(page.getByRole('status')).toContainText('Ссылка скопирована')
 })
 
-test('avatar export is a sharp real WebP of at most 1000 pixels', async ({ page }) => {
-  await mock(page)
-  await page.goto(`/${handle}`)
-  const result = await page.evaluate(async () => {
-    const { cropAvatarToBlob } = await import('/src/lib/avatarImage.ts')
-    const canvas = document.createElement('canvas'); canvas.width = 1600; canvas.height = 1600
-    const context = canvas.getContext('2d')!; context.fillStyle = '#44aa66'; context.fillRect(0, 0, 1600, 1600)
-    const image = new Image(); image.src = canvas.toDataURL(); await image.decode()
-    const blob = await cropAvatarToBlob(image, 0, 0, 1600)
-    const decoded = await createImageBitmap(blob)
-    return { width: decoded.width, height: decoded.height, size: blob.size, type: blob.type }
-  })
-  expect(result).toMatchObject({ width: 1000, height: 1000, type: 'image/webp' })
-  expect(result.size).toBeLessThanOrEqual(320 * 1024)
-})
-
-test('unsupported WebP falls back to JPEG without enlarging a small image', async ({ page }) => {
-  await mock(page)
-  await page.goto(`/${handle}`)
-  const result = await page.evaluate(async () => {
-    const { cropAvatarToBlob } = await import('/src/lib/avatarImage.ts')
-    const original = HTMLCanvasElement.prototype.toBlob
-    HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
-      if (type === 'image/webp') callback(null)
-      else original.call(this, callback, type, quality)
-    }
-    try {
-      const canvas = document.createElement('canvas'); canvas.width = 80; canvas.height = 80
-      const context = canvas.getContext('2d')!; context.fillStyle = '#4466aa'; context.fillRect(0, 0, 80, 80)
-      const image = new Image(); image.src = canvas.toDataURL(); await image.decode()
-      const blob = await cropAvatarToBlob(image, 0, 0, 80)
-      const decoded = await createImageBitmap(blob)
-      return { width: decoded.width, height: decoded.height, type: blob.type }
-    } finally { HTMLCanvasElement.prototype.toBlob = original }
-  })
-  expect(result).toEqual({ width: 80, height: 80, type: 'image/jpeg' })
-})

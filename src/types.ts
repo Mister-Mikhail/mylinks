@@ -20,6 +20,7 @@ export interface Profile {
   handle_font_size?: number
   avatar_url: string | null
   avatar_path: string | null
+  avatar_master_path?: string | null
   avatar_preview_url?: string | null
   avatar_media?: 'image' | 'gif' | 'video'
   avatar_crop?: AvatarCrop | null
@@ -96,6 +97,6 @@ export interface AvatarDraft {
 }
 
 export interface AvatarCrop { aspectRatio: number; zoom: number; x: number; y: number }
-export interface AvatarUploadOptions { kind: 'image' | 'gif' | 'video'; crop?: AvatarCrop; poster?: Blob }
+export interface AvatarUploadOptions { kind: 'image' | 'gif' | 'video'; crop?: AvatarCrop; poster?: Blob; master?: Blob }
 
 

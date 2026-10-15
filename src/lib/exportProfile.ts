@@ -30,7 +30,7 @@ export async function exportOwnProfile(expectedUserId:string,options:ExportOptio
  const profile=p.data as Profile, result=buildProfileExport(profile,(l.data||[]) as ProfileLink[],(c.data||[]) as ProfileContact[],options)
  if(options.assets){
   const assets=[]
-  for(const [kind,path] of [['avatar',profile.avatar_path],['avatar_poster',profile.avatar_poster_path]] as const){
+  for(const [kind,path] of [['avatar',profile.avatar_path],['avatar_master',profile.avatar_master_path],['avatar_poster',profile.avatar_poster_path]] as const){
    if(!path)continue
    if(!path.startsWith(`${user.id}/`)||path.includes('..')||path.includes('\\'))throw new Error('Не удалось проверить принадлежность файла.')
    const asset:Record<string,unknown>={kind,bucket:'avatars',path}

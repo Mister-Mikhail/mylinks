@@ -35,7 +35,7 @@ const formatProfile = (raw: Record<string, unknown>, currentHandle: string) => {
     name_font_size: number(raw.name_font_size,21,5,60), bio_font_size: number(raw.bio_font_size,10,5,60), handle_font_size: number(raw.handle_font_size,10,5,60),
     background_preset: raw.background_preset, card_preset: raw.card_preset, avatar_shape: raw.avatar_shape,
     avatar_size: ['small','medium','large'].includes(String(raw.avatar_size)) ? raw.avatar_size : 'medium',
-    avatar_scale: number(raw.avatar_scale,28,10,100), is_published: raw.is_published === true, show_qr: raw.show_qr === true, qr_size: number(raw.qr_size,176,120,280), card_radius: number(raw.card_radius,13,4,28),
+    avatar_scale: number(raw.avatar_scale,28,10,100), is_published: raw.is_published === true, show_qr: raw.show_qr === true, qr_size: number(raw.qr_size,176,80,220), card_radius: number(raw.card_radius,13,4,28),
   }
 }
 const formatLink = (raw: Record<string, unknown>, owner: string, position: number) => ({
@@ -104,6 +104,7 @@ export const handler = (clientFactory=createClient,env=(key:string)=>Deno.env.ge
     const kind=input.mime==='image/gif'?'gif':String(input.mime).startsWith('video/')?'video':'image'
     if(input.kind && input.kind!==kind) return reply(400,{error:'Тип файла не совпадает с форматом.'})
     if(input.poster && (typeof input.poster.data!=='string'||input.poster.data.length>7_000_000||!['image/jpeg','image/png','image/webp'].includes(String(input.poster.mime)))) return reply(400,{error:'Проверьте кадр превью.'})
+    if(input.master && (typeof input.master.data!=='string'||input.master.data.length>7_000_000||!['image/jpeg','image/png','image/webp','video/mp4'].includes(String(input.master.mime)))) return reply(400,{error:'Проверьте мастер-копию.'})
     const bytes=Uint8Array.from(atob(input.data),value=>value.charCodeAt(0))
     if(bytes.length>5*1024*1024) return reply(400,{error:'Файл больше 5 МБ.'})
     const ext:Record<string,string>={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif','video/mp4':'mp4','video/webm':'webm'}
@@ -118,15 +119,23 @@ export const handler = (clientFactory=createClient,env=(key:string)=>Deno.env.ge
       const {error:posterError}=await admin.storage.from('avatars').upload(posterPath,posterBytes,{contentType:input.poster.mime,upsert:false})
       if(posterError){await admin.storage.from('avatars').remove([path]);return reply(500,{error:'Не удалось загрузить кадр превью.'})}
     }
-    const {error:updateError}=await caller.rpc('staff_set_avatar',{target,avatar:path,media:kind,crop:input.crop??null,poster:posterPath})
-    if(updateError){await admin.storage.from('avatars').remove([path,...(posterPath?[posterPath]:[])]);return reply(500,{error:'Не удалось сохранить аватар.'})}
+    let masterPath:string|null=null
+    if(input.master) {
+      const masterBytes=Uint8Array.from(atob(input.master.data),value=>value.charCodeAt(0))
+      if(masterBytes.length>5*1024*1024){await admin.storage.from('avatars').remove([path,...(posterPath?[posterPath]:[])]);return reply(400,{error:'Мастер-копия больше 5 МБ.'})}
+      masterPath=`${target}/master-${crypto.randomUUID()}.${ext[input.master.mime]}`
+      const {error:masterError}=await admin.storage.from('avatars').upload(masterPath,masterBytes,{contentType:input.master.mime,upsert:false})
+      if(masterError){await admin.storage.from('avatars').remove([path,...(posterPath?[posterPath]:[])]);return reply(500,{error:'Не удалось загрузить мастер-копию.'})}
+    }
+    const {error:updateError}=await caller.rpc('staff_set_avatar_with_master',{target,avatar:path,media:kind,crop:input.crop??null,poster:posterPath,master:masterPath})
+    if(updateError){await admin.storage.from('avatars').remove([path,...(posterPath?[posterPath]:[]),...(masterPath?[masterPath]:[])]);return reply(500,{error:'Не удалось сохранить аватар.'})}
     const [signed,posterSigned]=await Promise.all([
       admin.storage.from('avatars').createSignedUrl(path,3600),
       posterPath?admin.storage.from('avatars').createSignedUrl(posterPath,3600):Promise.resolve(null),
     ])
-    const oldPaths=[detail.profile.avatar_path,detail.profile.avatar_poster_path].filter((old:string)=>Boolean(old && old.startsWith(target+'/') && old!==path && old!==posterPath))
+    const oldPaths=[detail.profile.avatar_path,detail.profile.avatar_poster_path,detail.profile.avatar_master_path].filter((old:string)=>Boolean(old && old.startsWith(target+'/') && old!==path && old!==posterPath && old!==masterPath))
     if(oldPaths.length) await admin.storage.from('avatars').remove(oldPaths)
-    return reply(200,{avatar_path:path,avatar_preview_url:signed.data?.signedUrl??null,avatar_media:kind,avatar_crop:input.crop??null,avatar_poster_path:posterPath,avatar_poster_url:posterSigned?.data?.signedUrl??null})
+    return reply(200,{avatar_path:path,avatar_master_path:masterPath,avatar_preview_url:signed.data?.signedUrl??null,avatar_media:kind,avatar_crop:input.crop??null,avatar_poster_path:posterPath,avatar_poster_url:posterSigned?.data?.signedUrl??null})
   } catch(error) {return reply(400,{error:error instanceof Error?error.message:'Действие не завершено.'})}
 }
 Deno.serve(handler())

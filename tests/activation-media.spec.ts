@@ -110,3 +110,26 @@ test('oversized files and videos longer than ten seconds cannot be uploaded', as
   await expect(page.getByRole('button', { name: 'Применить фото' })).toBeDisabled()
   expect(state.uploads).toBe(0)
 })
+
+test('a photo larger than 5 MB is cropped before upload', async ({ page }) => {
+  const state = await avatarStep(page)
+  await page.locator('input[type=file]').evaluate((element: HTMLInputElement) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 1200
+    const context = canvas.getContext('2d')!
+    context.fillStyle = '#728ca5'
+    context.fillRect(0, 0, 1200, 1200)
+    const raw = atob(canvas.toDataURL('image/jpeg', .94).split(',')[1])
+    const data = Uint8Array.from(raw, character => character.charCodeAt(0))
+    const files = new DataTransfer()
+    files.items.add(new File([data, new Uint8Array(6 * 1024 * 1024)], 'camera.jpg', { type: 'image/jpeg' }))
+    element.files = files.files
+    element.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  const dialog = page.getByRole('dialog', { name: 'Настройте кадр' })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: 'Применить фото' }).click()
+  await expect(dialog).toHaveCount(0)
+  expect(state.uploads).toBe(1)
+  expect(state.profile.avatar_path).toMatch(/\.webp$/)
+})

@@ -50,7 +50,7 @@ test('five-step flow saves short links and phone and restores progress', async (
   await page.getByRole('button', { name: 'Личный кабинет' }).click()
   await expect(page.getByRole('textbox', { name: 'Значение контакта', exact: true })).toHaveValue('+79990000000')
   await page.reload()
-  await expect(page.getByRole('textbox', { name: 'Значение контакта' })).toHaveValue('+79990000000')
+  await expect(page.getByRole('textbox', { name: 'Значение контакта', exact: true })).toHaveValue('+79990000000')
 })
 
 test('identity rejects repeated separators, digits and occupied handles', async ({ page }) => {

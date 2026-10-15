@@ -98,7 +98,12 @@ for (const media of [{ name: 'motion.gif', mime: 'image/gif', data: gif, kind: '
 
 test('oversized files and videos longer than ten seconds cannot be uploaded', async ({ page }) => {
   const state = await avatarStep(page)
-  await page.locator('input[type=file]').setInputFiles({ name: 'big.gif', mimeType: 'image/gif', buffer: Buffer.alloc(60 * 1024 * 1024 + 1) })
+  await page.locator('input[type=file]').evaluate((element: HTMLInputElement) => {
+    const files = new DataTransfer()
+    files.items.add(new File([new Uint8Array(60 * 1024 * 1024 + 1)], 'big.gif', { type: 'image/gif' }))
+    element.files = files.files
+    element.dispatchEvent(new Event('change', { bubbles: true }))
+  })
   await expect(page.getByText('Размер исходного файла не должен превышать 60 МБ.')).toBeVisible()
   await page.locator('input[type=file]').setInputFiles({ name: 'long.webm', mimeType: 'video/webm', buffer: Buffer.from(longVideo, 'base64') })
   await expect(page.getByText('Видео должно длиться не более 10 секунд.')).toBeVisible()

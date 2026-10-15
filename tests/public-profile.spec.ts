@@ -144,9 +144,10 @@ test('published QR and share tools appear below contacts without leaking hidden 
   expect(download.suggestedFilename()).toMatch(/\.vcf$/)
   await page.getByRole('button',{name:'Действия с QR-кодом'}).click()
   await expect(page.getByRole('button',{name:'Сохранить QR-код'})).toBeVisible()
-  await expect(page.getByRole('button',{name:'Скопировать ссылку'})).toBeVisible()
-  await expect(page.getByRole('button',{name:'Поделиться страницей'})).toHaveCount(0)
-  await page.getByRole('button',{name:'Скопировать ссылку'}).click()
+  await expect(page.getByRole('button',{name:'Скопировать ссылку',exact:true})).toBeVisible()
+  const shareAvailable=await page.evaluate(()=>matchMedia('(hover: none) and (pointer: coarse)').matches&&typeof navigator.share==='function')
+  await expect(page.getByRole('button',{name:'Поделиться страницей'})).toHaveCount(shareAvailable?1:0)
+  await page.getByRole('button',{name:'Скопировать ссылку',exact:true}).click()
   await expect(page.getByRole('status')).toContainText('Ссылка скопирована')
 })
 

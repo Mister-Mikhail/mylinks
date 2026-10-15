@@ -4,6 +4,7 @@ import type { AvatarDraft, AvatarUploadOptions, Profile } from '../types'
 import { createPortal } from 'react-dom'
 import { AvatarMedia } from './AvatarMedia'
 import { cropAvatarToBlob } from '../lib/avatarImage'
+import { optimizeAnimatedAvatar } from '../lib/avatarAnimation'
 
 interface AvatarEditorProps {
   profile: Profile
@@ -114,8 +115,8 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
       setError('Выберите JPG, PNG, WebP, GIF или видео MP4/WebM.')
       return
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Размер файла не должен превышать 5 МБ.')
+    if (file.size > 60 * 1024 * 1024) {
+      setError('Размер исходного файла не должен превышать 60 МБ.')
       return
     }
 
@@ -144,7 +145,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
   }
 
   const startDrag = (event: PointerEvent<HTMLDivElement>) => {
-    if (!source || uploading) return
+    if (!source || uploading || preparing) return
     event.preventDefault()
     event.currentTarget.setPointerCapture(event.pointerId)
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
@@ -159,7 +160,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
   }
 
   const drag = (event: PointerEvent<HTMLDivElement>) => {
-    if (uploading || !pointers.current.has(event.pointerId)) return
+    if (uploading || preparing || !pointers.current.has(event.pointerId)) return
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
     if (pinch.current && pointers.current.size >= 2) {
       const [a, b] = [...pointers.current.values()]
@@ -182,7 +183,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
 
   const moveWithKeyboard = (event: KeyboardEvent<HTMLDivElement>) => {
     const delta = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10] }[event.key]
-    if (!delta || uploading) return
+    if (!delta || uploading || preparing) return
     event.preventDefault()
     setOffset(current => ({ x: current.x + delta[0], y: current.y + delta[1] }))
   }
@@ -197,6 +198,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
   const saveCrop = async () => {
     if (!source || !imageSize.width || !viewportSize || !selectedFile || !mediaRef.current) return
     setError('')
+    setPreparing(true)
 
     try {
       const image = mediaRef.current
@@ -209,13 +211,23 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
       const sourceY = ((renderedHeight - viewportSize) / 2 - offset.y) / renderedScale
       const sourceSize = viewportSize / renderedScale
 
-      // The chosen frame is scaled down to at most 512 px and compressed before it is stored.
+      // Photos and the preview frame are stored at no more than 1000 px.
       const poster = await cropAvatarToBlob(image, sourceX, sourceY, sourceSize)
-      const uploaded = await onUpload(kind === 'image' ? poster : selectedFile, kind === 'image' ? undefined : { kind, poster, crop: { aspectRatio: imageSize.width / imageSize.height, zoom, x: offset.x / viewportSize, y: offset.y / viewportSize } })
+      let media = kind === 'image' ? poster : selectedFile
+      let mediaKind = kind
+      let crop = kind === 'image' ? null : { aspectRatio: imageSize.width / imageSize.height, zoom, x: offset.x / viewportSize, y: offset.y / viewportSize }
+      if (kind !== 'image' && (kind === 'video' || selectedFile.size > 5 * 1024 * 1024 || (typeof window.ImageDecoder !== 'undefined' && Math.max(imageSize.width, imageSize.height) > 1000))) {
+        media = await optimizeAnimatedAvatar(selectedFile, image, kind, sourceX, sourceY, sourceSize)
+        mediaKind = 'video'
+        crop = null // Animation was already cropped into the uploaded square.
+      }
+      const uploaded = await onUpload(media, mediaKind === 'image' ? undefined : { kind: mediaKind, poster, crop: crop ?? undefined })
       if (uploaded) closeEditor()
       else setError('Не удалось сохранить фото. Попробуйте ещё раз.')
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Не удалось обработать изображение.')
+    } finally {
+      setPreparing(false)
     }
   }
 
@@ -228,7 +240,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
           <section className="avatar-cropper" aria-labelledby="avatar-crop-title">
             <div className="avatar-cropper__heading">
               <div><span className="eyebrow">Редактор фото</span><h2 id="avatar-crop-title">Настройте кадр</h2></div>
-              <button className="icon-button" type="button" onClick={closeEditor} disabled={uploading} aria-label="Закрыть редактор"><X size={18} /></button>
+              <button className="icon-button" type="button" onClick={closeEditor} disabled={uploading || preparing} aria-label="Закрыть редактор"><X size={18} /></button>
             </div>
 
             <div
@@ -245,28 +257,28 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
               onPointerCancel={stopDrag}
             >
               {kind === 'video' ? <video ref={element => { mediaRef.current = element }} src={source || undefined} autoPlay muted loop playsInline preload="auto" style={mediaStyle}
-                onLoadedData={event => { const v = event.currentTarget; if (!Number.isFinite(v.duration) || v.duration > 10 || v.videoWidth > 1920 || v.videoHeight > 1920) { setError('Видео: до 10 секунд, не больше 1920 пикселей по каждой стороне.'); setImageSize({ width: 0, height: 0 }); v.pause() } else setImageSize({ width: v.videoWidth, height: v.videoHeight }) }}
+                onLoadedData={event => { const v = event.currentTarget; if (!Number.isFinite(v.duration) || v.duration > 10) { setError('Видео должно длиться не более 10 секунд.'); setImageSize({ width: 0, height: 0 }); v.pause() } else setImageSize({ width: v.videoWidth, height: v.videoHeight }) }}
                 onError={() => { setImageSize({ width: 0, height: 0 }); setError('Не удалось прочитать видео. Попробуйте другой MP4 или WebM.') }} />
                 : <img ref={element => { mediaRef.current = element }} src={source || undefined} alt="Область будущего аватара" draggable="false" style={mediaStyle}
                   onError={() => setError('Не удалось прочитать изображение.')}
-                  onLoad={event => { const img = event.currentTarget; if (kind === 'gif' && (img.naturalWidth > 1920 || img.naturalHeight > 1920)) { setError('GIF: не больше 1920 пикселей по каждой стороне.'); setImageSize({ width: 0, height: 0 }) } else setImageSize({ width: img.naturalWidth, height: img.naturalHeight }) }} />}
+                  onLoad={event => { const img = event.currentTarget; setImageSize({ width: img.naturalWidth, height: img.naturalHeight }) }} />}
               <span className="avatar-cropper__grid" />
               <span className="avatar-cropper__move"><Move size={15} /> Перемещайте фото · масштаб двумя пальцами</span>
             </div>
 
             <label className="crop-zoom-control">
               <ZoomIn size={17} />
-              <input aria-label="Масштаб фото" disabled={uploading} type="range" min="0.25" max="3" step="0.01" value={zoom} onChange={(event) => updateZoom(Number(event.target.value))} />
+              <input aria-label="Масштаб фото" disabled={uploading || preparing} type="range" min="0.25" max="3" step="0.01" value={zoom} onChange={(event) => updateZoom(Number(event.target.value))} />
               <output className="crop-zoom-value">{Math.round(zoom * 100)}%</output>
-              <button type="button" className="icon-button" disabled={uploading} onClick={() => { setZoom(1); setOffset(DEFAULT_OFFSET) }} aria-label="Сбросить кадр"><RotateCcw size={16} /></button>
+              <button type="button" className="icon-button" disabled={uploading || preparing} onClick={() => { setZoom(1); setOffset(DEFAULT_OFFSET) }} aria-label="Сбросить кадр"><RotateCcw size={16} /></button>
             </label>
 
             {error && <div className="form-message form-message--error">{error}</div>}
             <div className="avatar-cropper__actions">
-              <button className="button button--ghost" type="button" disabled={uploading} onClick={closeEditor}>Отмена</button>
-              <button className="button button--primary" type="button" onClick={saveCrop} disabled={uploading || !imageSize.width}>
-                {uploading ? <LoaderCircle className="spin" size={17} /> : <Check size={17} />}
-                {uploading ? 'Сохраняем…' : 'Применить фото'}
+              <button className="button button--ghost" type="button" disabled={uploading || preparing} onClick={closeEditor}>Отмена</button>
+              <button className="button button--primary" type="button" onClick={saveCrop} disabled={uploading || preparing || !imageSize.width}>
+                {uploading || preparing ? <LoaderCircle className="spin" size={17} /> : <Check size={17} />}
+                {preparing ? 'Обрабатываем…' : uploading ? 'Сохраняем…' : 'Применить фото'}
               </button>
             </div>
           </section>
@@ -282,7 +294,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
         </div>
         <div className="avatar-settings__upload">
           <strong>Аватар профиля</strong>
-          <span>Фото или GIF до 5 МБ · MP4/WebM до 5 МБ и 10 секунд</span>
+          <span>Исходное фото, GIF или видео до 60 МБ. Фото и видео оптимизируются после кадрирования; видео до 10 секунд.</span>
           <div className="avatar-settings__upload-actions">
             <button className="button button--secondary button--small" type="button" onClick={() => inputRef.current?.click()} disabled={uploading || preparing}>
               {uploading ? <LoaderCircle className="spin" size={16} /> : <Camera size={16} />}
@@ -316,7 +328,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
         </label>
       </div>
 
-      {source && (modal ? createPortal(<dialog className="avatar-crop-dialog" ref={dialogRef} aria-labelledby="avatar-crop-title" onCancel={event => { event.preventDefault(); if (!uploading) closeEditor() }}>{cropEditor}</dialog>, document.body) : <div className="avatar-cropper-inline">{cropEditor}</div>)}
+      {source && (modal ? createPortal(<dialog className="avatar-crop-dialog" ref={dialogRef} aria-labelledby="avatar-crop-title" onCancel={event => { event.preventDefault(); if (!uploading && !preparing) closeEditor() }}>{cropEditor}</dialog>, document.body) : <div className="avatar-cropper-inline">{cropEditor}</div>)}
     </section>
   )
 }

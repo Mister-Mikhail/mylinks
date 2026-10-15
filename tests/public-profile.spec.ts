@@ -142,10 +142,15 @@ test('published QR and share tools appear below contacts without leaking hidden 
   expect(vcard).toContain('shown@example.com')
   expect(vcard).not.toContain('+79990000000')
   expect(download.suggestedFilename()).toMatch(/\.vcf$/)
-  await expect(page.getByRole('button',{name:'Поделиться',exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'Действия с QR-кодом'}).click()
+  await expect(page.getByRole('button',{name:'Сохранить QR-код'})).toBeVisible()
+  await expect(page.getByRole('button',{name:'Скопировать ссылку'})).toBeVisible()
+  await expect(page.getByRole('button',{name:'Поделиться страницей'})).toHaveCount(0)
+  await page.getByRole('button',{name:'Скопировать ссылку'}).click()
+  await expect(page.getByRole('status')).toContainText('Ссылка скопирована')
 })
 
-test('avatar export is a compact real WebP of at most 512 pixels', async ({ page }) => {
+test('avatar export is a sharp real WebP of at most 1000 pixels', async ({ page }) => {
   await mock(page)
   await page.goto(`/${handle}`)
   const result = await page.evaluate(async () => {
@@ -157,8 +162,8 @@ test('avatar export is a compact real WebP of at most 512 pixels', async ({ page
     const decoded = await createImageBitmap(blob)
     return { width: decoded.width, height: decoded.height, size: blob.size, type: blob.type }
   })
-  expect(result).toMatchObject({ width: 512, height: 512, type: 'image/webp' })
-  expect(result.size).toBeLessThanOrEqual(60 * 1024)
+  expect(result).toMatchObject({ width: 1000, height: 1000, type: 'image/webp' })
+  expect(result.size).toBeLessThanOrEqual(320 * 1024)
 })
 
 test('unsupported WebP falls back to JPEG without enlarging a small image', async ({ page }) => {

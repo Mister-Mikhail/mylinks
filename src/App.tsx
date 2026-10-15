@@ -90,11 +90,13 @@ const emptyProfile = (id = ''): Profile => ({
   avatar_preview_url: null,
   background_preset: 'midnight',
   card_preset: 'glass',
+  card_radius: 13,
   avatar_shape: 'round',
   avatar_size: 'medium',
   avatar_scale: 28,
   is_published: false,
-  show_qr: false,
+  show_qr: true,
+  qr_size: 176,
   created_at: '',
   updated_at: '',
 })
@@ -751,11 +753,13 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         avatar_path: profile.avatar_path,
         background_preset: profile.background_preset,
         card_preset: profile.card_preset,
+        card_radius: profile.card_radius ?? 13,
         avatar_shape: profile.avatar_shape,
         avatar_size: profile.avatar_size,
         avatar_scale: profile.avatar_scale,
         is_published: profile.is_published,
         show_qr: Boolean(profile.show_qr),
+        qr_size: profile.qr_size ?? 176,
       }).eq('id', user.id)
       if (profileError) throw profileError
 
@@ -1051,8 +1055,13 @@ function ContentEditor({
         <label className="publish-setting">
           <input type="checkbox" checked={Boolean(profile.show_qr)} onChange={(event) => setProfile({ ...profile, show_qr: event.target.checked })} />
           <span className="publish-setting__switch"><i /></span>
-          <span><strong>QR-код на странице</strong><small>Показывать QR-код внизу опубликованного профиля, рядом с кнопкой «Поделиться».</small></span>
+          <span><strong>QR-код на странице</strong><small>Показывать QR-код внизу опубликованного профиля. Нажатие на код откроет действия.</small></span>
         </label>
+        {profile.show_qr && <label className="avatar-size-control">
+          <span><span className="field-caption">Размер QR-кода на странице</span><strong>{profile.qr_size ?? 176} px</strong></span>
+          <input aria-label="Размер QR-кода на странице" type="range" min="120" max="280" step="8" value={profile.qr_size ?? 176} onChange={(event) => setProfile({ ...profile, qr_size: Number(event.target.value) })} />
+          <small><span>Компактный</span><span>Крупный</span></small>
+        </label>}
       </section>
 
       <section className="settings-card">
@@ -1233,6 +1242,11 @@ function DesignEditor({
             ['outline', 'Контур'],
           ] as const).map(([value, label]) => <button aria-pressed={profile.card_preset === value} className={profile.card_preset === value ? 'selected' : ''} onClick={() => setProfile({ ...profile, card_preset: value })} key={value}>{label}</button>)}
         </div>
+        <label className="avatar-size-control">
+          <span><span className="field-caption">Скругление карточек</span><strong>{profile.card_radius ?? 13} px</strong></span>
+          <input type="range" aria-label="Скругление карточек" min="4" max="28" step="1" value={profile.card_radius ?? 13} onChange={(event) => setProfile({ ...profile, card_radius: Number(event.target.value) })} />
+          <small><span>Строго</span><span>Мягко</span></small>
+        </label>
       </section>
 
       <AvatarEditor profile={profile} setProfile={setProfile} uploading={avatarUploading} onUpload={onAvatarUpload} onDraftChange={onAvatarDraft} />

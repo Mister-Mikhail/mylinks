@@ -75,7 +75,7 @@ for (const media of [{ name: 'motion.gif', mime: 'image/gif', data: gif, kind: '
     await dialog.getByRole('button', { name: 'Применить фото' }).click()
     await expect(dialog).toHaveCount(0)
     expect(state.uploads).toBe(2)
-    expect(state.profile).toMatchObject({ avatar_media: media.kind, avatar_crop: { zoom: .75 } })
+    expect(state.profile).toMatchObject(media.kind === 'gif' ? { avatar_media: 'gif', avatar_crop: { zoom: .75 } } : { avatar_media: 'video', avatar_crop: null })
     expect(state.profile.avatar_path).toMatch(media.kind === 'gif' ? /\.gif$/ : /\.webm$/)
     expect(state.profile.avatar_poster_path).toMatch(/poster-.*\.webp$/)
     await page.reload()
@@ -98,10 +98,10 @@ for (const media of [{ name: 'motion.gif', mime: 'image/gif', data: gif, kind: '
 
 test('oversized files and videos longer than ten seconds cannot be uploaded', async ({ page }) => {
   const state = await avatarStep(page)
-  await page.locator('input[type=file]').setInputFiles({ name: 'big.gif', mimeType: 'image/gif', buffer: Buffer.alloc(5 * 1024 * 1024 + 1) })
-  await expect(page.getByText('Размер файла не должен превышать 5 МБ.')).toBeVisible()
+  await page.locator('input[type=file]').setInputFiles({ name: 'big.gif', mimeType: 'image/gif', buffer: Buffer.alloc(60 * 1024 * 1024 + 1) })
+  await expect(page.getByText('Размер исходного файла не должен превышать 60 МБ.')).toBeVisible()
   await page.locator('input[type=file]').setInputFiles({ name: 'long.webm', mimeType: 'video/webm', buffer: Buffer.from(longVideo, 'base64') })
-  await expect(page.getByText('Видео: до 10 секунд', { exact: false })).toBeVisible()
+  await expect(page.getByText('Видео должно длиться не более 10 секунд.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Применить фото' })).toBeDisabled()
   expect(state.uploads).toBe(0)
 })

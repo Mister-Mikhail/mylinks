@@ -35,7 +35,7 @@ const formatProfile = (raw: Record<string, unknown>, currentHandle: string) => {
     name_font_size: number(raw.name_font_size,21,5,60), bio_font_size: number(raw.bio_font_size,10,5,60), handle_font_size: number(raw.handle_font_size,10,5,60),
     background_preset: raw.background_preset, card_preset: raw.card_preset, avatar_shape: raw.avatar_shape,
     avatar_size: ['small','medium','large'].includes(String(raw.avatar_size)) ? raw.avatar_size : 'medium',
-    avatar_scale: number(raw.avatar_scale,28,10,100), is_published: raw.is_published === true, show_qr: raw.show_qr === true,
+    avatar_scale: number(raw.avatar_scale,28,10,100), is_published: raw.is_published === true, show_qr: raw.show_qr === true, qr_size: number(raw.qr_size,176,120,280), card_radius: number(raw.card_radius,13,4,28),
   }
 }
 const formatLink = (raw: Record<string, unknown>, owner: string, position: number) => ({

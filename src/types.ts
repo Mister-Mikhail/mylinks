@@ -27,11 +27,13 @@ export interface Profile {
   avatar_poster_url?: string | null
   background_preset: BackgroundPreset
   card_preset: CardPreset
+  card_radius?: number
   avatar_shape: AvatarShape
   avatar_size: AvatarSize
   avatar_scale: number
   is_published: boolean
   show_qr?: boolean
+  qr_size?: number
   onboarding_completed?: boolean
   onboarding_progress?: Record<string, unknown>
   created_at: string

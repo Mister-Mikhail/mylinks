@@ -1,8 +1,13 @@
-.profile-share { display:grid; justify-items:center; gap:16px; margin:24px 0 4px; padding:20px 12px 4px; border-top:1px solid rgba(180,205,229,.19); text-align:center; }
-.profile-share__qr { display:grid; justify-items:center; gap:8px; }
-.profile-share__qr img { display:block; width:176px; height:176px; border-radius:14px; }
+.profile-share { display:grid; justify-items:center; gap:10px; margin:24px 0 4px; padding:20px 12px 4px; border-top:1px solid rgba(180,205,229,.19); text-align:center; }
+.profile-share__qr { display:grid; justify-items:center; gap:8px; max-width:100%; }
+.profile-share__image { position:relative; width:var(--qr-size); height:var(--qr-size); max-width:100%; }
+.profile-share__open { display:block; width:100%; height:100%; padding:0; border:0; border-radius:14px; background:transparent; cursor:pointer; }
+.profile-share__open img { display:block; width:100%; height:100%; border-radius:14px; }
+.profile-share__open:focus-visible,.profile-share__overlay button:focus-visible { outline:2px solid #9cccee; outline-offset:3px; }
+.profile-share__overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:10px; border-radius:14px; background:rgba(10,18,30,.85); backdrop-filter:blur(5px); }
+.profile-share__overlay button { display:grid; place-items:center; width:46px; height:46px; padding:0; border:1px solid rgba(170,201,226,.55); border-radius:12px; background:#24394f; color:#f1f6fc; cursor:pointer; }
+.profile-share__overlay button:hover { background:#31526c; }
 .profile-share__qr span { color:#aebdcb; font-size:11px; }
-.profile-share__actions { display:flex; justify-content:center; flex-wrap:wrap; gap:9px; }
-.profile-share__actions button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:38px; padding:8px 11px; border:1px solid rgba(170,201,226,.35); border-radius:10px; background:rgba(19,28,42,.7); color:#f1f6fc; font:inherit; font-size:12px; cursor:pointer; }
-.profile-share__actions button:hover,.profile-share__actions button:focus-visible { border-color:#9cccee; background:#253e55; }
+.profile-share__contact { display:inline-flex; gap:7px; align-items:center; min-height:38px; padding:7px 10px; border:0; background:transparent; color:#c2d7e8; font:inherit; font-size:12px; cursor:pointer; }
+.profile-share__contact:hover,.profile-share__contact:focus-visible { color:#fff; text-decoration:underline; }
 .profile-share p { margin:0; color:#a8d6ff; font-size:12px; }

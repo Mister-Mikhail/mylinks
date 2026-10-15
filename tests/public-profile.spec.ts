@@ -1,4 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
+import { createRequire } from 'node:module'
+import jsQR from 'jsqr'
+const { PNG } = createRequire(import.meta.url)('pngjs')
 
 const id = '00000000-0000-4000-8000-000000000001'
 const handle = 'sample-user'
@@ -116,6 +119,30 @@ test('editor and public profile buttons preserve navigation', async ({ page }) =
   await expect(page).toHaveURL(new RegExp(`/${handle}$`))
   await page.getByRole('button', { name: 'Личный кабинет' }).click()
   await expect(page.getByRole('button', { name: 'Оформление', exact: true })).toBeVisible()
+})
+
+test('published QR and share tools appear below contacts without leaking hidden values', async ({ page }) => {
+  const { state } = await mock(page)
+  Object.assign(state.profile, { show_qr: true })
+  await page.route('**/rest/v1/profile_contacts*', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify([
+    { id: 'shown', profile_id: id, kind: 'email', label: 'Почта', value: 'shown@example.com', position: 0, is_visible: true },
+    { id: 'hidden', profile_id: id, kind: 'phone', label: 'Телефон', value: '+79990000000', position: 1, is_visible: false },
+  ]) }))
+  await page.goto(`/${handle}`)
+  const qr = page.locator('.profile-share__qr img')
+  await expect(qr).toBeVisible()
+  const image = (await qr.getAttribute('src'))!.split(',')[1]
+  const png = PNG.sync.read(Buffer.from(image, 'base64'))
+  expect(jsQR(new Uint8ClampedArray(png.data),png.width,png.height,{inversionAttempts:'attemptBoth'})?.data).toBe(`https://mylinks.bar/${handle}`)
+  const pending=page.waitForEvent('download')
+  await page.getByRole('button',{name:'Сохранить контакт'}).click()
+  const download=await pending, chunks:Buffer[]=[]
+  for await(const chunk of (await download.createReadStream())!) chunks.push(chunk)
+  const vcard=Buffer.concat(chunks).toString()
+  expect(vcard).toContain('shown@example.com')
+  expect(vcard).not.toContain('+79990000000')
+  expect(download.suggestedFilename()).toMatch(/\.vcf$/)
+  await expect(page.getByRole('button',{name:'Поделиться',exact:true})).toBeVisible()
 })
 
 test('avatar export is a compact real WebP of at most 512 pixels', async ({ page }) => {

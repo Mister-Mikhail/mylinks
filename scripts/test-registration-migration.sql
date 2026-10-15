@@ -131,5 +131,17 @@ grant select on public.profiles,public.profile_links,public.profile_contacts to 
 create policy test_public_profile on public.profiles for select to anon using(is_published and moderation.allowed(id));
 create policy test_public_links on public.profile_links for select to anon using(exists(select 1 from public.profiles where id=profile_id and is_published));
 create policy test_public_contacts on public.profile_contacts for select to anon using(is_visible and exists(select 1 from public.profiles where id=profile_id and is_published));
+-- Earlier typography migrations are already present in production; these columns
+-- make the isolated trash/editor fixture match their current schema.
+alter table public.profiles
+ add column name_font text not null default 'manrope',add column name_font_size smallint not null default 21,
+ add column bio_font text not null default 'manrope',add column bio_font_size smallint not null default 10,
+ add column handle_font text not null default 'manrope',add column handle_font_size smallint not null default 10;
+alter table public.profile_links add column label_font text not null default 'manrope',add column label_font_size smallint not null default 11;
+alter table public.profile_contacts
+ add column label_font text not null default 'manrope',add column label_font_size smallint not null default 10,
+ add column value_font text not null default 'manrope',add column value_font_size smallint not null default 9;
 \i supabase/migrations/20261014195826_admin_trash_and_sharing.sql
+\i supabase/migrations/20261015060932_staff_editor_and_public_share.sql
+\i scripts/test-staff-profile.sql
 \i scripts/test-trash.sql

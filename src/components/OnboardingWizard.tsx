@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react'
-import { ArrowLeft, ArrowRight, Check, ChevronDown, LoaderCircle, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, ChevronDown, LoaderCircle, Plus, ShieldAlert, Sparkles, Trash2 } from 'lucide-react'
 import type { AvatarDraft, AvatarUploadOptions, EditableContact, EditableLink, LinkIcon as LinkIconKey, Profile } from '../types'
 import { ProfilePreview } from './ProfilePreview'
 import { DeleteAccount } from './DeleteAccount'
@@ -9,10 +9,11 @@ import { supabase } from '../lib/supabase'
 import { isValidDisplayName, isValidHttpUrl, isValidNewHandle, normalizeDisplayNameInput, normalizeNewHandleInput } from '../lib/validation'
 import { CONTACT_OPTIONS, isValidContactEmail, isValidInternationalPhone, normalizePhoneInput, normalizeContactEmailInput } from '../lib/contacts'
 import { getLinkPlatform, LINK_PLATFORMS, onboardingPlatformUrl } from '../config/linkPlatforms'
+import { isKnownSensitiveUrl } from '../lib/sensitiveLinks'
 import './onboarding.css'
 const AddressPicker = lazy(() => import('./AddressPicker'))
 
-type WizardLink = { label: string; url: string; icon_key: LinkIconKey }
+type WizardLink = { label: string; url: string; icon_key: LinkIconKey; is_sensitive?: boolean }
 type WizardContact = { kind: 'address' | 'phone' | 'email'; label: string; value: string; is_visible: boolean; latitude?: number | null; longitude?: number | null }
 type WizardData = {
   display_name: string; handle: string; bio: string; links: WizardLink[]; contact: WizardContact
@@ -104,7 +105,7 @@ export function OnboardingWizard({ userId, profile, setProfile, onFinish, avatar
       const payload = {
         ...data, display_name: data.display_name.trim(), bio: data.bio.trim(),
         avatar_shape: profile.avatar_shape, avatar_size: profile.avatar_size, avatar_scale: profile.avatar_scale,
-        links: data.links.map(link => ({ ...link, label: link.label.trim() || getLinkPlatform(link.icon_key).label, url: linkUrl(link) })),
+        links: data.links.map(link => ({ ...link, label: link.label.trim() || getLinkPlatform(link.icon_key).label, url: linkUrl(link), is_sensitive: Boolean(link.is_sensitive || isKnownSensitiveUrl(linkUrl(link))) })),
         contact: { ...data.contact, value: data.contact.value.trim(), label: data.contact.label.trim() },
       }
       const { error: completeError } = await supabase.rpc('complete_onboarding', { payload })
@@ -115,7 +116,7 @@ export function OnboardingWizard({ userId, profile, setProfile, onFinish, avatar
   }
   const updateLink = (index: number, change: Partial<WizardLink>) => patch('links', data.links.map((link, i) => i === index ? { ...link, ...change } : link))
   const previewProfile = { ...profile, ...data, is_published: data.publish }
-  const previewLinks: EditableLink[] = data.links.filter(validLink).map((link, position) => ({ ...link, localId: `wizard-${position}`, label: link.label.trim() || getLinkPlatform(link.icon_key).label, url: linkUrl(link), position, is_visible: true, is_sensitive: false }))
+  const previewLinks: EditableLink[] = data.links.filter(validLink).map((link, position) => ({ ...link, localId: `wizard-${position}`, label: link.label.trim() || getLinkPlatform(link.icon_key).label, url: linkUrl(link), position, is_visible: true, is_sensitive: Boolean(link.is_sensitive || isKnownSensitiveUrl(linkUrl(link))) }))
   const previewContacts: EditableContact[] = data.contact.is_visible && validContact(data.contact) ? [{ ...data.contact, localId: 'wizard-contact', position: 0 }] : []
   const showPreview = step === 4
   const handleTaken = availability.value === data.handle && availability.status === 'taken'
@@ -145,13 +146,14 @@ export function OnboardingWizard({ userId, profile, setProfile, onFinish, avatar
           {data.links.map((link, index) => { const valid = validLink(link); const invalid = (attempted || Boolean(link.url)) && !valid; const platform = getLinkPlatform(link.icon_key); return <fieldset className="onboarding-link" key={index}>
             <legend>Ссылка {index + 1}</legend>
             <div className="onboarding-link-toolbar"><span className="onboarding-platform-icon"><LinkIcon name={link.icon_key} url={linkUrl(link)} size={26} /></span><span className="onboarding-select"><select aria-label="Площадка" value={link.icon_key} onChange={event => { updateLink(index, { icon_key: event.target.value as LinkIconKey, url: '' }); warning(`link${index}`, '') }}>{LINK_PLATFORMS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select><ChevronDown size={17} aria-hidden="true" /></span><button type="button" className="icon-button" aria-label={`Удалить ссылку ${index + 1}`} onClick={() => { patch('links', data.links.filter((_, i) => i !== index)); setWarnings({}) }}><Trash2 size={17} /></button></div>
-            <label>Описание<input aria-label="Описание ссылки" value={link.label} placeholder="Например: мой блог" maxLength={80} data-valid={Boolean(link.label.trim())} onChange={event => updateLink(index, { label: event.target.value })} /></label>
             <label className="onboarding-link-input">{link.icon_key === 'whatsapp' ? 'Номер WhatsApp' : link.icon_key === 'link' ? 'Адрес ссылки' : 'Имя пользователя или ID'}
               <span className="onboarding-link-address" data-valid={valid && !warnings[`link${index}`]} data-invalid={invalid || Boolean(warnings[`link${index}`])}>{platform.inputPrefix && link.icon_key !== 'whatsapp' && !/^https?:\/\//i.test(link.url) && <span>{platform.inputPrefix}</span>}<input aria-label={link.icon_key === 'whatsapp' ? 'Номер WhatsApp' : link.icon_key === 'link' ? 'Адрес ссылки' : 'Имя пользователя или ID'} aria-invalid={invalid || Boolean(warnings[`link${index}`])} aria-describedby={`link-hint-${index}`} value={link.url} inputMode={link.icon_key === 'whatsapp' ? 'tel' : 'text'} autoCapitalize="none" autoCorrect="off" placeholder={link.icon_key === 'whatsapp' ? '+79990000000' : platform.placeholder} onChange={event => { const raw = event.target.value; warning(`link${index}`, link.icon_key === 'whatsapp' && /[^\d+\s()-]/.test(raw) ? 'В номере допустимы только цифры. Знак + добавляется автоматически.' : ''); updateLink(index, { url: link.icon_key === 'whatsapp' ? normalizePhoneInput(raw) : raw }) }} /></span>
             </label>
             <FieldHint id={`link-hint-${index}`} valid={valid} invalid={invalid || Boolean(warnings[`link${index}`])}>{warnings[`link${index}`] || (valid ? 'Ссылка заполнена верно' : link.icon_key === 'whatsapp' ? 'Введите код страны и номер: от 7 до 15 цифр.' : link.icon_key === 'link' ? 'Укажите адрес сайта, например example.com.' : 'Укажите имя пользователя, ID или полную ссылку выбранной площадки.')}</FieldHint>
+            <label>Описание<input aria-label="Описание ссылки" value={link.label} placeholder="Например: мой блог" maxLength={80} data-valid={Boolean(link.label.trim())} onChange={event => updateLink(index, { label: event.target.value })} /></label>
+            <label className="onboarding-sensitive"><input type="checkbox" checked={Boolean(link.is_sensitive || isKnownSensitiveUrl(linkUrl(link)))} disabled={isKnownSensitiveUrl(linkUrl(link))} onChange={event => updateLink(index, { is_sensitive: event.target.checked })} /><ShieldAlert size={17} aria-hidden="true" /><span>Предупреждение 18+</span></label>
           </fieldset> })}
-          {data.links.length < 3 && <button type="button" className="onboarding-add" onClick={() => patch('links', [...data.links, { label: '', url: '', icon_key: 'link' }])}>＋ Добавить ссылку</button>}
+          {data.links.length < 3 && <button type="button" className="button button--secondary onboarding-add" onClick={() => patch('links', [...data.links, { label: '', url: '', icon_key: 'link', is_sensitive: false }])}><Plus size={17} /> Добавить ссылку</button>}
           <button type="button" className="onboarding-skip-link" onClick={() => void move(3, { ...data, links: [] })} disabled={locked}>Добавлю позже</button>
         </div>}
         {step === 3 && <div className="onboarding-fields">

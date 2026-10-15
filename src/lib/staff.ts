@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import type { AvatarUploadOptions, EditableContact, EditableLink, Profile } from '../types'
 
 export type StaffRole = 'admin' | 'moderator'
 export type UserRole = StaffRole | 'user'
@@ -151,4 +152,34 @@ export async function restoreStaffUser(target_id: string) {
     throw new Error(details?.error || error.message)
   }
   if (!data?.restored) throw new Error(data?.error || 'Не удалось восстановить профиль.')
+}
+
+const staffProfileCall = async (body: Record<string, unknown>) => {
+  const { data, error } = await supabase.functions.invoke('admin-profile', { body })
+  if (error) {
+    const response = (error as { context?: Response }).context
+    const details = response?.json ? await response.json().catch(() => null) as { error?: string } | null : null
+    throw new Error(details?.error || error.message)
+  }
+  if (data?.error) throw new Error(data.error)
+  return data
+}
+export async function loadStaffProfile(target_id: string): Promise<{ profile: Profile; links: EditableLink[]; contacts: EditableContact[] }> {
+  const data = await staffProfileCall({ action: 'load', target_id })
+  return { profile: data.profile, links: data.links.map((link: EditableLink) => ({ ...link, localId: link.id })), contacts: data.contacts.map((contact: EditableContact) => ({ ...contact, localId: contact.id })) }
+}
+export async function saveStaffProfile(target_id: string, profile: Profile, links: EditableLink[], contacts: EditableContact[]) {
+  await staffProfileCall({ action: 'save', target_id, profile, links, contacts })
+}
+export async function uploadStaffAvatar(target_id: string, blob: Blob, options?: AvatarUploadOptions): Promise<Partial<Profile>> {
+  if (blob.size > 5 * 1024 * 1024) throw new Error('Файл больше 5 МБ.')
+  const toBase64 = (file: Blob) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result).split(',')[1])
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+  const data = await toBase64(blob)
+  const poster = options?.poster ? { mime: options.poster.type, data: await toBase64(options.poster) } : null
+  return await staffProfileCall({ action: 'avatar', target_id, mime: blob.type, data, kind: options?.kind, crop: options?.crop, poster })
 }

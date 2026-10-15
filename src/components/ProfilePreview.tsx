@@ -9,6 +9,7 @@ import { copyText, profileUrl } from '../lib/clipboard'
 import { BrandMark } from './BrandMark'
 import { LinkIcon } from './LinkIcon'
 import { ProfileContacts } from './ProfileContacts'
+import { PublicShareTools } from './PublicShareTools'
 import { AvatarMedia } from './AvatarMedia'
 import './extras.css'
 
@@ -109,6 +110,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
         )}
       </div>
 
+      {profile.is_published && (interactive || profile.show_qr) && <PublicShareTools handle={profile.handle} name={profile.display_name} contacts={contacts} showQr={Boolean(profile.show_qr)} />}
       </div>
 
       <div className="profile-card__footer">

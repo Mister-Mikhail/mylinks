@@ -22,8 +22,8 @@ for(const handle of ['anna.page','anna_page'])test(`QR PNG and SVG encode the ca
  const dialog=page.getByRole('dialog',{name:'QR-код страницы'})
  await expect(dialog).toContainText('Страница пока закрыта')
  await expect(dialog.locator('img')).toBeVisible()
- for(const version of ['light','dark']){
-  await dialog.getByLabel('Версия',{exact:true}).selectOption(version)
+ await expect(dialog.getByLabel('Версия',{exact:true})).toHaveCount(0)
+ {
   await expect(dialog.getByRole('button',{name:'PNG',exact:true})).toBeEnabled()
   const pending=page.waitForEvent('download');await dialog.getByRole('button',{name:'PNG',exact:true}).click()
   const download=await pending,buffer=await bytes(download),png=PNG.sync.read(buffer)

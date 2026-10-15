@@ -101,3 +101,28 @@ test('moderator cannot access the delete action', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Удалить пользователя' })).toHaveCount(0)
 })
 
+test('administrator opens the filled page and saves through the regular editor', async ({ page }) => {
+  await mockStaff(page, 'admin')
+  const profile = { ...target, avatar_path: null, avatar_url: null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', show_qr: false, onboarding_completed: true }
+  const links = [{ id: 'a1000000-0000-4000-8000-000000000001', profile_id: targetId, label: 'Сайт', url: 'https://example.com', icon_key: 'website', position: 0, is_visible: true, is_sensitive: false }]
+  const contacts = [{ id: 'a1000000-0000-4000-8000-000000000002', profile_id: targetId, kind: 'email', label: 'Почта', value: 'hello@example.com', position: 0, is_visible: true }]
+  let saved: Record<string, unknown> | null = null
+  await page.route('**/functions/v1/admin-profile', route => {
+    const body = route.request().postDataJSON()
+    if (body.action === 'load') return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ profile, links, contacts }) })
+    if (body.action === 'save') { saved = body; return route.fulfill({ contentType: 'application/json', body: '{"saved":true}' }) }
+    return route.fulfill({ status: 400 })
+  })
+  await page.goto('/admin/users/' + targetId)
+  await page.getByRole('link', { name: 'Посмотреть профиль' }).click()
+  await expect(page.getByRole('heading', { name: 'Василий' })).toBeVisible()
+  await expect(page.getByText('hello@example.com')).toBeVisible()
+  await expect(page).toHaveURL(/\/preview$/)
+  await page.getByRole('link', { name: 'Открыть редактор' }).click()
+  await expect(page.getByRole('heading', { name: 'Ссылки и контакты' })).toBeVisible()
+  await page.getByRole('textbox', { name: 'О себе' }).fill('Фотограф и путешественник')
+  await page.getByRole('checkbox', { name: /QR-код на странице/ }).check()
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+  await expect.poll(() => saved).toMatchObject({ action: 'save', target_id: targetId, profile: { bio: 'Фотограф и путешественник', show_qr: true } })
+})
+

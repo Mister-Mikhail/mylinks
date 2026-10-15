@@ -64,6 +64,14 @@ do $$ begin
  if exists(select 1 from public.profiles where id='00000000-0000-4000-8000-000000000011') or exists(select 1 from public.profile_links where profile_id='00000000-0000-4000-8000-000000000011') then raise exception 'trash public'; end if;
 end; $$;
 reset role;
+-- Matching mailbox names on different domains are distinct identities.
+insert into auth.users(id,email,raw_user_meta_data) values
+ ('00000000-0000-4000-8000-000000000015','restore@different.example','{"handle":"different.email","display_name":"Другая"}');
+do $$ begin
+ if exists(select 1 from moderation.user_trash where target_id='00000000-0000-4000-8000-000000000010' and conflict_at is not null)
+ then raise exception 'same local part on a different domain blocked restore'; end if;
+end; $$;
+delete from auth.users where id='00000000-0000-4000-8000-000000000015';
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000003',false);
 select public.staff_trash_restore_prepare('00000000-0000-4000-8000-000000000010');

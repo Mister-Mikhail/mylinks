@@ -53,3 +53,6 @@
 .staff-native-dialog form{display:grid;gap:18px}.staff-native-dialog select{width:100%;min-height:44px;padding:10px 14px;border:1px solid var(--staff-border,#23415b);border-radius:8px;background:#081a2a;color:#e8f0f7;font:inherit;color-scheme:dark}
 .staff-trash-list{display:grid;gap:14px}.staff-trash-item{display:flex;align-items:center;justify-content:space-between;gap:24px}.staff-trash-item>div{min-width:0}.staff-trash-item p{overflow-wrap:anywhere;margin:8px 0}.staff-trash-item small{color:var(--staff-muted);line-height:1.7}.staff-trash-item>.button{flex-shrink:0}.staff-trash .staff-footnote{padding:0 0 18px}.staff-trash .staff-reason{color:#e4b987;font-size:.85rem}
 @media(max-width:620px){.staff-trash-item{align-items:stretch;flex-direction:column;gap:16px}.staff-native-dialog{padding:24px}}
+.staff-detail-actions { display:flex; flex-wrap:wrap; gap:10px; margin:16px 0 20px; }
+.staff-profile-preview { min-height:100vh; display:flex; flex-direction:column; align-items:center; gap:12px; padding:20px; background:#10151d; color:#f0f5fa; }
+.staff-profile-preview > .profile-card { width:min(100%,480px); }

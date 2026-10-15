@@ -41,6 +41,7 @@ import { LinkIcon } from './components/LinkIcon'
 import { ProfileTools } from './components/ProfileTools'
 import { StatisticsPanel } from './components/StatisticsPanel'
 import './components/extras.css'
+import './components/admin.css'
 import { capabilitiesForTier, FREE_CAPABILITIES } from './config/capabilities'
 import {
   buildPlatformUrl,
@@ -52,6 +53,7 @@ import {
 import { supabase } from './lib/supabase'
 import { copyText, profileUrl } from './lib/clipboard'
 import { useStaffRole } from './lib/useStaffRole'
+import { loadStaffProfile, saveStaffProfile, uploadStaffAvatar } from './lib/staff'
 import { CONTACT_OPTIONS, contactPlaceholder, isValidContactValue } from './lib/contacts'
 import { isKnownSensitiveUrl } from './lib/sensitiveLinks'
 import { isValidDisplayName, isValidHandle, isValidNewHandle, isValidHttpUrl, normalizeDisplayNameInput, normalizeHandle, normalizeHandleInput, normalizeUrl } from './lib/validation'
@@ -92,6 +94,7 @@ const emptyProfile = (id = ''): Profile => ({
   avatar_size: 'medium',
   avatar_scale: 28,
   is_published: false,
+  show_qr: false,
   created_at: '',
   updated_at: '',
 })
@@ -180,6 +183,8 @@ function App() {
     <Routes>
       <Route path="/auth/confirmed" element={<AuthConfirmation session={session} />} />
       <Route path="/admin/*" element={<Suspense fallback={<LoadingScreen />}><AdminPanel session={session} /></Suspense>} />
+      <Route path="/admin/users/:targetId/edit" element={session ? <StaffProfileEditor user={session.user} /> : <Navigate to="/admin" replace />} />
+      <Route path="/admin/users/:targetId/preview" element={session ? <StaffProfilePreview user={session.user} /> : <Navigate to="/admin" replace />} />
       <Route path="/p/:handle" element={<LegacyProfileRedirect />} />
       <Route path="/" element={session ? <Dashboard user={session.user} /> : <Landing />} />
       <Route path="/:handle" element={<ProfilePage session={session} />} />
@@ -461,12 +466,39 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
   )
 }
 
-function Dashboard({ user }: { user: User }) {
+function StaffProfileEditor({ user }: { user: User }) {
+  const { targetId = '' } = useParams()
+  const access = useStaffRole(user.id)
+  if (access.loading) return <LoadingScreen />
+  if (access.role !== 'admin') return <Navigate to="/admin" replace />
+  return <Dashboard key={targetId} user={user} targetId={targetId} />
+}
+
+function StaffProfilePreview({ user }: { user: User }) {
+  const { targetId = '' } = useParams()
+  const access = useStaffRole(user.id)
+  const [data, setData] = useState<PreviewLocationState | null>(null)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    if (!access.role) return
+    let active = true
+    void loadStaffProfile(targetId).then(result => { if (active) setData(result) }).catch(caught => { if (active) setError(caught instanceof Error ? caught.message : 'Не удалось открыть профиль.') })
+    return () => { active = false }
+  }, [targetId, access.role])
+  if (access.loading) return <LoadingScreen />
+  if (!access.role) return <Navigate to="/admin" replace />
+  return <main className="staff-profile-preview"><Link className="button button--secondary" to={`/admin/users/${targetId}`}>← К пользователю</Link>{access.role === 'admin' && <Link className="button button--secondary" to={`/admin/users/${targetId}/edit`}>Открыть редактор</Link>}
+    {error ? <p role="alert">{error}</p> : data ? <ProfilePreview profile={data.profile} links={data.links} contacts={data.contacts} interactive={false} showPrivacy={!data.profile.is_published} /> : <LoadingScreen />}
+  </main>
+}
+
+function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
   const navigate = useNavigate()
+  const ownerId = targetId || user.id
   const { role: staffRole } = useStaffRole(user.id)
-  const cachedSnapshot = editorSnapshot?.userId === user.id ? editorSnapshot : null
+  const cachedSnapshot = !targetId && editorSnapshot?.userId === user.id ? editorSnapshot : null
   const skipInitialLoad = useRef(Boolean(cachedSnapshot))
-  const [profile, setProfile] = useState<Profile>(cachedSnapshot?.profile ?? emptyProfile(user.id))
+  const [profile, setProfile] = useState<Profile>(cachedSnapshot?.profile ?? emptyProfile(ownerId))
   const persistedHandle = useRef(cachedSnapshot?.profile.handle ?? '')
   const persistedPublished = useRef(cachedSnapshot?.profile.is_published ?? false)
   const [links, setLinks] = useState<EditableLink[]>(cachedSnapshot?.links ?? [])
@@ -501,6 +533,17 @@ function Dashboard({ user }: { user: User }) {
     setLoading(true)
     setTemporaryCheckPending(true)
     setError('')
+    if (targetId) {
+      try {
+        const data = await loadStaffProfile(targetId)
+        setProfile(data.profile); setLinks(data.links); setContacts(data.contacts)
+        setOriginalLinkIds(data.links.flatMap(link => link.id ? [link.id] : []))
+        setOriginalContactIds(data.contacts.flatMap(contact => contact.id ? [contact.id] : []))
+        persistedHandle.current = data.profile.handle; persistedPublished.current = data.profile.is_published
+      } catch (caught) { setError(caught instanceof Error ? caught.message : 'Не удалось загрузить профиль.') }
+      setLoading(false); setTemporaryCheckPending(false)
+      return null
+    }
     const [profileResult, linksResult, contactsResult, temporaryResult] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('profile_links').select('*').eq('profile_id', user.id).order('position'),
@@ -559,7 +602,7 @@ function Dashboard({ user }: { user: User }) {
     void loadData()
     // The active user id is the stable key for this dashboard instance.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id])
+  }, [user.id, targetId])
 
   // New links go to the top of the list and are scrolled into view right away.
   const addLink = () => {
@@ -626,6 +669,17 @@ function Dashboard({ user }: { user: User }) {
 
   const uploadAvatar = async (blob: Blob, options?: AvatarUploadOptions) => {
     setAvatarUploading(true); setError(''); setNotice('')
+    if (targetId) {
+      try {
+        const patch = await uploadStaffAvatar(targetId, blob, options)
+        setProfile(current => ({ ...current, ...patch }))
+        setNotice('Аватар обновлён')
+        return true
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : 'Не удалось загрузить аватар.')
+        return false
+      } finally { setAvatarUploading(false) }
+    }
     const uploadedPaths: string[] = []
     let committed = false
     try {
@@ -676,6 +730,12 @@ function Dashboard({ user }: { user: User }) {
       const readyContacts = contacts.filter((contact) => contact.label.trim() || contact.value.trim())
       const invalidContact = readyContacts.find((contact) => !isValidContactValue(contact.kind, contact.value))
       if (invalidContact) throw new Error('Проверьте адрес, телефон или email в разделе контактов.')
+      if (targetId) {
+        await saveStaffProfile(targetId, { ...profile, display_name: profile.display_name.trim(), bio: profile.bio.trim() }, readyLinks.map(link => ({ ...link, url: normalizeUrl(link.url) })), readyContacts)
+        await loadData()
+        setNotice('Изменения пользователя сохранены в журнале')
+        return
+      }
 
       const { error: profileError } = await supabase.from('profiles').update({
         handle: profile.handle,
@@ -695,6 +755,7 @@ function Dashboard({ user }: { user: User }) {
         avatar_size: profile.avatar_size,
         avatar_scale: profile.avatar_scale,
         is_published: profile.is_published,
+        show_qr: Boolean(profile.show_qr),
       }).eq('id', user.id)
       if (profileError) throw profileError
 
@@ -802,6 +863,7 @@ function Dashboard({ user }: { user: User }) {
   }
 
   const openProfilePreview = () => {
+    if (targetId) { navigate(`/admin/users/${targetId}/preview`); return }
     const state: PreviewLocationState = { profile, links, contacts }
     editorSnapshot = { userId: user.id, ...state }
     navigate(`/${profile.handle}`, { state })
@@ -820,13 +882,14 @@ function Dashboard({ user }: { user: User }) {
       </div>
     </main>
   )
-  if (temporaryAccount) return <TemporaryAccountGate account={temporaryAccount} onClaimed={() => { setTemporaryAccount(null); void loadData() }} />
-  if (profile.onboarding_completed === false) return <OnboardingWizard onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} userId={user.id} profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} avatarDraft={avatarDraft} onAvatarDraft={setAvatarDraft} uploadError={error} onFinish={async () => { const saved = await loadData(); if (saved) navigate(`/${saved.profile.handle}`, { state: saved }) }} />
+  if (!targetId && temporaryAccount) return <TemporaryAccountGate account={temporaryAccount} onClaimed={() => { setTemporaryAccount(null); void loadData() }} />
+  if (!targetId && profile.onboarding_completed === false) return <OnboardingWizard onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} userId={user.id} profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} avatarDraft={avatarDraft} onAvatarDraft={setAvatarDraft} uploadError={error} onFinish={async () => { const saved = await loadData(); if (saved) navigate(`/${saved.profile.handle}`, { state: saved }) }} />
 
   return (
     <div className={`dashboard-shell ${section === 'design' ? 'dashboard-shell--design' : ''} ${avatarDraft ? 'dashboard-shell--cropping' : ''}`}>
       <header className="dashboard-topbar">
         <BrandMark />
+        {targetId && <Link className="button button--secondary button--small" to={`/admin/users/${targetId}`}>← Карточка пользователя</Link>}
         {section === 'design' && <span className="appearance-topbar-title">Оформление</span>}
         <div className="dashboard-topbar__meta">
           <span className={`status-chip ${profile.is_published ? 'status-chip--published' : ''}`}><span /> {profile.is_published ? 'Опубликован' : 'Черновик'}</span>
@@ -834,7 +897,7 @@ function Dashboard({ user }: { user: User }) {
           <button className="button button--primary button--small" onClick={save} aria-label="Сохранить" disabled={saving || avatarUploading || Boolean(avatarDraft)} title={avatarDraft ? 'Сначала примените фото или отмените кадрирование' : undefined}>
             {saving ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} <span className="button__label">Сохранить</span>
           </button>
-          <button className="icon-button" onClick={signOut} aria-label="Выйти"><LogOut size={18} /></button>
+          {!targetId && <button className="icon-button" onClick={signOut} aria-label="Выйти"><LogOut size={18} /></button>}
         </div>
       </header>
 
@@ -844,7 +907,7 @@ function Dashboard({ user }: { user: User }) {
             <p className="editor-nav__label">Редактор</p>
             <button className={section === 'links' ? 'active' : ''} onClick={() => setSection('links')} disabled={avatarUploading || Boolean(avatarDraft)}><Link2 size={18} /> <span>Ссылки</span></button>
             <button className={section === 'design' ? 'active' : ''} onClick={() => setSection('design')}><Palette size={18} /> <span>Оформление</span></button>
-            <button className={section === 'stats' ? 'active' : ''} onClick={() => setSection('stats')} disabled={avatarUploading || Boolean(avatarDraft)}><BarChart3 size={18} /><span>Статистика</span></button>
+            {!targetId && <button className={section === 'stats' ? 'active' : ''} onClick={() => setSection('stats')} disabled={avatarUploading || Boolean(avatarDraft)}><BarChart3 size={18} /><span>Статистика</span></button>}
             {staffRole && <Link className="editor-nav__staff-link" to="/admin"><ShieldCheck size={18} /><span className="editor-nav__staff-full">{staffRole === 'admin' ? 'Администрирование' : 'Модерация'}</span><span className="editor-nav__staff-short">{staffRole === 'admin' ? 'Админ' : 'Модератор'}</span></Link>}
           </div>
           <div className="editor-nav__account">
@@ -861,8 +924,8 @@ function Dashboard({ user }: { user: User }) {
             <span className="autosave-hint">{section === 'stats' ? 'Только для владельца' : 'Сохраняется вручную'}</span>
           </div>
 
-          <ProfileTools userId={user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} />
-          {!staffRole && <DeleteAccount onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
+          {!targetId && <ProfileTools userId={user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} />}
+          {!targetId && !staffRole && <DeleteAccount onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
           {notice && <div className="toast toast--success"><Check size={16} /> {notice}</div>}
           {error && <div className="toast toast--error">{error}</div>}
 
@@ -984,6 +1047,11 @@ function ContentEditor({
           <input type="checkbox" checked={profile.is_published} onChange={(event) => setProfile({ ...profile, is_published: event.target.checked })} />
           <span className="publish-setting__switch"><i /></span>
           <span><strong>Публичная страница</strong><small>{profile.is_published ? `Сейчас mylinks.bar/${profile.handle} доступна всем по ссылке.` : 'Включите, когда захотите поделиться профилем.'}</small></span>
+        </label>
+        <label className="publish-setting">
+          <input type="checkbox" checked={Boolean(profile.show_qr)} onChange={(event) => setProfile({ ...profile, show_qr: event.target.checked })} />
+          <span className="publish-setting__switch"><i /></span>
+          <span><strong>QR-код на странице</strong><small>Показывать QR-код внизу опубликованного профиля, рядом с кнопкой «Поделиться».</small></span>
         </label>
       </section>
 

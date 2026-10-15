@@ -71,6 +71,7 @@ begin
  return jsonb_build_object('links',cardinality(kept_links),'contacts',cardinality(kept_contacts));
 end; $$;
 revoke all on function moderation.save_staff_profile(uuid,jsonb) from public,anon,authenticated;
+grant execute on function moderation.save_staff_profile(uuid,jsonb) to authenticated;
 create function public.staff_save_profile(target uuid,payload jsonb) returns jsonb
 language sql set search_path='' as $$ select moderation.save_staff_profile(target,payload); $$;
 revoke all on function public.staff_save_profile(uuid,jsonb) from public,anon;
@@ -91,6 +92,7 @@ begin
  values(auth.uid(),target,'avatar_edited','Администратор обновил аватар профиля');
 end; $$;
 revoke all on function moderation.set_staff_avatar(uuid,text,text,jsonb,text) from public,anon,authenticated;
+grant execute on function moderation.set_staff_avatar(uuid,text,text,jsonb,text) to authenticated;
 create function public.staff_set_avatar(target uuid, avatar text, media text, crop jsonb, poster text) returns void
 language sql set search_path='' as $$ select moderation.set_staff_avatar(target,avatar,media,crop,poster); $$;
 revoke all on function public.staff_set_avatar(uuid,text,text,jsonb,text) from public,anon;

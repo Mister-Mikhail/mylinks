@@ -52,6 +52,7 @@ import {
 } from './config/linkPlatforms'
 import { supabase } from './lib/supabase'
 import { copyText, profileUrl } from './lib/clipboard'
+import { shareProfileUrl } from './lib/profileUrl'
 import { useStaffRole } from './lib/useStaffRole'
 import { loadStaffProfile, saveStaffProfile, uploadStaffAvatar } from './lib/staff'
 import { CONTACT_OPTIONS, contactPlaceholder, isValidContactValue } from './lib/contacts'
@@ -191,6 +192,7 @@ function App() {
       <Route path="/admin/users/:targetId/edit" element={session ? <StaffProfileEditor user={session.user} /> : <Navigate to="/admin" replace />} />
       <Route path="/admin/users/:targetId/preview" element={session ? <StaffProfilePreview user={session.user} /> : <Navigate to="/admin" replace />} />
       <Route path="/p/:handle" element={<LegacyProfileRedirect />} />
+      <Route path="/about/updates" element={<UpdatesPage />} />
       <Route path="/" element={session ? <Dashboard user={session.user} /> : <Landing />} />
       <Route path="/:handle" element={<ProfilePage session={session} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -344,12 +346,31 @@ function Landing() {
 
       <footer className="landing-footer container">
         <BrandMark />
+        <Link to="/about/updates">История обновлений</Link>
         <p>Free MVP · 2026</p>
       </footer>
 
       {authMode && <AuthDialog initialMode={authMode} onClose={() => setAuthMode(null)} />}
     </div>
   )
+}
+
+function UpdatesPage() {
+  return <main className="updates-page container">
+    <Link to="/" className="back-button">← На главную</Link>
+    <h1>История обновлений</h1>
+    <p>Что уже доступно на mylinks.bar. Публикуем изменения по мере выхода.</p>
+    <article><time dateTime="2026-10-15">15 октября 2026</time><h2>Оформление и публикация</h2><ul>
+      <li>Выбор цвета имени, адреса страницы, описания, подписей ссылок и контактов.</li>
+      <li>Видеоаватары и GIF обрабатываются на сервере для воспроизведения на iPhone.</li>
+      <li>QR-код можно разместить на странице и сохранить для печати.</li>
+    </ul></article>
+    <article><time dateTime="2026-10-14">14 октября 2026</time><h2>Редактор и управление</h2><ul>
+      <li>Предпросмотр страницы при настройке и редактор профиля.</li>
+      <li>Удаление и восстановление пользователей из корзины администратора.</li>
+      <li>Экспорт данных профиля.</li>
+    </ul></article>
+  </main>
 }
 
 function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: () => void }) {
@@ -966,14 +987,14 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
           ) : (
             <DesignEditor profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} onAvatarDraft={setAvatarDraft} />
           )}
-          {!targetId && section !== 'stats' && <ProfileTools userId={user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} />}
+          {!targetId && section !== 'stats' && <ProfileTools userId={user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} updatedAt={profile.updated_at} avatarPath={profile.avatar_path} />}
           {!targetId && !staffRole && section !== 'stats' && <DeleteAccount onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
         </main>
 
         <aside className="preview-panel">
           <div className="preview-panel__heading">
             <div><MonitorSmartphone size={17} /><span>Предпросмотр</span></div>
-            <button className="button button--icon-text" onClick={() => void copyText(profileUrl(profile.handle))}><Copy size={14} /> Скопировать</button>
+            <button className="button button--icon-text" onClick={() => void copyText(shareProfileUrl(profile.handle, profile.updated_at, profile.avatar_path))}><Copy size={14} /> Скопировать</button>
           </div>
           <div className="device-frame">
             <div className="device-frame__speaker" />
@@ -1319,7 +1340,7 @@ function ProfilePage({ session }: { session: Session | null }) {
   return (
     <main className={`public-preview-page theme-${profile.background_preset}`}>
       {isOwner && <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> Личный кабинет</button>}
-      {profile.is_published && <ProfileTools handle={profile.handle} published />}
+      {profile.is_published && <ProfileTools handle={profile.handle} published updatedAt={profile.updated_at} avatarPath={profile.avatar_path} />}
       <div className="public-preview-page__content"><ProfilePreview profile={profile} links={links} contacts={contacts} interactive showPrivacy={!profile.is_published} /></div>
     </main>
   )

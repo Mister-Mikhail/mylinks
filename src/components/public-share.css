@@ -1,0 +1,8 @@
+.profile-share { display:grid; justify-items:center; gap:16px; margin:24px 0 4px; padding:20px 12px 4px; border-top:1px solid rgba(180,205,229,.19); text-align:center; }
+.profile-share__qr { display:grid; justify-items:center; gap:8px; }
+.profile-share__qr img { display:block; width:176px; height:176px; border-radius:14px; }
+.profile-share__qr span { color:#aebdcb; font-size:11px; }
+.profile-share__actions { display:flex; justify-content:center; flex-wrap:wrap; gap:9px; }
+.profile-share__actions button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:38px; padding:8px 11px; border:1px solid rgba(170,201,226,.35); border-radius:10px; background:rgba(19,28,42,.7); color:#f1f6fc; font:inherit; font-size:12px; cursor:pointer; }
+.profile-share__actions button:hover,.profile-share__actions button:focus-visible { border-color:#9cccee; background:#253e55; }
+.profile-share p { margin:0; color:#a8d6ff; font-size:12px; }

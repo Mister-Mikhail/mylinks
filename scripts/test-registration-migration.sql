@@ -132,4 +132,6 @@ create policy test_public_profile on public.profiles for select to anon using(is
 create policy test_public_links on public.profile_links for select to anon using(exists(select 1 from public.profiles where id=profile_id and is_published));
 create policy test_public_contacts on public.profile_contacts for select to anon using(is_visible and exists(select 1 from public.profiles where id=profile_id and is_published));
 \i supabase/migrations/20261014195826_admin_trash_and_sharing.sql
+\i supabase/migrations/20261015060932_staff_editor_and_public_share.sql
+\i scripts/test-staff-profile.sql
 \i scripts/test-trash.sql

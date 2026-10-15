@@ -83,3 +83,8 @@
 .onboarding-live-preview > p { text-align:center; font-size:12px; color:#9eacbb; font-weight:400; }
 .onboarding-preview-frame { width:min(100%,320px); margin:0 auto; }
 .onboarding-preview-frame .profile-card__identity > .avatar { width:clamp(36px,var(--avatar-width,28%),100%); height:auto; aspect-ratio:1; }
+.onboarding-add { display:inline-flex; align-items:center; gap:8px; width:max-content; min-height:44px; padding:9px 15px; border:1px solid #7db2d9; border-radius:12px; background:#213a4f; color:#eaf6ff; font-weight:650; font-size:13px; text-decoration:none; }
+.onboarding-add:hover,.onboarding-add:focus-visible { background:#315775; }
+.onboarding-sensitive { display:flex!important; align-items:center; gap:9px!important; width:max-content; color:#e4ecf5!important; cursor:pointer; }
+.onboarding-sensitive input { accent-color:#9dcff0; width:18px; height:18px; }
+.onboarding-sensitive svg { color:#f5909a; }

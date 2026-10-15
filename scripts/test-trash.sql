@@ -131,3 +131,39 @@ do $$ begin
  if (select count(*) from moderation.user_trash)<>2 then raise exception 'unexpired trash removed'; end if;
  if not exists(select 1 from moderation.audit where action='account_purged' and target_id='00000000-0000-4000-8000-000000000011') then raise exception 'purge audit missing'; end if;
 end; $$;
+
+-- Two distinct deleted accounts can share the mailbox part before @.
+-- Registering the full email of one must not block restoration of the other.
+begin;
+insert into auth.users(id,email,raw_user_meta_data) values
+ ('00000000-0000-4000-8000-000000000016','pair@example.com','{"handle":"first.page","display_name":"Первый"}'),
+ ('00000000-0000-4000-8000-000000000017','pair@other.example','{"handle":"second.page","display_name":"Второй"}');
+set role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000003',false);
+select public.staff_trash_prepare('00000000-0000-4000-8000-000000000016','',30);
+select public.staff_trash_prepare('00000000-0000-4000-8000-000000000017','',30);
+reset role;
+update auth.users set email='trash-'||id||'@accounts.mylinks.invalid',banned_until=now()+interval '100 years'
+ where id in ('00000000-0000-4000-8000-000000000016','00000000-0000-4000-8000-000000000017');
+set role authenticated;
+select public.staff_trash_finish('00000000-0000-4000-8000-000000000016');
+select public.staff_trash_finish('00000000-0000-4000-8000-000000000017');
+reset role;
+insert into auth.users(id,email,raw_user_meta_data) values
+ ('00000000-0000-4000-8000-000000000018','pair@example.com','{"handle":"new.page","display_name":"Новый"}');
+do $$ begin
+ if not exists(select 1 from moderation.user_trash where target_id='00000000-0000-4000-8000-000000000016' and conflict_at is not null and conflict_reason like 'Email%') then raise exception 'full reused email did not block its former owner'; end if;
+ if not exists(select 1 from moderation.user_trash where target_id='00000000-0000-4000-8000-000000000017' and conflict_at is null) then raise exception 'different domain and handle were incorrectly blocked'; end if;
+end; $$;
+set role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000003',false);
+select public.staff_trash_restore_prepare('00000000-0000-4000-8000-000000000017');
+reset role;
+update auth.users set email='pair@other.example',banned_until=null where id='00000000-0000-4000-8000-000000000017';
+set role authenticated;
+select public.staff_trash_restore_finish('00000000-0000-4000-8000-000000000017');
+reset role;
+do $$ begin
+ if exists(select 1 from moderation.user_trash where target_id='00000000-0000-4000-8000-000000000017') then raise exception 'unrelated deleted account was not restored'; end if;
+end; $$;
+rollback;

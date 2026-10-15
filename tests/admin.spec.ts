@@ -84,12 +84,14 @@ test('administrator moves selected profile to trash with optional reason and no 
 test('trash restores eligible users and blocks previously reused identities',async({page})=>{
  await mockStaff(page,'admin')
  let restored=false
- const item={id:targetId,email:'test@example.com',handle:'vasiliy',display_name:'Василий',reason:'Test',state:'trashed',deleted_at:'2026-10-14',expires_at:'2026-11-14',restore_blocked:null}
- await page.route('**/rest/v1/rpc/staff_trash',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({total:restored?1:2,items:[...(!restored?[item]:[]),{...item,id:ownerId,handle:'taken',restore_blocked:'Email уже использован другим аккаунтом.'}]})}))
+ const item={id:targetId,email:'pair@other.example',handle:'second',display_name:'Второй',reason:'Test',state:'trashed',deleted_at:'2026-10-14',expires_at:'2026-11-14',restore_blocked:null}
+ await page.route('**/rest/v1/rpc/staff_trash',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({total:restored?1:2,items:[...(!restored?[item]:[]),{...item,id:ownerId,email:'pair@example.com',handle:'first',restore_blocked:'Email уже использован другим аккаунтом.'}]})}))
  await page.route('**/functions/v1/admin-delete-user',route=>{expect(route.request().postDataJSON()).toMatchObject({target_id:targetId,action:'restore'});restored=true;return route.fulfill({contentType:'application/json',body:'{"restored":true}'})})
  await page.goto('/admin/trash')
- await expect(page.locator('.staff-trash-item').filter({hasText:'@taken'}).getByRole('button',{name:'Восстановить'})).toBeDisabled()
- await page.locator('.staff-trash-item').filter({hasText:'@vasiliy'}).getByRole('button',{name:'Восстановить'}).click()
+ await expect(page.locator('.staff-trash-item').filter({hasText:'@first'})).toContainText('Этот полный email (pair@example.com) зарегистрирован заново.')
+ await expect(page.locator('.staff-trash-item').filter({hasText:'@first'}).getByRole('button',{name:'Восстановить'})).toBeDisabled()
+ await expect(page.locator('.staff-trash-item').filter({hasText:'@second'}).getByRole('button',{name:'Восстановить'})).toBeEnabled()
+ await page.locator('.staff-trash-item').filter({hasText:'@second'}).getByRole('button',{name:'Восстановить'}).click()
  await page.getByRole('button',{name:'Подтвердить восстановление'}).click()
  await expect(page.getByText('Профиль восстановлен.',{exact:true})).toBeVisible()
  await expect(page.locator('.staff-trash-item')).toHaveCount(1)

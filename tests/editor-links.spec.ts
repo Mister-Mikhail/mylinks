@@ -44,3 +44,29 @@ test('master link is copied with a single icon button', async ({ page, context, 
   expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/sample-user$/)
 })
 
+test('links editor shows a live pinned preview on small phones', async ({ page }) => {
+  await page.addInitScript(({ id, token }) => localStorage.setItem('sb-loykiawbqdkitndqkegk-auth-token', JSON.stringify({ access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user: { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' } })), { id, token })
+  await page.route('**/rest/v1/**', route => {
+    const name = new URL(route.request().url()).pathname.split('/').pop()
+    const data = name === 'profiles' ? profile : name === 'profile_links' ? links : name === 'staff_role' ? null : []
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(data) })
+  })
+  await page.route('**/functions/v1/favicon**', route => route.fulfill({ status: 404, body: '' }))
+  await page.goto('/')
+  for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport)
+    const panel = page.locator('.preview-panel')
+    await expect(panel).toBeVisible()
+    const initial = (await panel.boundingBox())!
+    await page.locator('.editor-panel').evaluate(el => { el.scrollTop = el.scrollHeight })
+    expect((await panel.boundingBox())!.y).toBe(initial.y)
+    expect(initial.y + initial.height).toBeLessThan(viewport.height - 64)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
+  }
+  await page.setViewportSize({ width: 320, height: 568 })
+  await page.getByLabel('Отображаемое имя', { exact: true }).fill('Новое имя')
+  await expect(page.locator('.preview-panel h1')).toHaveText('Новое имя')
+  await page.locator('.link-editor:not(.contact-editor)').first().getByLabel('Название ссылки', { exact: true }).fill('Новая ссылка')
+  await expect(page.locator('.preview-panel .profile-link').first()).toContainText('Новая ссылка')
+})
+

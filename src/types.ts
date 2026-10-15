@@ -14,10 +14,13 @@ export interface Profile {
   bio: string
   name_font?: FontKey
   name_font_size?: number
+  name_color?: string | null
   bio_font?: FontKey
   bio_font_size?: number
+  bio_color?: string | null
   handle_font?: FontKey
   handle_font_size?: number
+  handle_color?: string | null
   avatar_url: string | null
   avatar_path: string | null
   avatar_master_path?: string | null
@@ -48,6 +51,7 @@ export interface ProfileLink {
   url: string
   label_font?: FontKey
   label_font_size?: number
+  label_color?: string | null
   icon_key: LinkIcon
   position: number
   is_visible: boolean
@@ -72,8 +76,10 @@ export interface ProfileContact {
   value: string
   label_font?: FontKey
   label_font_size?: number
+  label_color?: string | null
   value_font?: FontKey
   value_font_size?: number
+  value_color?: string | null
   position: number
   is_visible: boolean
   created_at?: string
@@ -94,9 +100,10 @@ export interface AvatarDraft {
   x: number
   y: number
   kind?: 'image' | 'gif' | 'video'
+  rotation?: number
 }
 
-export interface AvatarCrop { aspectRatio: number; zoom: number; x: number; y: number }
+export interface AvatarCrop { aspectRatio: number; zoom: number; x: number; y: number; rotation?: number }
 export interface AvatarUploadOptions { kind: 'image' | 'gif' | 'video'; crop?: AvatarCrop; poster?: Blob; master?: Blob }
 
 

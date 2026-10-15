@@ -34,7 +34,7 @@ test('five-step flow saves short links and phone and restores progress', async (
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
   await page.getByRole('button', { name: 'Продолжить' }).click()
   await page.getByRole('textbox', { name: 'Значение контакта' }).fill('7абв9990000000')
-  await expect(page.getByRole('textbox', { name: 'Значение контакта' })).toHaveValue('+79990000000')
+  await expect(page.getByRole('textbox', { name: 'Значение контакта', exact: true })).toHaveValue('+79990000000')
   await page.getByRole('textbox', { name: 'Значение контакта' }).fill('123')
   await page.getByRole('button', { name: 'Продолжить' }).click()
   await expect(page.getByRole('alert')).toContainText('Проверьте контакт')
@@ -48,9 +48,9 @@ test('five-step flow saves short links and phone and restores progress', async (
   await expect(page).toHaveURL(/\/anna.petrova$/)
   await expect(page.getByRole('link', { name: 'Мой VK' })).toBeVisible()
   await page.getByRole('button', { name: 'Личный кабинет' }).click()
-  await expect(page.getByRole('textbox', { name: 'Значение контакта' })).toHaveValue('+79990000000')
+  await expect(page.getByRole('textbox', { name: 'Значение контакта', exact: true })).toHaveValue('+79990000000')
   await page.reload()
-  await expect(page.getByRole('textbox', { name: 'Значение контакта' })).toHaveValue('+79990000000')
+  await expect(page.getByRole('textbox', { name: 'Значение контакта', exact: true })).toHaveValue('+79990000000')
 })
 
 test('identity rejects repeated separators, digits and occupied handles', async ({ page }) => {

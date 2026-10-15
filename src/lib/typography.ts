@@ -30,10 +30,11 @@ export const TEXT_SIZES: Record<TextSlot, readonly number[]> = {
 }
 export const DEFAULT_SIZES: Record<TextSlot, number> = { name: 21, bio: 10, handle: 10, link: 11, contactLabel: 10, contactValue: 9 }
 
-export function textStyle(font: string | undefined, size: number | undefined, slot: TextSlot): CSSProperties {
+export function textStyle(font: string | undefined, size: number | undefined, slot: TextSlot, color?: string | null): CSSProperties {
   return {
     fontFamily: (FONT_OPTIONS.find(option => option.value === font) ?? FONT_OPTIONS[0]).family,
     fontSize: 'var(--profile-display-size, var(--profile-font-size))',
     '--profile-font-size': TEXT_SIZES[slot].includes(Number(size)) ? `${size}px` : `${DEFAULT_SIZES[slot]}px`,
+    ...(color && /^#[0-9a-fA-F]{6}$/.test(color) ? { color } : {}),
   } as CSSProperties
 }

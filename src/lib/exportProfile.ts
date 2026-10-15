@@ -9,9 +9,9 @@ export function buildProfileExport(profile:Profile, links:ProfileLink[], contact
  return {
   schema_version:1, exported_at:new Date().toISOString(), canonical_url:profileUrl(profile.handle),
   ...(options.metadata?{profile:selectFields(profile,['handle','display_name','bio','is_published','created_at','updated_at'])}:{}),
-  ...(options.links?{links:links.map(l=>selectFields(l,['id','label','url','label_font','label_font_size','icon_key','position','is_visible','is_sensitive']))}:{}),
-  ...(options.contacts?{contacts:contacts.filter(c=>options.privateContacts||c.is_visible).map(c=>selectFields(c,['id','kind','label','value','latitude','longitude','label_font','label_font_size','value_font','value_font_size','position','is_visible']))}:{}),
-  ...(options.appearance?{appearance:selectFields(profile,['background_preset','card_preset','avatar_shape','avatar_size','avatar_scale','avatar_media','avatar_crop','name_font','name_font_size','bio_font','bio_font_size','handle_font','handle_font_size'])}:{}),
+  ...(options.links?{links:links.map(l=>selectFields(l,['id','label','url','label_font','label_font_size','label_color','icon_key','position','is_visible','is_sensitive']))}:{}),
+  ...(options.contacts?{contacts:contacts.filter(c=>options.privateContacts||c.is_visible).map(c=>selectFields(c,['id','kind','label','value','latitude','longitude','label_font','label_font_size','label_color','value_font','value_font_size','value_color','position','is_visible']))}:{}),
+  ...(options.appearance?{appearance:selectFields(profile,['background_preset','card_preset','avatar_shape','avatar_size','avatar_scale','avatar_media','avatar_crop','name_font','name_font_size','name_color','bio_font','bio_font_size','bio_color','handle_font','handle_font_size','handle_color'])}:{}),
  } as Record<string,unknown>
 }
 let lastExport=0

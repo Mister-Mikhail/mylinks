@@ -76,12 +76,12 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
         <div className={`avatar avatar--${profile.avatar_shape}`} style={{ '--avatar-size': `${Math.round(42 + (profile.avatar_scale || 28) * 2.1)}px`, '--avatar-width': `${profile.avatar_scale || 28}%` } as CSSProperties}>
           <AvatarMedia profile={profile} draft={avatarDraft} />
         </div>
-        <h1 style={textStyle(profile.name_font, profile.name_font_size, 'name')}>{profile.display_name || 'Ваше имя'}</h1>
-        <button className="profile-card__handle" style={textStyle(profile.handle_font, profile.handle_font_size, 'handle')} type="button" onClick={() => void copyProfileLink()} aria-label="Скопировать ссылку на профиль">
+        <h1 style={textStyle(profile.name_font, profile.name_font_size, 'name', profile.name_color)}>{profile.display_name || 'Ваше имя'}</h1>
+        <button className="profile-card__handle" style={textStyle(profile.handle_font, profile.handle_font_size, 'handle', profile.handle_color)} type="button" onClick={() => void copyProfileLink()} aria-label="Скопировать ссылку на профиль">
           {profileLinkCopied ? <Check size={11} /> : <Copy size={10} />}
           <span>mylinks.bar/{profile.handle || 'username'}</span>
         </button>
-        <p className="profile-card__bio" style={textStyle(profile.bio_font, profile.bio_font_size, 'bio')}>{profile.bio || 'Коротко расскажите о себе и о том, чем делитесь.'}</p>
+        <p className="profile-card__bio" style={textStyle(profile.bio_font, profile.bio_font_size, 'bio', profile.bio_color)}>{profile.bio || 'Коротко расскажите о себе и о том, чем делитесь.'}</p>
         <span className={`profile-card__copy-toast ${profileLinkCopied ? 'profile-card__copy-toast--visible' : ''}`} aria-live="polite">Ссылка скопирована</span>
       </div>
 
@@ -93,7 +93,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
           const content = (
             <>
               <span className="profile-link__icon"><LinkIcon name={link.icon_key} url={link.url} /></span>
-              <span className="profile-link__label" style={textStyle(link.label_font, link.label_font_size, 'link')}><span className="profile-link__text">{link.label}</span>{(link.is_sensitive || isKnownSensitiveUrl(link.url)) && <small>18+</small>}</span>
+              <span className="profile-link__label" style={textStyle(link.label_font, link.label_font_size, 'link', link.label_color)}><span className="profile-link__text">{link.label}</span>{(link.is_sensitive || isKnownSensitiveUrl(link.url)) && <small>18+</small>}</span>
             </>
           )
           return interactive ? (
@@ -110,7 +110,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
         )}
       </div>
 
-      {profile.is_published && <PublicShareTools handle={profile.handle} name={profile.display_name} contacts={contacts} showQr={Boolean(profile.show_qr)} size={profile.qr_size ?? 176} />}
+      {interactive && profile.is_published && <PublicShareTools handle={profile.handle} name={profile.display_name} contacts={contacts} showQr={Boolean(profile.show_qr)} size={profile.qr_size ?? 176} />}
       </div>
 
       <div className="profile-card__footer">

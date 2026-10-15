@@ -121,6 +121,7 @@ const toEditable = (link: ProfileLink): EditableLink => ({
   label: link.label,
   label_font: link.label_font,
   label_font_size: link.label_font_size,
+  label_color: link.label_color,
   url: link.url,
   icon_key: link.icon_key,
   position: link.position,
@@ -140,8 +141,10 @@ const toEditableContact = (contact: ProfileContact): EditableContact => ({
   latitude: contact.latitude, longitude: contact.longitude,
   label_font: contact.label_font,
   label_font_size: contact.label_font_size,
+  label_color: contact.label_color,
   value_font: contact.value_font,
   value_font_size: contact.value_font_size,
+  value_color: contact.value_color,
   position: contact.position,
   is_visible: contact.is_visible,
   created_at: contact.created_at,
@@ -747,10 +750,13 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         bio: profile.bio.trim(),
         name_font: profile.name_font ?? 'manrope',
         name_font_size: profile.name_font_size ?? 21,
+        name_color: profile.name_color ?? null,
         bio_font: profile.bio_font ?? 'manrope',
         bio_font_size: profile.bio_font_size ?? 10,
+        bio_color: profile.bio_color ?? null,
         handle_font: profile.handle_font ?? 'manrope',
         handle_font_size: profile.handle_font_size ?? 10,
+        handle_color: profile.handle_color ?? null,
         avatar_url: profile.avatar_url?.trim() || null,
         avatar_path: profile.avatar_path,
         background_preset: profile.background_preset,
@@ -779,6 +785,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         label: link.label.trim(),
         label_font: link.label_font ?? 'manrope',
         label_font_size: link.label_font_size ?? 11,
+        label_color: link.label_color ?? null,
         url: normalizeUrl(link.url),
         icon_key: link.icon_key,
         position,
@@ -795,6 +802,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         label: link.label.trim(),
         label_font: link.label_font ?? 'manrope',
         label_font_size: link.label_font_size ?? 11,
+        label_color: link.label_color ?? null,
         url: normalizeUrl(link.url),
         icon_key: link.icon_key,
         position,
@@ -824,8 +832,10 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         longitude: contact.kind === 'address' ? contact.longitude ?? null : null,
         label_font: contact.label_font ?? 'manrope',
         label_font_size: contact.label_font_size ?? 10,
+        label_color: contact.label_color ?? null,
         value_font: contact.value_font ?? 'manrope',
         value_font_size: contact.value_font_size ?? 9,
+        value_color: contact.value_color ?? null,
         position,
         is_visible: contact.is_visible,
       }))
@@ -843,8 +853,10 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         longitude: contact.kind === 'address' ? contact.longitude ?? null : null,
         label_font: contact.label_font ?? 'manrope',
         label_font_size: contact.label_font_size ?? 10,
+        label_color: contact.label_color ?? null,
         value_font: contact.value_font ?? 'manrope',
         value_font_size: contact.value_font_size ?? 9,
+        value_color: contact.value_color ?? null,
         position,
         is_visible: contact.is_visible,
       }))
@@ -930,8 +942,6 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
             <span className="autosave-hint">{section === 'stats' ? 'Только для владельца' : 'Сохраняется вручную'}</span>
           </div>
 
-          {!targetId && <ProfileTools userId={user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} />}
-          {!targetId && !staffRole && <DeleteAccount onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
           {notice && <div className="toast toast--success"><Check size={16} /> {notice}</div>}
           {error && <div className="toast toast--error">{error}</div>}
 
@@ -956,6 +966,8 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
           ) : (
             <DesignEditor profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} onAvatarDraft={setAvatarDraft} />
           )}
+          {!targetId && section !== 'stats' && <ProfileTools userId={user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} />}
+          {!targetId && !staffRole && section !== 'stats' && <DeleteAccount onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
         </main>
 
         <aside className="preview-panel">
@@ -1045,9 +1057,9 @@ function ContentEditor({
       <section className="settings-card">
         <div className="settings-card__title"><UserRound size={18} /><div><h2>Профиль</h2><p>Имя, описание и адрес вашей страницы.</p></div></div>
         <div className="field-grid">
-          <div className="profile-text-field"><label>Отображаемое имя<input value={profile.display_name} onChange={(event) => setProfile({ ...profile, display_name: normalizeDisplayNameInput(event.target.value) })} maxLength={30} /></label><TypographyControls label="Имя" slot="name" font={profile.name_font} size={profile.name_font_size} onChange={(font, size) => setProfile({ ...profile, name_font: font, name_font_size: size })} /></div>
-          <div className="profile-text-field"><label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandleInput(event.target.value) })} /><button type="button" className={`input-prefix__copy ${masterLinkCopied ? 'input-prefix__copy--done' : ''}`} onClick={(event) => { event.preventDefault(); void copyMasterLink() }} disabled={!profile.handle} aria-label={masterLinkCopied ? 'Мастер‑ссылка скопирована' : 'Скопировать мастер‑ссылку'} title="Скопировать ссылку">{masterLinkCopied ? <Check size={15} /> : <Copy size={15} />}</button></div></label><TypographyControls label="Мастер-ссылка" slot="handle" font={profile.handle_font} size={profile.handle_font_size} onChange={(font, size) => setProfile({ ...profile, handle_font: font, handle_font_size: size })} /></div>
-          <div className="field-grid__full profile-text-field"><label>О себе<textarea aria-label="О себе" value={profile.bio} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} maxLength={160} rows={3} placeholder="Чем вы занимаетесь?" /><small>{profile.bio.length}/160</small></label><TypographyControls label="О себе" slot="bio" font={profile.bio_font} size={profile.bio_font_size} onChange={(font, size) => setProfile({ ...profile, bio_font: font, bio_font_size: size })} /></div>
+          <div className="profile-text-field"><label>Отображаемое имя<input value={profile.display_name} onChange={(event) => setProfile({ ...profile, display_name: normalizeDisplayNameInput(event.target.value) })} maxLength={30} /></label><TypographyControls label="Имя" slot="name" font={profile.name_font} size={profile.name_font_size} color={profile.name_color} onChange={(font, size) => setProfile({ ...profile, name_font: font, name_font_size: size })} onColorChange={color => setProfile({ ...profile, name_color: color })} /></div>
+          <div className="profile-text-field"><label>Мастер‑ссылка<div className="input-prefix"><span>mylinks.bar/</span><input value={profile.handle} onChange={(event) => setProfile({ ...profile, handle: normalizeHandleInput(event.target.value) })} /><button type="button" className={`input-prefix__copy ${masterLinkCopied ? 'input-prefix__copy--done' : ''}`} onClick={(event) => { event.preventDefault(); void copyMasterLink() }} disabled={!profile.handle} aria-label={masterLinkCopied ? 'Мастер‑ссылка скопирована' : 'Скопировать мастер‑ссылку'} title="Скопировать ссылку">{masterLinkCopied ? <Check size={15} /> : <Copy size={15} />}</button></div></label><TypographyControls label="Мастер-ссылка" slot="handle" font={profile.handle_font} size={profile.handle_font_size} color={profile.handle_color} onChange={(font, size) => setProfile({ ...profile, handle_font: font, handle_font_size: size })} onColorChange={color => setProfile({ ...profile, handle_color: color })} /></div>
+          <div className="field-grid__full profile-text-field"><label>О себе<textarea aria-label="О себе" value={profile.bio} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} maxLength={160} rows={3} placeholder="Чем вы занимаетесь?" /><small>{profile.bio.length}/160</small></label><TypographyControls label="О себе" slot="bio" font={profile.bio_font} size={profile.bio_font_size} color={profile.bio_color} onChange={(font, size) => setProfile({ ...profile, bio_font: font, bio_font_size: size })} onColorChange={color => setProfile({ ...profile, bio_color: color })} /></div>
         </div>
         <label className="publish-setting">
           <input type="checkbox" checked={profile.is_published} onChange={(event) => setProfile({ ...profile, is_published: event.target.checked })} />
@@ -1122,7 +1134,7 @@ function ContentEditor({
                     </div>
                   )
                 })()}
-                <TypographyControls label="Название ссылки" slot="link" font={link.label_font} size={link.label_font_size} onChange={(font, size) => updateLink(link.localId, { label_font: font, label_font_size: size })} />
+                <TypographyControls label="Название ссылки" slot="link" font={link.label_font} size={link.label_font_size} color={link.label_color} onChange={(font, size) => updateLink(link.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateLink(link.localId, { label_color: color })} />
                 <small className="link-editor__hint">{getLinkPlatform(link.icon_key).baseUrl ? 'Введите только имя после адреса площадки' : 'Можно без https:// · логотип подтянется автоматически'}</small>
                 <div className="link-editor__footer">
                   <span className="link-editor__site-icon" role="img" aria-label="Иконка сайта"><LinkIcon name={link.icon_key} url={link.url} size={28} /></span>
@@ -1180,7 +1192,7 @@ function ContentEditor({
                   </select>
                   <input aria-label="Подпись контакта" value={contact.label} onChange={(event) => updateContact(contact.localId, { label: event.target.value })} placeholder="Подпись (необязательно)" maxLength={80} />
                 </div>
-                <TypographyControls label="Подпись контакта" slot="contactLabel" font={contact.label_font} size={contact.label_font_size} onChange={(font, size) => updateContact(contact.localId, { label_font: font, label_font_size: size })} />
+                <TypographyControls label="Подпись контакта" slot="contactLabel" font={contact.label_font} size={contact.label_font_size} color={contact.label_color} onChange={(font, size) => updateContact(contact.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateContact(contact.localId, { label_color: color })} />
                 <input
                   aria-label="Значение контакта"
                   type={contact.kind === 'email' ? 'email' : contact.kind === 'phone' ? 'tel' : 'text'}
@@ -1189,7 +1201,7 @@ function ContentEditor({
                   onChange={(event) => updateContact(contact.localId, { value: event.target.value, latitude: null, longitude: null })}
                   placeholder={contactPlaceholder(contact.kind)}
                 />
-                <TypographyControls label="Значение контакта" slot="contactValue" font={contact.value_font} size={contact.value_font_size} onChange={(font, size) => updateContact(contact.localId, { value_font: font, value_font_size: size })} />
+                <TypographyControls label="Значение контакта" slot="contactValue" font={contact.value_font} size={contact.value_font_size} color={contact.value_color} onChange={(font, size) => updateContact(contact.localId, { value_font: font, value_font_size: size })} onColorChange={color => updateContact(contact.localId, { value_color: color })} />
                 <small className="link-editor__hint">{contact.kind === 'address' ? 'Откроется в приложении карт' : contact.kind === 'phone' ? 'Откроется набор номера' : 'Нажатие копирует · удержание открывает почту'}</small>
               </div>
               <div className="link-editor__actions">

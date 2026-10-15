@@ -24,10 +24,10 @@ const url = (value: unknown) => {
   if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname) throw new Error('Проверьте адрес ссылки.')
   return result
 }
-const formatProfile = (raw: Record<string, unknown>) => {
+const formatProfile = (raw: Record<string, unknown>, currentHandle: string) => {
   const handle = text(raw.handle, 30)
   const displayName = text(raw.display_name, 30)
-  if (!/^[a-z]+([._][a-z]+)?$/.test(handle) || handle.length < 3 || !/^[\p{L}]+(?: [\p{L}]+)*$/u.test(displayName)) throw new Error('Проверьте имя и user name.')
+  if ((handle !== currentHandle && (!/^[a-z]+([._][a-z]+)?$/.test(handle) || handle.length < 3)) || !/^[\p{L}]+(?: [\p{L}]+)*$/u.test(displayName)) throw new Error('Проверьте имя и user name.')
   if (!['midnight','mist','cobalt'].includes(String(raw.background_preset)) || !['glass','solid','outline'].includes(String(raw.card_preset)) || !['round','square'].includes(String(raw.avatar_shape))) throw new Error('Проверьте оформление.')
   return {
     handle, display_name: displayName, bio: text(raw.bio, 160),
@@ -93,7 +93,7 @@ export const handler = (clientFactory=createClient,env=(key:string)=>Deno.env.ge
     }
     if(action==='save') {
       if(!input.profile||!Array.isArray(input.links)||!Array.isArray(input.contacts)||input.links.length>500||input.contacts.length>100) return reply(400,{error:'Проверьте поля профиля.'})
-      const profile=formatProfile(input.profile)
+      const profile=formatProfile(input.profile,detail.profile.handle)
       const links=input.links.map((raw:Record<string,unknown>,index:number)=>formatLink(raw,target,index))
       const contacts=input.contacts.map((raw:Record<string,unknown>,index:number)=>formatContact(raw,target,index))
       if(links.some((link:{label:string;icon_key:string})=>!link.label||!['link','website','instagram','youtube','telegram','tiktok','whatsapp','vk','facebook','x','onlyfans','email'].includes(link.icon_key))) return reply(400,{error:'Проверьте ссылки.'})

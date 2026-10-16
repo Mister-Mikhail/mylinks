@@ -1287,6 +1287,14 @@ function DesignEditor({
           <TypographyControls sample={profile.handle} label="Мастер-ссылка" slot="handle" font={profile.handle_font} size={profile.handle_font_size} color={profile.handle_color} onChange={(font, size) => setProfile({ ...profile, handle_font: font, handle_font_size: size })} onColorChange={color => setProfile({ ...profile, handle_color: color })} />
           <TypographyControls sample={profile.bio} label="О себе" slot="bio" font={profile.bio_font} size={profile.bio_font_size} color={profile.bio_color} onChange={(font, size) => setProfile({ ...profile, bio_font: font, bio_font_size: size })} onColorChange={color => setProfile({ ...profile, bio_color: color })} />
         </div>
+      <div className="appearance-contact-fields">
+        <div className="settings-card__title"><MapPin size={18} /><div><h2>Вид и порядок контактов</h2><p>Настройте подписи, значения и расположение контактов.</p></div></div>
+        <div className="appearance-item-list">{contacts.map((contact, index) => <article className="appearance-item" key={contact.localId}>
+          <div className="appearance-item__heading"><span className="appearance-item__number">{index + 1}</span><strong>{contact.label || contact.value || 'Новый контакт'}</strong><div className="appearance-item__arrows"><button type="button" className="icon-button" disabled={index === 0} onClick={() => moveContact(index, -1)} aria-label={`Переместить контакт выше: ${contact.label || index + 1}`}><ArrowUp size={16} /></button><button type="button" className="icon-button" disabled={index === contacts.length - 1} onClick={() => moveContact(index, 1)} aria-label={`Переместить контакт ниже: ${contact.label || index + 1}`}><ArrowDown size={16} /></button></div></div>
+          <details className="appearance-item__details"><summary>Шрифт контакта</summary><div className="appearance-item__controls"><TypographyControls sample={contact.label} label="Подпись контакта" slot="contactLabel" font={contact.label_font} size={contact.label_font_size} color={contact.label_color} onChange={(font, size) => updateContact(contact.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateContact(contact.localId, { label_color: color })} /><TypographyControls sample={contact.value} label="Значение контакта" slot="contactValue" font={contact.value_font} size={contact.value_font_size} color={contact.value_color} onChange={(font, size) => updateContact(contact.localId, { value_font: font, value_font_size: size })} onColorChange={color => updateContact(contact.localId, { value_color: color })} /></div></details>
+        </article>)}</div>
+        {contacts.length === 0 && <p className="appearance-item__empty">Добавьте контакты в разделе «Ссылки» — они появятся здесь.</p>}
+      </div>
       </section>
 
       <section className="settings-card">
@@ -1327,14 +1335,7 @@ function DesignEditor({
         {links.length === 0 && <p className="appearance-item__empty">Добавьте ссылки в разделе «Ссылки» — они появятся здесь.</p>}
       </section>
 
-      <section className="settings-card">
-        <div className="settings-card__title"><MapPin size={18} /><div><h2>Вид и порядок контактов</h2><p>Настройте подписи, значения и расположение контактов.</p></div></div>
-        <div className="appearance-item-list">{contacts.map((contact, index) => <article className="appearance-item" key={contact.localId}>
-          <div className="appearance-item__heading"><span className="appearance-item__number">{index + 1}</span><strong>{contact.label || contact.value || 'Новый контакт'}</strong><div className="appearance-item__arrows"><button type="button" className="icon-button" disabled={index === 0} onClick={() => moveContact(index, -1)} aria-label={`Переместить контакт выше: ${contact.label || index + 1}`}><ArrowUp size={16} /></button><button type="button" className="icon-button" disabled={index === contacts.length - 1} onClick={() => moveContact(index, 1)} aria-label={`Переместить контакт ниже: ${contact.label || index + 1}`}><ArrowDown size={16} /></button></div></div>
-          <details className="appearance-item__details"><summary>Шрифт контакта</summary><div className="appearance-item__controls"><TypographyControls sample={contact.label} label="Подпись контакта" slot="contactLabel" font={contact.label_font} size={contact.label_font_size} color={contact.label_color} onChange={(font, size) => updateContact(contact.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateContact(contact.localId, { label_color: color })} /><TypographyControls sample={contact.value} label="Значение контакта" slot="contactValue" font={contact.value_font} size={contact.value_font_size} color={contact.value_color} onChange={(font, size) => updateContact(contact.localId, { value_font: font, value_font_size: size })} onColorChange={color => updateContact(contact.localId, { value_color: color })} /></div></details>
-        </article>)}</div>
-        {contacts.length === 0 && <p className="appearance-item__empty">Добавьте контакты в разделе «Ссылки» — они появятся здесь.</p>}
-      </section>
+
 
       <AvatarEditor profile={profile} setProfile={setProfile} uploading={avatarUploading} onUpload={onAvatarUpload} onDraftChange={onAvatarDraft} />
 

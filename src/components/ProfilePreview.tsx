@@ -10,7 +10,6 @@ import { BrandMark } from './BrandMark'
 import { LinkIcon } from './LinkIcon'
 import { ProfileContacts } from './ProfileContacts'
 import { PublicShareTools } from './PublicShareTools'
-import { shareProfileUrl } from '../lib/profileUrl'
 import { AvatarMedia } from './AvatarMedia'
 import './extras.css'
 
@@ -41,7 +40,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
   }
 
   const copyProfileLink = async () => {
-    await copyText(profile.is_published ? shareProfileUrl(profile.handle, profile.updated_at, profile.avatar_path) : profileUrl(profile.handle))
+    await copyText(profileUrl(profile.handle))
     setProfileLinkCopied(true)
     window.setTimeout(() => setProfileLinkCopied(false), 1800)
   }

@@ -95,7 +95,7 @@ const imageType = (type: string, url: string, body: Uint8Array) => {
   return 'image/x-icon'
 }
 
-async function iconFor(host: string) {
+async function iconFor(host: string, rasterOnly = false) {
   const candidates: Candidate[] = []
   const page = await fetchLimited(`https://${host}/`, MAX_HTML, 'text/html,application/xhtml+xml')
     ?? await fetchLimited(`https://www.${host}/`, MAX_HTML, 'text/html,application/xhtml+xml')
@@ -108,7 +108,11 @@ async function iconFor(host: string) {
     seen.add(href)
     if (!/^https?:/i.test(href)) continue
     const icon = await fetchLimited(href, MAX_ICON, 'image/avif,image/webp,image/svg+xml,image/*,*/*;q=0.8')
-    if (icon && looksLikeImage(icon.type, icon.url, icon.body)) return { body: icon.body, type: imageType(icon.type, icon.url, icon.body) }
+    if (icon && looksLikeImage(icon.type, icon.url, icon.body)) {
+      const type = imageType(icon.type, icon.url, icon.body)
+      if (rasterOnly && (type.includes('svg') || type.includes('icon'))) continue
+      return { body: icon.body, type }
+    }
   }
   return null
 }
@@ -117,17 +121,18 @@ Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET' } })
   const params = new URL(request.url).searchParams
   const host = (params.get('domain') ?? '').trim().toLowerCase().replace(/^www\./, '').replace(/\.$/, '')
+  const rasterOnly = params.get('raster') === '1'
   if (!validHost(host)) return new Response('bad domain', { status: 400, headers: headers('text/plain', 3600) })
 
-  const cached = memory.get(host)
+  const cached = memory.get(`${host}:${rasterOnly}`)
   if (cached && Date.now() - cached.at < 6 * 3600_000) return new Response(cached.body, { headers: headers(cached.type, 604800) })
 
-  let icon = await iconFor(host)
+  let icon = await iconFor(host, rasterOnly)
   const parent = mainDomain(host)
-  if (!icon && parent !== host) icon = await iconFor(parent)
+  if (!icon && parent !== host) icon = await iconFor(parent, rasterOnly)
   if (!icon) return new Response('not found', { status: 404, headers: headers('text/plain', 86400) })
 
   if (memory.size > 500) memory.clear()
-  memory.set(host, { ...icon, at: Date.now() })
+  memory.set(`${host}:${rasterOnly}`, { ...icon, at: Date.now() })
   return new Response(icon.body, { headers: headers(icon.type, 604800) })
 })

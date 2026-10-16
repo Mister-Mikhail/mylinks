@@ -1,11 +1,31 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import type { AvatarDraft, Profile } from '../types'
 
 /** Shared by the editor, wizard and public page: no initials and no flattened GIFs. */
 export function AvatarMedia({ profile, draft, alt = '' }: { profile: Profile; draft?: AvatarDraft | null; alt?: string }) {
   const video = useRef<HTMLVideoElement>(null)
+  const media = useRef<HTMLElement>(null)
+  const [displayWidth, setDisplayWidth] = useState(0)
   const [videoFailed, setVideoFailed] = useState(false)
   const [reduceMotion, setReduceMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const src = draft?.src || profile.avatar_preview_url || profile.avatar_url
+  const master = !draft ? profile.avatar_master_url : null
+  const needsMeasurement = Boolean(master)
+  useLayoutEffect(() => {
+    if (!needsMeasurement) return
+    const parent = media.current?.parentElement
+    if (!parent) return
+    const measure = () => setDisplayWidth(Math.max(1, Math.ceil(parent.getBoundingClientRect().width)))
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(parent)
+    window.addEventListener('resize', measure)
+    window.addEventListener('orientationchange', measure)
+    return () => { observer.disconnect(); window.removeEventListener('resize', measure); window.removeEventListener('orientationchange', measure) }
+  }, [needsMeasurement, src, master])
+  const highQuality = Boolean(master && displayWidth * window.devicePixelRatio > 560)
+  const selectedSrc = highQuality ? master : src
+  const poster = highQuality ? profile.avatar_master_poster_url || profile.avatar_poster_url : profile.avatar_poster_url
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
     const change = () => setReduceMotion(media.matches)
@@ -16,9 +36,8 @@ export function AvatarMedia({ profile, draft, alt = '' }: { profile: Profile; dr
     if (!video.current) return
     if (reduceMotion) video.current.pause()
     else void video.current.play().catch(() => undefined)
-  }, [reduceMotion, profile.avatar_preview_url, draft?.src])
-  const src = draft?.src || profile.avatar_preview_url || profile.avatar_url
-  useEffect(() => setVideoFailed(false), [src])
+  }, [reduceMotion, selectedSrc])
+  useEffect(() => setVideoFailed(false), [selectedSrc])
   if (!src) return null
   const kind = draft?.kind || profile.avatar_media || 'image'
   // Stored files are already cropped and rotated on the server. Only the live draft needs CSS positioning.
@@ -29,8 +48,8 @@ export function AvatarMedia({ profile, draft, alt = '' }: { profile: Profile; dr
     left: `${50 + crop.x * 100}%`, top: `${50 + crop.y * 100}%`,
     maxWidth: 'none', transform: `translate(-50%, -50%) rotate(${draft?.rotation || 0}deg)`,
   } : undefined
-  if ((reduceMotion || videoFailed) && !draft && profile.avatar_poster_url) return <img className="avatar__media" src={profile.avatar_poster_url} alt={alt} />
+  if ((reduceMotion || videoFailed) && !draft && poster) return <img ref={(node) => { media.current = node }} className="avatar__media" src={needsMeasurement && !displayWidth ? undefined : poster} alt={alt} />
   return kind === 'video' && !draft
-    ? <video ref={video} className="avatar__media" src={src} poster={profile.avatar_poster_url || undefined} onError={() => setVideoFailed(true)} aria-label={alt || 'Видеоаватар'} style={style} autoPlay={!reduceMotion} muted loop playsInline preload="metadata" />
-    : <img className={draft ? 'avatar__draft' : 'avatar__media'} src={src} alt={alt} style={style} />
+    ? <video ref={(node) => { video.current = node; media.current = node }} className="avatar__media" src={needsMeasurement && !displayWidth ? undefined : selectedSrc || undefined} poster={poster || undefined} onError={() => setVideoFailed(true)} aria-label={alt || 'Видеоаватар'} style={style} autoPlay={!reduceMotion} muted loop playsInline preload="metadata" />
+    : <img ref={(node) => { media.current = node }} className={draft ? 'avatar__draft' : 'avatar__media'} src={needsMeasurement && !displayWidth ? undefined : src || undefined} srcSet={master && displayWidth ? `${src} 560w, ${master} 1000w` : undefined} sizes={master && displayWidth ? `${displayWidth}px` : undefined} alt={alt} style={style} />
 }

@@ -159,11 +159,12 @@ const withAvatarPreview = async (profile: Profile) => {
     avatar_scale: Number(profile.avatar_scale) || ({ small: 12, medium: 28, large: 40 }[profile.avatar_size] ?? 28),
   }
   if (!profile.avatar_path) return { ...normalizedProfile, avatar_preview_url: null }
-  const [avatar, poster] = await Promise.all([
+  const [avatar, poster, master] = await Promise.all([
     supabase.storage.from('avatars').createSignedUrl(profile.avatar_path, 60 * 60),
     profile.avatar_poster_path ? supabase.storage.from('avatars').createSignedUrl(profile.avatar_poster_path, 60 * 60) : Promise.resolve(null),
+    profile.avatar_master_path ? supabase.storage.from('avatars').createSignedUrl(profile.avatar_master_path, 60 * 60) : Promise.resolve(null),
   ])
-  return { ...normalizedProfile, avatar_preview_url: avatar.data?.signedUrl ?? null, avatar_poster_url: poster?.data?.signedUrl ?? null }
+  return { ...normalizedProfile, avatar_preview_url: avatar.data?.signedUrl ?? null, avatar_master_url: master?.data?.signedUrl ?? null, avatar_poster_url: poster?.data?.signedUrl ?? null }
 }
 
 function App() {
@@ -727,11 +728,12 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
       const { error: profileError } = await supabase.from('profiles').update(patch).eq('id', user.id)
       if (profileError) throw profileError
       committed = true
-      const [signed, posterSigned] = await Promise.all([
+      const [signed, posterSigned, masterSigned] = await Promise.all([
         supabase.storage.from('avatars').createSignedUrl(nextPath, 60 * 60),
         posterPath ? supabase.storage.from('avatars').createSignedUrl(posterPath, 60 * 60) : Promise.resolve(null),
+        masterPath ? supabase.storage.from('avatars').createSignedUrl(masterPath, 60 * 60) : Promise.resolve(null),
       ])
-      setProfile(current => ({ ...current, ...patch, avatar_preview_url: signed.data?.signedUrl ?? null, avatar_poster_url: posterSigned?.data?.signedUrl ?? null }))
+      setProfile(current => ({ ...current, ...patch, avatar_preview_url: signed.data?.signedUrl ?? null, avatar_master_url: masterSigned?.data?.signedUrl ?? null, avatar_poster_url: posterSigned?.data?.signedUrl ?? null }))
       const previousPaths = [profile.avatar_path, profile.avatar_master_path, profile.avatar_poster_path].filter((path): path is string => Boolean(path && path !== nextPath && path !== masterPath && path !== posterPath))
       if (previousPaths.length) await supabase.storage.from('avatars').remove(previousPaths)
       setNotice('Аватар обновлён'); window.setTimeout(() => setNotice(''), 2600)
@@ -897,6 +899,11 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         if (insertContactError) throw insertContactError
       }
 
+      const { data: activeSession } = await supabase.auth.getSession()
+      if (activeSession.session) {
+        const params = new URLSearchParams({ previous: persistedHandle.current })
+        await fetch('/profile-cache.php', { method: 'POST', headers: { Authorization: `Bearer ${activeSession.session.access_token}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: params }).catch(() => undefined)
+      }
       await loadData()
       setNotice('Изменения сохранены')
       window.setTimeout(() => setNotice(''), 2600)

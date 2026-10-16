@@ -20,8 +20,13 @@ php -l dist/share-avatar.php
 php -l dist/share-image.php
 php -l dist/avatar-process.php
 php -l dist/preview-config.php
+php -l dist/avatar-asset.php
+php -l dist/link-icon.php
+php -l dist/profile-cache.php
 php tests/share-preview.php
 php tests/share-image.php
+php tests/avatar-asset.php
+php tests/link-icon.php
 
 if [ "${IS_PR:-false}" = "true" ]; then
   npx playwright install --with-deps chromium > /dev/null

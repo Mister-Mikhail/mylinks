@@ -8,6 +8,7 @@ import { ProfilePreview } from '../components/ProfilePreview'
 import { supabase } from '../lib/supabase'
 import { recordProfileEvent } from '../lib/analytics'
 import { publicSupabase } from '../lib/supabasePublic'
+import { publicAvatarUrls } from '../lib/publicAssets'
 import type { EditableContact, EditableLink, Profile, ProfileContact, ProfileLink } from '../types'
 import './publicProfile.css'
 
@@ -25,25 +26,6 @@ interface CacheEntry {
 type Status = 'loading' | 'ready' | 'missing' | 'error'
 
 const CACHE_PREFIX = 'mylinks:page:'
-/** Signed avatar links live for an hour; reuse them a bit shorter so the cached photo never expires on screen. */
-const AVATAR_TTL_MS = 50 * 60 * 1000
-
-const readCache = (handle: string): CacheEntry | null => {
-  try {
-    const raw = localStorage.getItem(CACHE_PREFIX + handle)
-    if (!raw) return null
-    const entry = JSON.parse(raw) as CacheEntry
-    // A shared browser cache must never restore an owner's private profile.
-    if (entry?.data?.profile?.is_published !== true || entry.data.profile.handle !== handle) {
-      localStorage.removeItem(CACHE_PREFIX + handle)
-      return null
-    }
-    if (Date.now() - entry.avatarSignedAt > AVATAR_TTL_MS) entry.data.profile.avatar_preview_url = null
-    return entry
-  } catch {
-    return null
-  }
-}
 
 const writeCache = (handle: string, entry: CacheEntry) => {
   try {
@@ -72,8 +54,12 @@ const toEditable = (link: ProfileLink): EditableLink => ({
   label: link.label,
   label_font: link.label_font,
   label_font_size: link.label_font_size,
+  label_color: link.label_color,
   url: link.url,
   icon_key: link.icon_key,
+  icon_snapshot_path: link.icon_snapshot_path,
+  card_preset_override: link.card_preset_override,
+  card_radius_override: link.card_radius_override,
   position: link.position,
   is_visible: link.is_visible,
   is_sensitive: link.is_sensitive ?? false,
@@ -91,56 +77,66 @@ const toEditableContact = (contact: ProfileContact): EditableContact => ({
   latitude: contact.latitude, longitude: contact.longitude,
   label_font: contact.label_font,
   label_font_size: contact.label_font_size,
+  label_color: contact.label_color,
   value_font: contact.value_font,
   value_font_size: contact.value_font_size,
+  value_color: contact.value_color,
   position: contact.position,
   is_visible: contact.is_visible,
   created_at: contact.created_at,
   updated_at: contact.updated_at,
 })
 
-/** Downloads the photo into the browser cache so the card appears together with its avatar. */
-const preloadImage = (src: string, timeoutMs = 1500) => new Promise<void>((resolve) => {
-  const image = new Image()
-  image.onload = () => resolve()
-  image.onerror = () => resolve()
-  image.src = src
-  window.setTimeout(resolve, timeoutMs)
-})
+const readInitialProfile = (handle: string): PageData | null => {
+  try {
+    const element = document.getElementById('initial-profile')
+    if (!element?.textContent) return null
+    const value = JSON.parse(element.textContent) as { profile: Profile; links: ProfileLink[]; contacts: ProfileContact[] }
+    if (value.profile?.handle !== handle || value.profile.is_published !== true || !Array.isArray(value.links) || !Array.isArray(value.contacts)) return null
+    return {
+      profile: { ...value.profile, ...publicAvatarUrls(value.profile) },
+      links: value.links.filter(link => link.profile_id === value.profile.id && link.is_visible === true).map(toEditable),
+      contacts: value.contacts.filter(contact => contact.profile_id === value.profile.id && contact.is_visible === true).map(toEditableContact),
+    }
+  } catch { return null }
+}
 
 interface AvatarReuse {
   path: string
   url: string
 }
 
-/** Two round trips: the profile first, then links, contacts and the avatar link in parallel. */
+/** Background refresh; the public page already rendered from the HTML payload. */
 const fetchPage = async (client: SupabaseClient, handle: string, reuse: AvatarReuse | null): Promise<PageData | null> => {
   const { data: row, error } = await client.from('profiles').select('*').eq('handle', handle).maybeSingle()
   if (error) throw error
   if (!row) return null
 
   const profileRow = row as Profile
-  const reusedUrl = reuse && profileRow.avatar_path && reuse.path === profileRow.avatar_path ? reuse.url : null
+  const published = profileRow.is_published === true
+  const reusedUrl = !published && reuse && profileRow.avatar_path && reuse.path === profileRow.avatar_path ? reuse.url : null
   const [linksResult, contactsResult, signed, poster] = await Promise.all([
     client.from('profile_links').select('*').eq('profile_id', profileRow.id).order('position'),
     client.from('profile_contacts').select('*').eq('profile_id', profileRow.id).order('position'),
-    profileRow.avatar_path && !reusedUrl
+    !published && profileRow.avatar_path && !reusedUrl
       ? client.storage.from('avatars').createSignedUrl(profileRow.avatar_path, 60 * 60)
       : Promise.resolve(null),
-    profileRow.avatar_poster_path ? client.storage.from('avatars').createSignedUrl(profileRow.avatar_poster_path, 60 * 60) : Promise.resolve(null),
+    !published && profileRow.avatar_poster_path ? client.storage.from('avatars').createSignedUrl(profileRow.avatar_poster_path, 60 * 60) : Promise.resolve(null),
   ])
   if (linksResult.error) throw linksResult.error
   if (contactsResult.error) throw contactsResult.error
 
   const avatarUrl = reusedUrl ?? signed?.data?.signedUrl ?? null
-  if (avatarUrl && !reusedUrl && profileRow.avatar_media !== 'video') await preloadImage(avatarUrl)
+  const assetUrls = published ? publicAvatarUrls(profileRow) : {}
 
   return {
     profile: {
       ...profileRow,
       avatar_scale: Number(profileRow.avatar_scale) || ({ small: 12, medium: 28, large: 40 }[profileRow.avatar_size] ?? 28),
-      avatar_preview_url: avatarUrl,
-      avatar_poster_url: poster?.data?.signedUrl ?? null,
+      avatar_preview_url: published ? assetUrls.avatar_preview_url : avatarUrl,
+      avatar_master_url: published ? assetUrls.avatar_master_url : null,
+      avatar_poster_url: published ? assetUrls.avatar_poster_url : poster?.data?.signedUrl ?? null,
+      avatar_master_poster_url: published ? assetUrls.avatar_master_poster_url : null,
     },
     links: ((linksResult.data ?? []) as ProfileLink[]).map(toEditable),
     contacts: ((contactsResult.data ?? []) as ProfileContact[]).map(toEditableContact),
@@ -170,7 +166,10 @@ export function PublicProfilePage({ handle }: { handle: string }) {
   const navState = location.state as PageData | null
   // The editor opens the page with its current (possibly unsaved) data: show it as is.
   const instant = navState?.profile?.handle === handle ? navState : null
-  const [initial] = useState<CacheEntry | null>(() => (instant ? { avatarSignedAt: Date.now(), data: instant } : readCache(handle)))
+  const [initial] = useState<CacheEntry | null>(() => {
+    const page = instant ?? readInitialProfile(handle)
+    return page ? { avatarSignedAt: Date.now(), data: page } : null
+  })
   const [data, setData] = useState<PageData | null>(initial?.data ?? null)
   const [status, setStatus] = useState<Status>(initial ? 'ready' : 'loading')
   const [attempt, setAttempt] = useState(0)

@@ -25,10 +25,12 @@ export interface Profile {
   avatar_path: string | null
   avatar_master_path?: string | null
   avatar_preview_url?: string | null
+  avatar_master_url?: string | null
   avatar_media?: 'image' | 'gif' | 'video'
   avatar_crop?: AvatarCrop | null
   avatar_poster_path?: string | null
   avatar_poster_url?: string | null
+  avatar_master_poster_url?: string | null
   background_preset: BackgroundPreset
   background_style?: 'preset' | 'solid' | 'gradient'
   background_primary?: string | null
@@ -59,6 +61,7 @@ export interface ProfileLink {
   label_font_size?: number
   label_color?: string | null
   icon_key: LinkIcon
+  icon_snapshot_path?: string | null
   position: number
   is_visible: boolean
   is_sensitive: boolean

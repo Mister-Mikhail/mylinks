@@ -10,7 +10,7 @@ const cacheKey = `mylinks:page:${handle}`
 const user = { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' }
 const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: id, exp: 2100000000, role: 'authenticated' })).toString('base64url')}.signature`
 const session = { access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user }
-const profile = { id, handle, display_name: 'Проверяемый профиль', bio: 'Мои проекты', avatar_url: null, avatar_path: null as string | null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
+const profile = { id, handle, display_name: 'Проверяемый профиль', bio: 'Мои проекты', avatar_url: null, avatar_path: null as string | null, avatar_master_path: null as string | null, avatar_poster_path: null as string | null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
 
 async function mock(page: Page, options: { owner?: boolean; published?: boolean; expired?: boolean; avatar?: boolean; cachedPrivate?: boolean } = {}) {
   const state = { profile: { ...profile, is_published: options.published ?? true, avatar_path: options.avatar ? `${id}/avatar.webp` : null }, profileRequests: [] as string[], signs: [] as string[] }
@@ -89,7 +89,7 @@ test('owner can see a private page, which disappears immediately on sign-out', a
   await expect(page.getByRole('heading', { name: profile.display_name })).toHaveCount(0)
 })
 
-test('published profile reuses the signed avatar URL on repeat visits', async ({ page }) => {
+test('published profile uses stable avatar URLs without signing on repeat visits', async ({ page }) => {
   const { state } = await mock(page, { avatar: true })
   await page.goto(`/${handle}`)
   await expect(page.getByRole('heading', { name: profile.display_name })).toBeVisible()
@@ -102,8 +102,30 @@ test('published profile reuses the signed avatar URL on repeat visits', async ({
   expect(state.signs).toHaveLength(signs)
   state.profile.avatar_path = `${id}/new-avatar.webp`
   await page.reload()
-  await expect(page.locator('.avatar img')).toHaveAttribute('src', /new-avatar\.webp/)
-  expect(state.signs.length).toBeGreaterThan(signs)
+  await expect(page.locator('.avatar img')).toHaveAttribute('src', /\/avatar\/sample-user\/[a-f0-9]{8}-560\.webp/)
+  expect(await page.locator('.avatar img').getAttribute('src')).not.toBe(first)
+  expect(state.signs).toHaveLength(0)
+})
+
+test('initial HTML renders immediately and never calls favicon or signed storage URLs', async ({ page }) => {
+  const { state, errors } = await mock(page, { avatar: true })
+  state.profile.avatar_master_path = `${id}/master.webp`
+  let forbidden = 0
+  page.on('request', request => { if (/\/functions\/v1\/favicon|\/storage\/v1\/object\/sign/.test(request.url())) forbidden++ })
+  await page.route(`**/${handle}`, async route => {
+    const response = await route.fetch()
+    const html = await response.text()
+    const initial = { profile: state.profile, links: [{ id:'link-1', profile_id:id, label:'Первый проект', url:'https://example.com', icon_key:'website', icon_snapshot_path:'/link-icon/00000000-0000-4000-8000-000000000002/123456789abc.png', position:0, is_visible:true }], contacts: [] }
+    await route.fulfill({ response, body: html.replace('</head>', `<script type="application/json" id="initial-profile">${JSON.stringify(initial)}</script></head>`) })
+  })
+  await page.route('**/rest/v1/profiles?**', async route => { await new Promise(resolve => setTimeout(resolve, 2500)); await route.fallback() })
+  await page.goto(`/${handle}`)
+  await expect(page.getByRole('heading', { name: profile.display_name })).toBeVisible({ timeout: 1500 })
+  await expect(page.getByRole('link', { name: /Первый проект/ })).toBeVisible()
+  await expect(page.getByLabel('Загрузка профиля')).toHaveCount(0)
+  await expect(page.locator('.avatar img')).toHaveAttribute('srcset', /-560\.webp 560w, .*?-1000\.webp 1000w/)
+  expect(forbidden).toBe(0)
+  expect(errors).toEqual([])
 })
 
 test('session refresh does not reload the public page or replace it with a spinner', async ({ page }) => {

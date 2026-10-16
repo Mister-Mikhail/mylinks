@@ -1,6 +1,7 @@
 <?php
 // Only published, moderation-approved data is read with the public Supabase key.
-function preview_api($path, $body = null) {
+function preview_api($path, $body = null, $authorization = null) {
+    if (isset($GLOBALS['MYLINKS_PREVIEW_API_TEST'])) return call_user_func($GLOBALS['MYLINKS_PREVIEW_API_TEST'], $path, $body, $authorization);
     $configPath = __DIR__ . '/preview-config.php';
     if (!is_file($configPath) || !function_exists('curl_init')) return null;
     $config = require $configPath;
@@ -9,7 +10,7 @@ function preview_api($path, $body = null) {
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CONNECTTIMEOUT => 2,
         CURLOPT_TIMEOUT => 5,
-        CURLOPT_HTTPHEADER => array('apikey: ' . $config['key'], 'Content-Type: application/json'),
+        CURLOPT_HTTPHEADER => array('apikey: ' . $config['key'], 'Authorization: Bearer ' . ($authorization ?: $config['key']), 'Content-Type: application/json'),
     ));
     if ($body !== null) {
         curl_setopt($curl, CURLOPT_POST, true);
@@ -28,11 +29,44 @@ function preview_handle($value) {
 
 function preview_profile($handle) {
     if (!$handle) return null;
-    $rows = preview_api('/rest/v1/profiles?select=handle,display_name,bio,avatar_path,avatar_poster_path,is_published,updated_at&handle=eq.' . rawurlencode($handle) . '&is_published=eq.true&limit=1');
+    $rows = preview_api('/rest/v1/profiles?select=id,handle,display_name,bio,avatar_path,avatar_master_path,avatar_poster_path,avatar_media,is_published,updated_at&handle=eq.' . rawurlencode($handle) . '&is_published=eq.true&limit=1');
     return is_array($rows) && isset($rows[0]) && !empty($rows[0]['is_published']) ? $rows[0] : null;
 }
 
-function preview_html($html, $profile, $handle) {
+function preview_cache_path($handle) {
+    return sys_get_temp_dir() . '/mylinks-public-profile-' . hash('sha256', $handle) . '.json';
+}
+
+function preview_bundle($handle) {
+    if (!$handle) return null;
+    $cache = preview_cache_path($handle);
+    if (is_file($cache) && filemtime($cache) > time() - 30) {
+        $saved = json_decode(file_get_contents($cache), true);
+        if (is_array($saved) && !empty($saved['profile']['is_published'])) return $saved;
+    }
+    // The publishable key has no user JWT: all three reads are subject to anon RLS and moderation.
+    $fields = 'id,handle,display_name,bio,name_font,name_font_size,name_color,bio_font,bio_font_size,bio_color,handle_font,handle_font_size,handle_color,avatar_url,avatar_path,avatar_master_path,avatar_poster_path,avatar_media,avatar_crop,background_preset,background_style,background_primary,background_secondary,card_preset,card_radius,card_border_width,card_opacity,card_padding,avatar_shape,avatar_size,avatar_scale,is_published,show_qr,qr_size,created_at,updated_at';
+    $rows = preview_api('/rest/v1/profiles?select=' . $fields . '&handle=eq.' . rawurlencode($handle) . '&is_published=eq.true&limit=1');
+    if (!is_array($rows) || !isset($rows[0]) || empty($rows[0]['is_published'])) return null;
+    $profile = $rows[0];
+    $id = $profile['id'];
+    if (!is_string($id) || !preg_match('/^[a-f0-9-]{36}$/D', $id)) return null;
+    $links = preview_api('/rest/v1/profile_links?select=*&profile_id=eq.' . rawurlencode($id) . '&is_visible=eq.true&order=position.asc');
+    $contacts = preview_api('/rest/v1/profile_contacts?select=*&profile_id=eq.' . rawurlencode($id) . '&is_visible=eq.true&order=position.asc');
+    if (!is_array($links) || !is_array($contacts)) return null;
+    // Explicit filtering also protects against a future RLS policy accidentally becoming permissive.
+    $links = array_values(array_filter($links, function ($row) use ($id) { return is_array($row) && ($row['profile_id'] ?? null) === $id && !empty($row['is_visible']); }));
+    $contacts = array_values(array_filter($contacts, function ($row) use ($id) { return is_array($row) && ($row['profile_id'] ?? null) === $id && !empty($row['is_visible']); }));
+    $bundle = array('profile'=>$profile,'links'=>$links,'contacts'=>$contacts);
+    $temporary = @tempnam(sys_get_temp_dir(), 'mylinks-profile-write-');
+    if ($temporary) {
+        if (@file_put_contents($temporary, json_encode($bundle)) !== false) @rename($temporary, $cache);
+        if (is_file($temporary)) @unlink($temporary);
+    }
+    return $bundle;
+}
+
+function preview_html($html, $profile, $handle, $bundle = null) {
     $escape = function ($value) { return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); };
     $url = 'https://mylinks.bar/' . rawurlencode($handle);
     $title = $profile ? (trim($profile['display_name']) ?: $handle) . ' — mylinks.bar' : 'mylinks.bar — все ссылки в одном месте';
@@ -51,6 +85,10 @@ function preview_html($html, $profile, $handle) {
         $meta .= "\n" . '<meta name="twitter:' . $key . '" content="' . $escape($value) . '" />';
     }
     if (!$profile) $meta .= "\n" . '<meta name="robots" content="noindex" />';
+    if ($profile && $bundle && !empty($bundle['profile']['is_published'])) {
+        $json = json_encode($bundle, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($json !== false) $meta .= "\n" . '<script type="application/json" id="initial-profile">' . $json . '</script>';
+    }
     return str_replace('</head>', $meta . "\n</head>", $html);
 }
 
@@ -60,5 +98,8 @@ if (!defined('MYLINKS_PREVIEW_LIBRARY_ONLY')) {
     $handle = preview_handle(isset($_GET['handle']) ? $_GET['handle'] : null);
     $html = file_get_contents(__DIR__ . '/index.html');
     if (!$handle) { http_response_code(404); echo $html; }
-    else { echo preview_html($html, preview_profile($handle), $handle); }
+    else {
+        $bundle = preview_bundle($handle);
+        echo preview_html($html, $bundle['profile'] ?? null, $handle, $bundle);
+    }
 }

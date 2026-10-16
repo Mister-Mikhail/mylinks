@@ -36,6 +36,7 @@ import { DeleteAccount } from './components/DeleteAccount'
 import { AvatarMedia } from './components/AvatarMedia'
 import { AvatarEditor } from './components/AvatarEditor'
 import { ProfilePreview } from './components/ProfilePreview'
+import { TemplateGallery } from './components/TemplateGallery'
 import { TypographyControls } from './components/TypographyControls'
 import { LinkIcon } from './components/LinkIcon'
 import { ProfileTools } from './components/ProfileTools'
@@ -52,7 +53,6 @@ import {
 } from './config/linkPlatforms'
 import { supabase } from './lib/supabase'
 import { copyText, profileUrl } from './lib/clipboard'
-import { shareProfileUrl } from './lib/profileUrl'
 import { useStaffRole } from './lib/useStaffRole'
 import { loadStaffProfile, saveStaffProfile, uploadStaffAvatar } from './lib/staff'
 import { CONTACT_OPTIONS, contactPlaceholder, isValidContactValue } from './lib/contacts'
@@ -985,7 +985,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
           ) : section === 'stats' ? (
             <StatisticsPanel profileId={user.id} />
           ) : (
-            <DesignEditor profile={profile} setProfile={setProfile} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} onAvatarDraft={setAvatarDraft} />
+            <DesignEditor profile={profile} setProfile={setProfile} links={links} contacts={contacts} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} onAvatarDraft={setAvatarDraft} />
           )}
           {!targetId && section !== 'stats' && <ProfileTools userId={user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} updatedAt={profile.updated_at} avatarPath={profile.avatar_path} />}
           {!targetId && !staffRole && section !== 'stats' && <DeleteAccount onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
@@ -994,7 +994,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         <aside className="preview-panel">
           <div className="preview-panel__heading">
             <div><MonitorSmartphone size={17} /><span>Предпросмотр</span></div>
-            <button className="button button--icon-text" onClick={() => void copyText(shareProfileUrl(profile.handle, profile.updated_at, profile.avatar_path))}><Copy size={14} /> Скопировать</button>
+            <button className="button button--icon-text" onClick={() => void copyText(profileUrl(profile.handle))}><Copy size={14} /> Скопировать</button>
           </div>
           <div className="device-frame">
             <div className="device-frame__speaker" />
@@ -1240,18 +1240,24 @@ function ContentEditor({
 function DesignEditor({
   profile,
   setProfile,
+  links,
+  contacts,
   avatarUploading,
   onAvatarUpload,
   onAvatarDraft,
 }: {
   profile: Profile
   setProfile: (profile: Profile) => void
+  links: EditableLink[]
+  contacts: EditableContact[]
   avatarUploading: boolean
   onAvatarUpload: (blob: Blob, options?: AvatarUploadOptions) => Promise<boolean>
   onAvatarDraft: (draft: AvatarDraft | null) => void
 }) {
   return (
     <div className="editor-stack appearance-settings">
+
+      <TemplateGallery profile={profile} links={links} contacts={contacts} setProfile={setProfile} />
 
       <section className="settings-card">
         <div className="settings-card__title"><Palette size={18} /><div><h2>Фон</h2><p>Выберите настроение профиля.</p></div></div>

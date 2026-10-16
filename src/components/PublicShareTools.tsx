@@ -47,7 +47,7 @@ export function PublicShareTools({ handle, name, contacts, showQr, size, updated
     return () => window.clearTimeout(timer)
   }, [open, overlayMounted])
 
-  const copy = async () => { setNotice(await copyText(sharingUrl) ? 'Ссылка скопирована.' : 'Не удалось скопировать ссылку.'); setOpen(false) }
+  const copy = async () => { setNotice(await copyText(url) ? 'Ссылка скопирована.' : 'Не удалось скопировать ссылку.'); setOpen(false) }
   const saveQr = async () => {
     try {
       const image = await (await fetch(qr)).blob()

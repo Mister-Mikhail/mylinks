@@ -73,6 +73,17 @@ test('fonts and bounded sizes update immediately and are saved', async ({ page, 
   if (isMobile) expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => window.innerWidth))
 })
 
+test('individual card reset restores the common link typography', async ({ page }) => {
+  await mock(page)
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Оформление', exact: true }).click()
+  await page.getByLabel('Шрифт: Текст ссылок').selectOption('georgia')
+  await page.locator('.appearance-item__select').nth(1).click()
+  await page.getByLabel('Шрифт: Название ссылки').selectOption('verdana')
+  await page.getByRole('button', { name: 'Как у всех' }).click()
+  await expect(page.getByLabel('Шрифт: Название ссылки')).toHaveValue('georgia')
+})
+
 test('owner statistics load, change period and show link counts', async ({ page }) => {
   await mock(page)
   await page.goto('/')

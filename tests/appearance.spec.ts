@@ -344,3 +344,24 @@ test('default card text maintains accessible contrast across themes, presets and
     }
   }
 })
+
+
+test('capture typography and card preset visual matrix for desktop and mobile review', async ({ page }, testInfo) => {
+  test.setTimeout(120_000)
+  await mockAppearance(page)
+  const control = page.getByLabel('Шрифт: Имя', { exact: true })
+  const card = page.locator('.preview-panel .profile-card')
+  for (const font of FONT_OPTIONS) {
+    await control.selectOption(font.value)
+    await page.evaluate(() => document.fonts.ready.then(() => true))
+    await card.screenshot({ path: testInfo.outputPath(`font-${font.value}.png`) })
+  }
+  for (const theme of ['Полночь', 'Туман', 'Кобальт']) {
+    await page.getByRole('button', { name: theme, exact: true }).click()
+    for (const preset of ['Стекло', 'Плотные', 'Контур']) {
+      await page.getByRole('button', { name: preset, exact: true }).click()
+      await card.screenshot({ path: testInfo.outputPath(`card-${theme}-${preset}.png`) })
+    }
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})

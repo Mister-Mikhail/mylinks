@@ -35,12 +35,14 @@ function avatar_asset_download($path) {
 }
 
 function avatar_asset_poster($bytes) {
-    if (!function_exists('proc_open') || !is_executable('/usr/bin/ffmpeg') || !is_executable('/usr/bin/timeout')) return null;
+    $ffmpeg=is_executable('/usr/bin/ffmpeg') ? '/usr/bin/ffmpeg' : (is_executable('/usr/local/bin/ffmpeg') ? '/usr/local/bin/ffmpeg' : null);
+    $timeout=is_executable('/usr/bin/timeout') ? '/usr/bin/timeout' : (is_executable('/usr/local/bin/timeout') ? '/usr/local/bin/timeout' : null);
+    if (!function_exists('proc_open') || !$ffmpeg || !$timeout) return null;
     $source = @tempnam(sys_get_temp_dir(),'mylinks-video-');
     $result = @tempnam(sys_get_temp_dir(),'mylinks-poster-');
     if (!$source || !$result) return null;
     file_put_contents($source,$bytes);
-    $args = array('/usr/bin/timeout','15s','/usr/bin/ffmpeg','-nostdin','-v','error','-y','-ss','0.15','-i',$source,'-frames:v','1','-vf','scale=1000:1000:flags=lanczos','-c:v','libwebp','-quality','84','-f','webp',$result);
+    $args = array($timeout,'15s',$ffmpeg,'-nostdin','-v','error','-y','-ss','0.15','-i',$source,'-frames:v','1','-vf','scale=1000:1000:flags=lanczos','-c:v','libwebp','-quality','84','-f','webp',$result);
     $process = proc_open(implode(' ',array_map('escapeshellarg',$args)),array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes);
     $image = null;
     if (is_resource($process)) { fclose($pipes[0]); stream_get_contents($pipes[1]); fclose($pipes[1]); stream_get_contents($pipes[2]); fclose($pipes[2]); if (proc_close($process)===0 && filesize($result)<3*1024*1024) $image=file_get_contents($result); }

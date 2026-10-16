@@ -13,4 +13,12 @@ $profile['is_published']=false;
 verify_avatar(avatar_asset_details($profile,$hash,'560',false,'webp')===null,'Private asset accessible');
 $profile['is_published']=true; $profile['avatar_path']='another-owner/small.webp';
 verify_avatar(avatar_asset_details($profile,avatar_fingerprint($profile),'560',false,'webp')===null,'Other owner asset accessible');
+$video=tempnam(sys_get_temp_dir(),'mylinks-range-test-');
+file_put_contents($video,str_repeat('0123456789',20));
+foreach (array(array('bytes=0-1',206,'01'),array('bytes=100-',206,substr(str_repeat('0123456789',20),100)),array('bytes=999-',416,''),array('bytes=5-2',416,''),array('bytes=abc-def',416,'')) as $case) {
+    http_response_code(200);
+    ob_start(); avatar_asset_serve($video,'video/mp4',$case[0]); $body=ob_get_clean();
+    verify_avatar(http_response_code()===$case[1] && $body===$case[2], 'Range ' . $case[0]);
+}
+@unlink($video);
 echo "Avatar asset checks passed\n";

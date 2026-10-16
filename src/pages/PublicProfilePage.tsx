@@ -47,7 +47,7 @@ const clearCache = (handle: string) => {
   }
 }
 
-const toEditable = (link: ProfileLink): EditableLink => ({
+const toEditable = (link: ProfileLink, handle?: string): EditableLink => ({
   id: link.id,
   profile_id: link.profile_id,
   localId: link.id,
@@ -57,7 +57,8 @@ const toEditable = (link: ProfileLink): EditableLink => ({
   label_color: link.label_color,
   url: link.url,
   icon_key: link.icon_key,
-  icon_snapshot_path: link.icon_snapshot_path,
+  icon_snapshot_path: handle && link.icon_snapshot_path?.match(/^\/link-icon\/([a-f0-9-]{36})\/([a-f0-9]{12})\.png$/)
+    ? link.icon_snapshot_path.replace('/link-icon/', `/link-icon/${handle}/`) : link.icon_snapshot_path,
   card_preset_override: link.card_preset_override,
   card_radius_override: link.card_radius_override,
   position: link.position,
@@ -95,7 +96,7 @@ const readInitialProfile = (handle: string): PageData | null => {
     if (value.profile?.handle !== handle || value.profile.is_published !== true || !Array.isArray(value.links) || !Array.isArray(value.contacts)) return null
     return {
       profile: { ...value.profile, ...publicAvatarUrls(value.profile) },
-      links: value.links.filter(link => link.profile_id === value.profile.id && link.is_visible === true).map(toEditable),
+      links: value.links.filter(link => link.profile_id === value.profile.id && link.is_visible === true).map(link => toEditable(link, handle)),
       contacts: value.contacts.filter(contact => contact.profile_id === value.profile.id && contact.is_visible === true).map(toEditableContact),
     }
   } catch { return null }
@@ -139,7 +140,7 @@ const fetchPage = async (client: SupabaseClient, handle: string, reuse: AvatarRe
       avatar_poster_url: published ? assetUrls.avatar_poster_url : poster?.data?.signedUrl ?? null,
       avatar_master_poster_url: published ? assetUrls.avatar_master_poster_url : null,
     },
-    links: ((linksResult.data ?? []) as ProfileLink[]).map(toEditable),
+    links: ((linksResult.data ?? []) as ProfileLink[]).map(link => toEditable(link, published ? handle : undefined)),
     contacts: ((contactsResult.data ?? []) as ProfileContact[]).map(toEditableContact),
   }
 }

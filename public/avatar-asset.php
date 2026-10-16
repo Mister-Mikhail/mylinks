@@ -1,6 +1,46 @@
 <?php
 define('MYLINKS_PREVIEW_LIBRARY_ONLY', true);
 require __DIR__ . '/share-profile.php';
+require_once __DIR__ . '/asset-cache.php';
+
+function avatar_asset_range($range, $total) {
+    if (!is_string($range) || !preg_match('/^bytes=(\d+)-(\d*)$/D', $range, $parts) || $total < 1) return null;
+    $start = (int) $parts[1];
+    $end = $parts[2] === '' ? $total - 1 : (int) $parts[2];
+    if ($start >= $total || $end < $start) return null;
+    return array($start, min($end, $total - 1));
+}
+
+function avatar_asset_serve($path, $type, $range = null) {
+    $total = filesize($path);
+    header('Accept-Ranges: bytes');
+    header('Cache-Control: public, max-age=31536000, immutable');
+    header('Content-Type: ' . $type);
+    if ($range !== null) {
+        $bounds = avatar_asset_range($range, $total);
+        if (!$bounds) {
+            http_response_code(416);
+            header('Content-Range: bytes */' . $total);
+            header('Content-Length: 0');
+            return;
+        }
+        list($start, $end) = $bounds;
+        http_response_code(206);
+        header('Content-Range: bytes ' . $start . '-' . $end . '/' . $total);
+    } else { $start = 0; $end = $total - 1; }
+    header('Content-Length: ' . ($end - $start + 1));
+    $file = fopen($path, 'rb');
+    if (!$file) return;
+    fseek($file, $start);
+    $remaining = $end - $start + 1;
+    while ($remaining > 0 && !feof($file)) {
+        $chunk = fread($file, min(65536, $remaining));
+        if ($chunk === false || $chunk === '') break;
+        echo $chunk;
+        $remaining -= strlen($chunk);
+    }
+    fclose($file);
+}
 
 function avatar_fingerprint($profile) {
     $source = implode('|', array($profile['avatar_path'] ?? '', $profile['avatar_master_path'] ?? '', $profile['avatar_poster_path'] ?? ''));
@@ -54,7 +94,8 @@ if (!defined('MYLINKS_AVATAR_LIBRARY_ONLY')) {
     header('X-Content-Type-Options: nosniff');
     $handle = preview_handle($_GET['handle'] ?? null);
     $hash = $_GET['hash'] ?? ''; $size = $_GET['size'] ?? ''; $poster = ($_GET['poster'] ?? '') === 'poster'; $extension = $_GET['extension'] ?? '';
-    $profile = $handle && preg_match('/^[a-f0-9]{8}$/D',$hash) && in_array($size,array('560','1000'),true) ? preview_profile($handle) : null;
+    $bundle = $handle && preg_match('/^[a-f0-9]{8}$/D',$hash) && in_array($size,array('560','1000'),true) ? preview_bundle($handle) : null;
+    $profile = $bundle['profile'] ?? null;
     $detail = avatar_asset_details($profile,$hash,$size,$poster,$extension);
     if (!$detail) { http_response_code(404); header('Cache-Control: no-store'); exit; }
     $key = hash('sha256',$detail['path'] . '|' . $size . '|' . ($poster ? 'poster' : 'media'));
@@ -67,13 +108,10 @@ if (!defined('MYLINKS_AVATAR_LIBRARY_ONLY')) {
             $bytes = avatar_asset_download($detail['path']);
             if ($bytes && $detail['renderPoster']) $bytes = avatar_asset_poster($bytes);
             $valid = $detail['type'] === 'image/webp' ? substr($bytes ?? '',0,4)==='RIFF' && substr($bytes ?? '',8,4)==='WEBP' : substr($bytes ?? '',4,4)==='ftyp';
-            if ($valid) { $temporary = @tempnam(sys_get_temp_dir(),'mylinks-avatar-write-'); if ($temporary) { file_put_contents($temporary,$bytes); @rename($temporary,$cache); if (is_file($temporary)) @unlink($temporary); } }
+            if ($valid) { $temporary = @tempnam(sys_get_temp_dir(),'mylinks-avatar-write-'); if ($temporary) { file_put_contents($temporary,$bytes); if (@rename($temporary,$cache)) asset_cache_cleanup(); if (is_file($temporary)) @unlink($temporary); } }
         }
         flock($lock,LOCK_UN); fclose($lock);
     }
     if (!is_file($cache)) { http_response_code(502); header('Cache-Control: no-store'); exit; }
-    header('Content-Type: ' . $detail['type']);
-    header('Content-Length: ' . filesize($cache));
-    header('Cache-Control: public, max-age=31536000, immutable');
-    readfile($cache);
+    avatar_asset_serve($cache, $detail['type'], $_SERVER['HTTP_RANGE'] ?? null);
 }

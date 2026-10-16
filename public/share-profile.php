@@ -6,11 +6,13 @@ function preview_api($path, $body = null, $authorization = null) {
     if (!is_file($configPath) || !function_exists('curl_init')) return null;
     $config = require $configPath;
     $curl = curl_init($config['url'] . $path);
+    $headers = array('apikey: ' . $config['key'], 'Content-Type: application/json');
+    if ($authorization) $headers[] = 'Authorization: Bearer ' . $authorization;
     curl_setopt_array($curl, array(
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CONNECTTIMEOUT => 2,
         CURLOPT_TIMEOUT => 5,
-        CURLOPT_HTTPHEADER => array('apikey: ' . $config['key'], 'Authorization: Bearer ' . ($authorization ?: $config['key']), 'Content-Type: application/json'),
+        CURLOPT_HTTPHEADER => $headers,
     ));
     if ($body !== null) {
         curl_setopt($curl, CURLOPT_POST, true);
@@ -35,6 +37,11 @@ function preview_profile($handle) {
 
 function preview_cache_path($handle) {
     return sys_get_temp_dir() . '/mylinks-public-profile-' . hash('sha256', $handle) . '.json';
+}
+
+function preview_public_icon_path($handle, $path) {
+    if (!is_string($path) || !preg_match('#^/link-icon/([a-f0-9-]{36})/([a-f0-9]{12})\.png$#D', $path, $parts)) return null;
+    return '/link-icon/' . $handle . '/' . $parts[1] . '/' . $parts[2] . '.png';
 }
 
 function preview_bundle($handle) {
@@ -87,6 +94,8 @@ function preview_html($html, $profile, $handle, $bundle = null) {
     }
     if (!$profile) $meta .= "\n" . '<meta name="robots" content="noindex" />';
     if ($profile && $bundle && !empty($bundle['profile']['is_published'])) {
+        foreach ($bundle['links'] as &$link) $link['icon_snapshot_path'] = preview_public_icon_path($handle, $link['icon_snapshot_path'] ?? null);
+        unset($link);
         $json = json_encode($bundle, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         if ($json !== false) $meta .= "\n" . '<script type="application/json" id="initial-profile">' . $json . '</script>';
     }

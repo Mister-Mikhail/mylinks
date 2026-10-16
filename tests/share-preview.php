@@ -28,7 +28,7 @@ $requests=array();
 $GLOBALS['MYLINKS_PREVIEW_API_TEST']=function($path) use (&$requests,$uuid) {
     $requests[]=$path;
     if (strpos($path,'/profiles?')!==false) return array(array('id'=>$uuid,'handle'=>'mister','display_name'=>'<\/script><script>alert(1)</script>','bio'=>'Test','is_published'=>true,'avatar_path'=>null,'updated_at'=>'2026-10-16'));
-    if (strpos($path,'/profile_links?')!==false) return array(array('id'=>'link-1','profile_id'=>$uuid,'is_visible'=>true,'url'=>'https://example.com','label'=>'A'),array('id'=>'link-2','profile_id'=>$uuid,'is_visible'=>false,'label'=>'Secret'));
+    if (strpos($path,'/profile_links?')!==false) return array(array('id'=>$uuid,'profile_id'=>$uuid,'is_visible'=>true,'url'=>'https://example.com','label'=>'A','icon_snapshot_path'=>'/link-icon/' . $uuid . '/abcdef123456.png'),array('id'=>'link-2','profile_id'=>$uuid,'is_visible'=>false,'label'=>'Secret'));
     return array(array('profile_id'=>$uuid,'is_visible'=>true,'label'=>'Visible'),array('profile_id'=>$uuid,'is_visible'=>false,'label'=>'Private'));
 };
 @unlink(preview_cache_path('mister'));
@@ -39,6 +39,7 @@ verify(strpos($initial,'id="initial-profile"')!==false,'Initial JSON missing');
 verify(strpos($initial,'<script>alert(1)</script>')===false,'JSON script breakout');
 verify(strpos($initial,'\\u003Cscript\\u003E')!==false,'JSON_HEX_TAG missing');
 verify(strpos($initial,'Private')===false && strpos($initial,'Secret')===false,'Hidden records leaked in HTML');
+verify(strpos($initial,'/link-icon/mister/' . $uuid . '/abcdef123456.png')!==false,'Icon URL missing handle');
 $count=count($requests); preview_bundle('mister');
 verify(count($requests)===$count,'Warm cache made Supabase requests');
 @unlink(preview_cache_path('mister'));

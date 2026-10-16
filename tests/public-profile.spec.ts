@@ -115,7 +115,7 @@ test('initial HTML renders immediately and never calls favicon or signed storage
   await page.route(`**/${handle}`, async route => {
     const response = await route.fetch()
     const html = await response.text()
-    const initial = { profile: state.profile, links: [{ id:'link-1', profile_id:id, label:'Первый проект', url:'https://example.com', icon_key:'website', icon_snapshot_path:'/link-icon/00000000-0000-4000-8000-000000000002/123456789abc.png', position:0, is_visible:true }], contacts: [] }
+    const initial = { profile: state.profile, links: [{ id:'link-1', profile_id:id, label:'Первый проект', url:'https://example.com', icon_key:'website', icon_snapshot_path:'/link-icon/sample-user/00000000-0000-4000-8000-000000000002/123456789abc.png', position:0, is_visible:true }], contacts: [] }
     await route.fulfill({ response, body: html.replace('</head>', `<script type="application/json" id="initial-profile">${JSON.stringify(initial)}</script></head>`) })
   })
   await page.route('**/rest/v1/profiles?**', async route => { await new Promise(resolve => setTimeout(resolve, 2500)); await route.fallback() })

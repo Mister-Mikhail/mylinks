@@ -1,6 +1,15 @@
 <?php
 if (!defined('MYLINKS_PREVIEW_LIBRARY_ONLY')) define('MYLINKS_PREVIEW_LIBRARY_ONLY', true);
 require_once __DIR__ . '/share-profile.php';
+require_once __DIR__ . '/asset-cache.php';
+
+function icon_snapshot_from_bundle($bundle, $id, $hash) {
+    if (empty($bundle['profile']['is_published']) || !is_array($bundle['links'] ?? null)) return null;
+    foreach ($bundle['links'] as $row) {
+        if (($row['id'] ?? null) === $id) return icon_snapshot_details($row, $hash);
+    }
+    return null;
+}
 
 function icon_snapshot_details($row, $hash) {
     if (!$row || empty($row['is_visible']) || !isset($row['url'], $row['id']) || !hash_equals(substr(md5($row['url']), 0, 12), $hash)) return null;
@@ -42,11 +51,10 @@ function icon_snapshot_fetch($host) {
 
 if (!defined('MYLINKS_ICON_LIBRARY_ONLY')) {
     header('X-Content-Type-Options: nosniff');
-    $id=$_GET['id'] ?? ''; $hash=$_GET['hash'] ?? '';
-    if (!preg_match('/^[a-f0-9-]{36}$/D',$id) || !preg_match('/^[a-f0-9]{12}$/D',$hash)) { http_response_code(404); exit; }
-    // Anon RLS checks publication, link visibility and moderation on every asset request.
-    $rows=preview_api('/rest/v1/profile_links?select=id,url,is_visible&is_visible=eq.true&id=eq.' . rawurlencode($id) . '&limit=1');
-    $host=is_array($rows) && isset($rows[0]) ? icon_snapshot_details($rows[0],$hash) : null;
+    $handle=preview_handle($_GET['handle'] ?? null); $id=$_GET['id'] ?? ''; $hash=$_GET['hash'] ?? '';
+    if (!$handle || !preg_match('/^[a-f0-9-]{36}$/D',$id) || !preg_match('/^[a-f0-9]{12}$/D',$hash)) { http_response_code(404); exit; }
+    // The short-lived anon/RLS bundle checks publication, moderation and visibility.
+    $host=icon_snapshot_from_bundle(preview_bundle($handle),$id,$hash);
     if (!$host) { http_response_code(404); header('Cache-Control: no-store'); exit; }
     $cache=sys_get_temp_dir() . '/mylinks-link-icon-' . hash('sha256',$id . ':' . $hash) . '.png';
     if (!is_file($cache)) {
@@ -55,7 +63,7 @@ if (!defined('MYLINKS_ICON_LIBRARY_ONLY')) {
             flock($lock,LOCK_EX);
             if (!is_file($cache)) {
                 $png=icon_snapshot_fetch($host);
-                if ($png) { $temporary=tempnam(sys_get_temp_dir(),'mylinks-icon-write-'); if ($temporary) { file_put_contents($temporary,$png); rename($temporary,$cache); } }
+                if ($png) { $temporary=tempnam(sys_get_temp_dir(),'mylinks-icon-write-'); if ($temporary) { file_put_contents($temporary,$png); if (@rename($temporary,$cache)) asset_cache_cleanup(); if (is_file($temporary)) @unlink($temporary); } }
             }
             flock($lock,LOCK_UN); fclose($lock);
         }

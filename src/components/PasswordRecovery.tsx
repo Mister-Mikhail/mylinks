@@ -56,6 +56,7 @@ export function PasswordRecoveryForm() {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [show, setShow] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -95,7 +96,7 @@ export function PasswordRecoveryForm() {
       <p>Придумайте пароль не короче шести символов.</p>
       <form className="confirmation-resend" onSubmit={submit}>
         <label>Новый пароль<div className="password-field"><input type={show ? 'text' : 'password'} value={password} onChange={event => setPassword(event.target.value)} minLength={6} autoComplete="new-password" required /><button type="button" onClick={() => setShow(value => !value)} aria-label={show ? 'Скрыть пароль' : 'Показать пароль'}>{show ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
-        <label>Повторите пароль<input type={show ? 'text' : 'password'} value={confirm} onChange={event => setConfirm(event.target.value)} autoComplete="new-password" required /></label>
+        <label>Повторите пароль<div className="password-field"><input type={showConfirm ? 'text' : 'password'} value={confirm} onChange={event => setConfirm(event.target.value)} minLength={6} autoComplete="new-password" required /><button type="button" onClick={() => setShowConfirm(value => !value)} aria-label={showConfirm ? 'Скрыть повтор пароля' : 'Показать повтор пароля'}>{showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
         <button className="button button--primary button--full" type="submit" disabled={busy}>{busy ? <LoaderCircle className="spin" size={18} /> : 'Сохранить пароль'}</button>
       </form>
     </> : <p>{checking ? 'Это займёт несколько секунд.' : 'Ссылка истекла или недействительна. Запросите новое письмо.'}</p>}

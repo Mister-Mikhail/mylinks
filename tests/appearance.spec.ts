@@ -209,6 +209,18 @@ test('per-card padding, border and opacity survive reload without changing the o
   await expect(page.locator('.public-preview-page .profile-link').first()).toHaveCSS('padding-left', '20px')
 })
 
+test('public cards remain tappable at 320px and honor reduced motion', async ({ page }) => {
+  await mockAppearance(page)
+  await page.setViewportSize({ width: 320, height: 640 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/sample-user')
+  const card = page.locator('.public-preview-page .profile-link').first()
+  const box = await card.boundingBox()
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  await expect(card).toHaveCSS('transition-duration', '0s')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
+})
+
 test('inline crop supports positioning, zoom and cancelling without uploading', async ({ page }) => {
   const { uploads, pageErrors } = await mockAppearance(page)
   await selectPhoto(page)

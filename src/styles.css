@@ -757,6 +757,11 @@ a.profile-link:hover {
   transform: translateY(-2px);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .profile-link { transition: none; }
+  a.profile-link:hover { transform: none; }
+}
+
 .profile-link.card-glass {
   background: rgb(255 255 255 / calc(.1 * var(--card-alpha, 1)));
   border-color: rgba(255, 255, 255, 0.13);

@@ -41,7 +41,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
   }
 
   const copyProfileLink = async () => {
-    await copyText(profileUrl(profile.handle))
+    if (!await copyText(profileUrl(profile.handle))) return
     setProfileLinkCopied(true)
     window.setTimeout(() => setProfileLinkCopied(false), 1800)
   }

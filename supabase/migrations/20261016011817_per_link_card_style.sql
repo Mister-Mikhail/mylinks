@@ -1,6 +1,6 @@
 alter table public.profile_links
-  add column card_preset_override text check (card_preset_override is null or card_preset_override in ('glass','solid','outline')),
-  add column card_radius_override integer check (card_radius_override is null or card_radius_override between 4 and 28);
+  add column if not exists card_preset_override text check (card_preset_override is null or card_preset_override in ('glass','solid','outline')),
+  add column if not exists card_radius_override integer check (card_radius_override is null or card_radius_override between 4 and 28);
 
 comment on column public.profile_links.card_preset_override is 'Optional presentation override; null follows the profile-wide style.';
 

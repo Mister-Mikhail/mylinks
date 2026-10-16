@@ -161,6 +161,19 @@ test('a link can override its card style while keeping the same link id', async 
   expect(pageErrors).toEqual([])
 })
 
+test('font changed in Appearance survives reload and appears on the profile page', async ({ page }) => {
+  const { patches } = await mockAppearance(page)
+  await page.getByLabel('Шрифт: Имя', { exact: true }).selectOption('georgia')
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+  await expect(page.getByText('Изменения сохранены')).toBeVisible()
+  expect(patches.at(-1)).toMatchObject({ name_font: 'georgia' })
+  await page.reload()
+  await page.getByRole('button', { name: 'Оформление', exact: true }).click()
+  await expect(page.getByLabel('Шрифт: Имя', { exact: true })).toHaveValue('georgia')
+  await page.goto('/sample-user')
+  await expect(page.locator('.public-preview-page h1')).toHaveCSS('font-family', /Georgia/)
+})
+
 test('inline crop supports positioning, zoom and cancelling without uploading', async ({ page }) => {
   const { uploads, pageErrors } = await mockAppearance(page)
   await selectPhoto(page)

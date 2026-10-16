@@ -139,6 +139,28 @@ test('custom gradient and bounded card controls persist without changing the old
   expect(pageErrors).toEqual([])
 })
 
+test('a link can override its card style while keeping the same link id', async ({ page }) => {
+  const { pageErrors } = await mockAppearance(page)
+  const sent: Array<Record<string, unknown>> = []
+  page.on('request', request => {
+    if (request.url().includes('/profile_links') && request.method() === 'POST') {
+      const body = request.postDataJSON()
+      if (Array.isArray(body)) sent.push(...body)
+    }
+  })
+  await page.getByRole('button', { name: 'Ссылки', exact: true }).click()
+  await page.getByText('Оформление этой карточки').click()
+  await page.getByLabel('Стиль этой карточки').selectOption('solid')
+  await page.getByLabel('Скругление этой карточки').selectOption('21')
+  const link = page.locator('.preview-panel .profile-link').first()
+  await expect(link).toHaveClass(/card-solid/)
+  await expect(link).toHaveCSS('border-radius', '21px')
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+  await expect(page.getByText('Изменения сохранены')).toBeVisible()
+  expect(sent).toContainEqual(expect.objectContaining({ id: 'link-test', card_preset_override: 'solid', card_radius_override: 21 }))
+  expect(pageErrors).toEqual([])
+})
+
 test('inline crop supports positioning, zoom and cancelling without uploading', async ({ page }) => {
   const { uploads, pageErrors } = await mockAppearance(page)
   await selectPhoto(page)

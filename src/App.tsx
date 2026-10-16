@@ -819,6 +819,8 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         position,
         is_visible: link.is_visible,
         is_sensitive: link.is_sensitive,
+        card_preset_override: link.card_preset_override ?? null,
+        card_radius_override: link.card_radius_override ?? null,
       }))
       if (existing.length) {
         const { error: updateError } = await supabase.from('profile_links').upsert(existing)
@@ -836,6 +838,8 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         position,
         is_visible: link.is_visible,
         is_sensitive: link.is_sensitive,
+        card_preset_override: link.card_preset_override ?? null,
+        card_radius_override: link.card_radius_override ?? null,
       }))
       if (fresh.length) {
         const { error: insertError } = await supabase.from('profile_links').insert(fresh)
@@ -1163,6 +1167,10 @@ function ContentEditor({
                   )
                 })()}
                 <TypographyControls label="Название ссылки" slot="link" font={link.label_font} size={link.label_font_size} color={link.label_color} onChange={(font, size) => updateLink(link.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateLink(link.localId, { label_color: color })} />
+                <details className="link-card-style"><summary>Оформление этой карточки</summary><div className="link-card-style__controls">
+                  <label>Стиль<select aria-label="Стиль этой карточки" value={link.card_preset_override ?? ''} onChange={event => updateLink(link.localId, { card_preset_override: event.target.value ? event.target.value as Profile['card_preset'] : null })}><option value="">Как у остальных</option><option value="glass">Стекло</option><option value="solid">Сплошная</option><option value="outline">Контур</option></select></label>
+                  <label>Скругление<select aria-label="Скругление этой карточки" value={link.card_radius_override ?? ''} onChange={event => updateLink(link.localId, { card_radius_override: event.target.value ? Number(event.target.value) : null })}><option value="">Как у остальных</option><option value="4">4 px</option><option value="13">13 px</option><option value="21">21 px</option><option value="28">28 px</option></select></label>
+                </div></details>
                 <small className="link-editor__hint">{getLinkPlatform(link.icon_key).baseUrl ? 'Введите только имя после адреса площадки' : 'Можно без https:// · логотип подтянется автоматически'}</small>
                 <div className="link-editor__footer">
                   <span className="link-editor__site-icon" role="img" aria-label="Иконка сайта"><LinkIcon name={link.icon_key} url={link.url} size={28} /></span>

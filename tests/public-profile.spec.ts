@@ -58,6 +58,14 @@ test('public profile renders without waiting for a slow session refresh', async 
   expect(errors).toEqual([])
 })
 
+test('copying the address under the name gives a clean canonical URL', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await mock(page)
+  await page.goto(`/${handle}?v=older-preview-token`)
+  await page.getByRole('button', { name: 'Скопировать ссылку на профиль' }).click()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(`https://mylinks.bar/${handle}`)
+})
+
 test('anonymous visitors never see a cached unpublished profile', async ({ page }) => {
   await mock(page, { published: false, cachedPrivate: true })
   await page.goto(`/${handle}`)

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { createRequire } from 'node:module'
+import { readFileSync } from 'node:fs'
 import jsQR from 'jsqr'
 const { PNG } = createRequire(import.meta.url)('pngjs')
 
@@ -140,7 +141,7 @@ test('video avatar switches 560/1000 on a DPR 3 device when its box changes', as
     const initial = { profile: { ...state.profile, avatar_media: 'video' }, links: [], contacts: [] }
     await route.fulfill({ response, body: html.replace('</head>', `<script type="application/json" id="initial-profile">${JSON.stringify(initial)}</script></head>`) })
   })
-  await page.route('**/avatar/**', async route => { await route.fulfill({ status: 200, contentType: 'video/mp4', body: Buffer.alloc(64) }) })
+  await page.route('**/avatar/**', async route => { await route.fulfill({ status: 200, contentType: 'video/mp4', body: readFileSync('tests/fixtures/avatar-delivery.mp4') }) })
   await page.goto(`/${handle}`)
   const avatar = page.locator('.profile-card__identity > .avatar')
   await avatar.evaluate(node => { (node as HTMLElement).style.width = '400px' })

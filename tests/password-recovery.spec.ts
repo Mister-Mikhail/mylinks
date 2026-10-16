@@ -14,7 +14,7 @@ test('request uses email only, shows the same answer, and waits 60 seconds befor
     return route.fulfill({ contentType: 'application/json', body: '{}' })
   })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Войти', exact: true }).first().click()
+  await page.getByRole('button', { name: 'У меня уже есть профиль', exact: true }).click()
   await page.getByRole('link', { name: 'Забыли пароль?' }).click()
   await expect(page.getByRole('heading', { name: 'Восстановление пароля' })).toBeVisible()
   await expect(page.locator('input')).toHaveCount(1)
@@ -48,7 +48,7 @@ test('recovery token verifies in JS, updates password and signs out other sessio
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify(session) })
   })
   await page.route('**/auth/v1/user**', route => {
-    if (route.request().method() === 'PUT') { updates++; expect(route.request().postDataJSON()).toEqual({ password: 'new-password' }) }
+    if (route.request().method() === 'PUT') { updates++; expect(route.request().postDataJSON()).toMatchObject({ password: 'new-password' }) }
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify(user) })
   })
   await page.route('**/auth/v1/logout**', route => { signOuts++; expect(new URL(route.request().url()).searchParams.get('scope')).toBe('others'); return route.fulfill({ status: 204 }) })

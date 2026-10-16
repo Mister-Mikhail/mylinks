@@ -25,7 +25,6 @@ export function PasswordRecoveryRequest() {
       redirectTo: 'https://mylinks.bar/auth/reset',
     })
     if (requestError?.status === 429) { setError('Слишком много запросов. Повторите через минуту.'); setCooldown(60) }
-    else if (requestError) setError('Не удалось отправить письмо. Проверьте соединение и попробуйте ещё раз.')
     else { setSent(true); setCooldown(60) }
     setBusy(false)
   }

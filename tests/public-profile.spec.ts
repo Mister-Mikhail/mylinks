@@ -161,3 +161,17 @@ test('published QR and share tools appear below contacts without leaking hidden 
   await expect(page.getByRole('status')).toContainText('Ссылка скопирована')
 })
 
+test('brand icons require a matching hostname, not text embedded in another domain', async ({ page }) => {
+  await mock(page)
+  await page.route('**/functions/v1/favicon**', route => route.fulfill({ status: 404, body: '' }))
+  await page.route('**/rest/v1/profile_links*', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify([
+    { id: 'spoof', profile_id: id, label: 'Чужой сайт', url: 'https://instagram.com.evil.example/page', icon_key: 'link', position: 0, is_visible: true, is_sensitive: false },
+    { id: 'official', profile_id: id, label: 'Instagram', url: 'https://instagram.com/creator', icon_key: 'link', position: 1, is_visible: true, is_sensitive: false },
+  ]) }))
+  await page.goto(`/${handle}`)
+  const links = page.locator('.profile-card__links .profile-link')
+  await expect(links).toHaveCount(2)
+  await expect(links.first().locator('img.link-icon__brand')).toHaveCount(0)
+  await expect(links.last().locator('img.link-icon__brand')).toHaveAttribute('src', '/icons/platforms/instagram.png')
+})
+

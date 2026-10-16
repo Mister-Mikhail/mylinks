@@ -26,7 +26,7 @@ export function TemplateGallery({ profile, links, contacts, setProfile }: {
   useEffect(() => { if (open && !dialog.current?.open) dialog.current?.showModal(); else if (!open && dialog.current?.open) dialog.current?.close() }, [open])
 
   const template = templates.find(item => item.id === selected) ?? templates[0]
-  const preview = { ...profile, ...template.appearance }
+  const preview: Profile = { ...profile, ...template.appearance, background_style: 'preset' }
   const apply = () => {
     setPrevious(appearanceSnapshot(profile))
     setProfile(preview)

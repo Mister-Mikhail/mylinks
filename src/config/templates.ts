@@ -1,9 +1,9 @@
 import type { Profile } from '../types'
 
 export type TemplateCategory = 'minimal' | 'creative' | 'professional'
-export type AppearancePatch = Pick<Profile, 'background_preset' | 'card_preset' | 'card_radius' | 'name_font' | 'name_font_size' | 'bio_font' | 'handle_font' | 'name_color' | 'bio_color' | 'handle_color'>
+export type AppearancePatch = Pick<Profile, 'background_preset' | 'card_preset' | 'card_radius' | 'name_font' | 'name_font_size' | 'bio_font' | 'handle_font' | 'name_color' | 'bio_color' | 'handle_color'> & Partial<Pick<Profile, 'background_style' | 'background_primary' | 'background_secondary'>>
 
-export const appearanceKeys = ['background_preset', 'card_preset', 'card_radius', 'name_font', 'name_font_size', 'bio_font', 'handle_font', 'name_color', 'bio_color', 'handle_color'] as const
+export const appearanceKeys = ['background_preset', 'background_style', 'background_primary', 'background_secondary', 'card_preset', 'card_radius', 'name_font', 'name_font_size', 'bio_font', 'handle_font', 'name_color', 'bio_color', 'handle_color'] as const
 
 export interface AppearanceTemplate {
   id: string

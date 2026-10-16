@@ -13,6 +13,7 @@
 .crop-rotation-control output { min-width:34px; text-align:right; font-variant-numeric:tabular-nums; }
 .appearance-settings button:focus-visible, .appearance-settings input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .appearance-settings input[type='range'] { min-height: 32px; touch-action: pan-y; background: linear-gradient(90deg, var(--accent), #2a3340) center / 100% 4px no-repeat; }
+.appearance-custom-colors{margin-top:12px}.appearance-custom-colors__pickers{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:12px}.appearance-custom-colors__pickers label{display:flex;align-items:center;gap:8px;color:#becbdd;font-size:12px}.appearance-custom-colors__pickers input{width:42px;height:38px;padding:2px;border:1px solid #496078;border-radius:8px;background:#172337}.appearance-custom-colors__pickers small{width:100%;color:#91a1b3;font-size:11px}.card-style-more{margin-top:14px;border-top:1px solid #314055;padding-top:12px}.card-style-more summary{color:#bfd8e9;cursor:pointer;font-size:12px}.card-style-more .avatar-size-control{margin-top:10px}.card-style-more .button{margin-top:10px}
 
 @media (max-width: 650px), (max-width: 950px) and (max-height: 500px) {
   :is(.dashboard-shell--design, .dashboard-shell--links) { position: fixed; inset: 0; height: 100dvh; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }

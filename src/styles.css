@@ -744,9 +744,9 @@ a {
   align-items: center;
   column-gap: 12px;
   min-height: 55px;
-  padding: 7px 12px;
+  padding: calc(var(--card-padding, 12px) * .5833) var(--card-padding, 12px);
   color: inherit;
-  border: 1px solid transparent;
+  border: var(--card-border-width, 1px) solid transparent;
   border-radius: var(--card-radius, 13px);
   font-size: 11px;
   font-weight: 650;
@@ -758,25 +758,25 @@ a.profile-link:hover {
 }
 
 .profile-link.card-glass {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgb(255 255 255 / calc(.1 * var(--card-alpha, 1)));
   border-color: rgba(255, 255, 255, 0.13);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
   backdrop-filter: blur(16px);
 }
 
 .theme-mist .profile-link.card-glass {
-  background: rgba(255, 255, 255, 0.32);
+  background: rgb(255 255 255 / calc(.32 * var(--card-alpha, 1)));
   border-color: rgba(34, 46, 54, 0.1);
 }
 
 .profile-link.card-solid {
   color: #17202c;
-  background: rgba(248, 251, 255, 0.92);
+  background: rgb(248 251 255 / calc(.92 * var(--card-alpha, 1)));
 }
 
 .theme-mist .profile-link.card-solid {
   color: #f7faff;
-  background: rgba(29, 36, 45, 0.88);
+  background: rgb(29 36 45 / calc(.88 * var(--card-alpha, 1)));
 }
 
 .profile-link.card-outline {

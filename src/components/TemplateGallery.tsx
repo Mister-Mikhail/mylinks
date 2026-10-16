@@ -42,7 +42,7 @@ export function TemplateGallery({ profile, links, contacts, setProfile }: {
     <section className="settings-card template-gallery-entry">
       <div className="settings-card__title"><LayoutTemplate size={18} /><div><h2>Готовые шаблоны</h2><p>Девять вариантов оформления. Ваши ссылки и аватар останутся на месте.</p></div></div>
       <div className="template-gallery-entry__actions">
-        <button type="button" className="button button--secondary button--small" onClick={() => setOpen(true)}>Выбрать шаблон</button>
+        <button type="button" className="button button--secondary button--small" onClick={() => { setMobileDetail(false); setOpen(true) }}>Выбрать шаблон</button>
         {previous && <button type="button" className="button button--ghost button--small" onClick={undo}><RotateCcw size={14} /> Отменить применение</button>}
       </div>
     </section>

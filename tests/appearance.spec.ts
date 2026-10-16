@@ -298,3 +298,49 @@ test('preview stays pinned on small portrait and landscape phones', async ({ pag
     await expect(page.getByRole('button', { name: 'Сохранить', exact: true })).toBeVisible()
   }
 })
+
+
+test('default card text maintains accessible contrast across themes, presets and minimum opacity', async ({ page }) => {
+  await mockAppearance(page)
+  await page.getByText('Дополнительные настройки карточек').click()
+  await page.getByLabel('Плотность подложки карточек').fill('60')
+  const themes = [
+    { label: 'Полночь', stops: ['#152234', '#0b101a', '#111421'] },
+    { label: 'Туман', stops: ['#e7e3dc', '#d6dce0', '#c7d4da'] },
+    { label: 'Кобальт', stops: ['#193c6d', '#102948', '#091725'] },
+  ]
+  const presets = ['Стекло', 'Плотные', 'Контур']
+  const rgb = (hex: string) => [1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16))
+  const luminance = (values: number[]) => {
+    const linear = values.map(channel => {
+      const value = channel / 255
+      return value <= 0.04045 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4)
+    })
+    return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722
+  }
+  const contrast = (foreground: number[], background: number[]) => {
+    const [higher, lower] = [luminance(foreground), luminance(background)].sort((a, b) => b - a)
+    return (higher + 0.05) / (lower + 0.05)
+  }
+  for (const theme of themes) {
+    await page.getByRole('button', { name: theme.label, exact: true }).click()
+    for (const preset of presets) {
+      await page.getByRole('button', { name: preset, exact: true }).click()
+      const styles = await page.locator('.preview-panel .profile-link').first().evaluate(element => {
+        const card = getComputedStyle(element)
+        const label = getComputedStyle(element.querySelector('.profile-link__label')!)
+        return { background: card.backgroundColor, foreground: label.color }
+      })
+      const bg = styles.background.match(/[\d.]+/g)?.map(Number) ?? []
+      const fg = styles.foreground.match(/[\d.]+/g)?.map(Number) ?? []
+      expect(bg.length, `${theme.label} / ${preset}: background channels`).toBeGreaterThanOrEqual(3)
+      expect(fg.length, `${theme.label} / ${preset}: foreground channels`).toBeGreaterThanOrEqual(3)
+      const alpha = bg.length > 3 ? bg[3] : 1
+      for (const stop of theme.stops) {
+        const backing = rgb(stop)
+        const composited = backing.map((channel, i) => bg[i] * alpha + channel * (1 - alpha))
+        expect(contrast(fg, composited), `${theme.label} / ${preset} over ${stop}`).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  }
+})

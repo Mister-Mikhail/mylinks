@@ -29,6 +29,7 @@ if ($previous && $previous !== $current) {
 if ($current) @unlink(preview_cache_path($current));
 echo '{"ok":true}';
 if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+if (function_exists('set_time_limit')) @set_time_limit(180);
 // Saving a link warms its immutable snapshot after the response has reached the owner.
 // The same URL hashes are used by link-icon.php and by existing-link backfill.
 define('MYLINKS_ICON_LIBRARY_ONLY',true);

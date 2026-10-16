@@ -1007,7 +1007,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
             <DesignEditor profile={profile} setProfile={setProfile} links={links} contacts={contacts} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} onAvatarDraft={setAvatarDraft} />
           )}
           {!targetId && section !== 'stats' && <ProfileTools userId={user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} updatedAt={profile.updated_at} avatarPath={profile.avatar_path} />}
-          {!targetId && !staffRole && section !== 'stats' && <DeleteAccount onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
+          {!targetId && !staffRole && section !== 'stats' && <DeleteAccount handle={profile.handle} onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
         </main>
 
         <aside className="preview-panel">

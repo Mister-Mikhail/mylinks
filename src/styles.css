@@ -781,7 +781,8 @@ a.profile-link:hover {
 
 .theme-mist .profile-link.card-solid {
   color: #f7faff;
-  background: rgb(29 36 45 / calc(.88 * var(--card-alpha, 1)));
+  /* Keep white text readable at the minimum adjustable card opacity (60%). */
+  background: rgb(29 36 45 / calc(.60 + .28 * var(--card-alpha, 1)));
 }
 
 .profile-link.card-outline {

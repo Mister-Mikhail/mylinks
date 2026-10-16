@@ -49,6 +49,7 @@ function preview_bundle($handle) {
     $rows = preview_api('/rest/v1/profiles?select=' . $fields . '&handle=eq.' . rawurlencode($handle) . '&is_published=eq.true&limit=1');
     if (!is_array($rows) || !isset($rows[0]) || empty($rows[0]['is_published'])) return null;
     $profile = $rows[0];
+    if (!empty($profile['avatar_path']) || (isset($profile['avatar_url']) && strpos($profile['avatar_url'], '/storage/v1/object/sign/') !== false)) $profile['avatar_url'] = null;
     $id = $profile['id'];
     if (!is_string($id) || !preg_match('/^[a-f0-9-]{36}$/D', $id)) return null;
     $links = preview_api('/rest/v1/profile_links?select=*&profile_id=eq.' . rawurlencode($id) . '&is_visible=eq.true&order=position.asc');

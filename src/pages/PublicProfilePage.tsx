@@ -132,6 +132,7 @@ const fetchPage = async (client: SupabaseClient, handle: string, reuse: AvatarRe
   return {
     profile: {
       ...profileRow,
+      avatar_url: published && (profileRow.avatar_path || profileRow.avatar_url?.includes('/storage/v1/object/sign/')) ? null : profileRow.avatar_url,
       avatar_scale: Number(profileRow.avatar_scale) || ({ small: 12, medium: 28, large: 40 }[profileRow.avatar_size] ?? 28),
       avatar_preview_url: published ? assetUrls.avatar_preview_url : avatarUrl,
       avatar_master_url: published ? assetUrls.avatar_master_url : null,

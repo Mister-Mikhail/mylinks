@@ -128,6 +128,26 @@ test('initial HTML renders immediately and never calls favicon or signed storage
   expect(errors).toEqual([])
 })
 
+test('video avatar switches 560/1000 on a DPR 3 device when its box changes', async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(window, 'devicePixelRatio', { configurable: true, value: 3 }))
+  const { state } = await mock(page, { avatar: true })
+  state.profile.avatar_master_path = `${id}/master.mp4`
+  state.profile.avatar_path = `${id}/delivery.mp4`
+  await page.route(`**/${handle}`, async route => {
+    const response = await route.fetch()
+    const html = await response.text()
+    const initial = { profile: { ...state.profile, avatar_media: 'video' }, links: [], contacts: [] }
+    await route.fulfill({ response, body: html.replace('</head>', `<script type="application/json" id="initial-profile">${JSON.stringify(initial)}</script></head>`) })
+  })
+  await page.route('**/avatar/**', async route => { await route.fulfill({ status: 200, contentType: 'video/mp4', body: Buffer.alloc(64) }) })
+  await page.goto(`/${handle}`)
+  const avatar = page.locator('.profile-card__identity > .avatar')
+  await avatar.evaluate(node => { (node as HTMLElement).style.width = '400px' })
+  await expect(page.locator('.avatar video')).toHaveAttribute('src', /-1000\.mp4/)
+  await avatar.evaluate(node => { (node as HTMLElement).style.width = '40px' })
+  await expect(page.locator('.avatar video')).toHaveAttribute('src', /-560\.mp4/)
+})
+
 test('session refresh does not reload the public page or replace it with a spinner', async ({ page }) => {
   const { state } = await mock(page, { owner: true })
   await page.goto(`/${handle}`)

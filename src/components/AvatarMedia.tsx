@@ -6,6 +6,7 @@ export function AvatarMedia({ profile, draft, alt = '' }: { profile: Profile; dr
   const video = useRef<HTMLVideoElement>(null)
   const media = useRef<HTMLElement>(null)
   const [displayWidth, setDisplayWidth] = useState(0)
+  const [pixelRatio, setPixelRatio] = useState(() => window.devicePixelRatio || 1)
   const [videoFailed, setVideoFailed] = useState(false)
   const [reduceMotion, setReduceMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const src = draft?.src || profile.avatar_preview_url || profile.avatar_url
@@ -15,7 +16,7 @@ export function AvatarMedia({ profile, draft, alt = '' }: { profile: Profile; dr
     if (!needsMeasurement) return
     const parent = media.current?.parentElement
     if (!parent) return
-    const measure = () => setDisplayWidth(Math.max(1, Math.ceil(parent.getBoundingClientRect().width)))
+    const measure = () => { setDisplayWidth(Math.max(1, Math.ceil(parent.getBoundingClientRect().width))); setPixelRatio(window.devicePixelRatio || 1) }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(parent)
@@ -23,7 +24,7 @@ export function AvatarMedia({ profile, draft, alt = '' }: { profile: Profile; dr
     window.addEventListener('orientationchange', measure)
     return () => { observer.disconnect(); window.removeEventListener('resize', measure); window.removeEventListener('orientationchange', measure) }
   }, [needsMeasurement, src, master])
-  const highQuality = Boolean(master && displayWidth * window.devicePixelRatio > 560)
+  const highQuality = Boolean(master && displayWidth * pixelRatio > 560)
   const selectedSrc = highQuality ? master : src
   const poster = highQuality ? profile.avatar_master_poster_url || profile.avatar_poster_url : profile.avatar_poster_url
   useEffect(() => {

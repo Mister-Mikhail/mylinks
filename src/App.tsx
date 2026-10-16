@@ -1330,7 +1330,7 @@ function DesignEditor({
             <details className="card-style-more"><summary>Дополнительные настройки</summary>
               {([['padding', 'Отступ', 8, 24, 12], ['borderWidth', 'Толщина рамки', 0, 3, 1], ['opacity', 'Плотность подложки', 60, 100, 100]] as const).map(([key, label, min, max, fallback]) => <label className="avatar-size-control" key={key}><span><span className="field-caption">{label} этой карточки</span><strong>{link.card_style?.[key] ?? fallback}{key === 'opacity' ? '%' : ' px'}</strong></span><input type="range" aria-label={`${label} этой карточки`} min={min} max={max} value={link.card_style?.[key] ?? fallback} onChange={event => updateLink(link.localId, { card_style: { version: 1, ...link.card_style, [key]: Number(event.target.value) } })} /></label>)}
             </details>
-          <button type="button" className="button button--ghost button--small" onClick={() => updateLink(link.localId, { label_font: 'manrope', label_font_size: 11, label_color: null, card_preset_override: null, card_radius_override: null, card_style: null })}>Как у всех</button></div>}
+          <button type="button" className="button button--ghost button--small" onClick={() => { const common = links.find(other => other.localId !== link.localId); updateLink(link.localId, { label_font: common?.label_font ?? link.label_font ?? 'manrope', label_font_size: common?.label_font_size ?? link.label_font_size ?? 11, label_color: common?.label_color ?? null, card_preset_override: null, card_radius_override: null, card_style: null }) }}>Как у всех</button></div>}
         </article>)}</div>
         {links.length === 0 && <p className="appearance-item__empty">Добавьте ссылки в разделе «Ссылки» — они появятся здесь.</p>}
       </section>

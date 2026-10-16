@@ -30,12 +30,16 @@ const formatProfile = (raw: Record<string, unknown>, currentHandle: string) => {
   const displayName = text(raw.display_name, 30)
   if ((handle !== currentHandle && (!/^[a-z]+([._][a-z]+)?$/.test(handle) || handle.length < 3)) || !/^[\p{L}]+(?: [\p{L}]+)*$/u.test(displayName)) throw new Error('Проверьте имя и user name.')
   if (!['midnight','mist','cobalt'].includes(String(raw.background_preset)) || !['glass','solid','outline'].includes(String(raw.card_preset)) || !['round','square'].includes(String(raw.avatar_shape))) throw new Error('Проверьте оформление.')
+  if (!['preset','solid','gradient'].includes(String(raw.background_style ?? 'preset'))) throw new Error('Проверьте тип фона.')
   return {
     handle, display_name: displayName, bio: text(raw.bio, 160),
     name_font: font(raw.name_font), bio_font: font(raw.bio_font), handle_font: font(raw.handle_font),
     name_color: color(raw.name_color), bio_color: color(raw.bio_color), handle_color: color(raw.handle_color),
     name_font_size: number(raw.name_font_size,21,5,60), bio_font_size: number(raw.bio_font_size,10,5,60), handle_font_size: number(raw.handle_font_size,10,5,60),
-    background_preset: raw.background_preset, card_preset: raw.card_preset, avatar_shape: raw.avatar_shape,
+    background_preset: raw.background_preset, background_style: raw.background_style ?? 'preset',
+    background_primary: color(raw.background_primary), background_secondary: color(raw.background_secondary),
+    card_preset: raw.card_preset, avatar_shape: raw.avatar_shape,
+    card_border_width: number(raw.card_border_width,1,0,3), card_opacity: number(raw.card_opacity,100,60,100), card_padding: number(raw.card_padding,12,8,24),
     avatar_size: ['small','medium','large'].includes(String(raw.avatar_size)) ? raw.avatar_size : 'medium',
     avatar_scale: number(raw.avatar_scale,28,10,100), is_published: raw.is_published === true, show_qr: raw.show_qr === true, qr_size: number(raw.qr_size,176,80,220), card_radius: number(raw.card_radius,13,4,28),
   }

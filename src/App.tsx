@@ -53,6 +53,7 @@ import {
 } from './config/linkPlatforms'
 import { supabase } from './lib/supabase'
 import { copyText, profileUrl } from './lib/clipboard'
+import { appearanceTheme } from './lib/appearance'
 import { useStaffRole } from './lib/useStaffRole'
 import { loadStaffProfile, saveStaffProfile, uploadStaffAvatar } from './lib/staff'
 import { CONTACT_OPTIONS, contactPlaceholder, isValidContactValue } from './lib/contacts'
@@ -781,8 +782,14 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         avatar_url: profile.avatar_url?.trim() || null,
         avatar_path: profile.avatar_path,
         background_preset: profile.background_preset,
+        background_style: profile.background_style ?? 'preset',
+        background_primary: profile.background_primary ?? null,
+        background_secondary: profile.background_secondary ?? null,
         card_preset: profile.card_preset,
         card_radius: profile.card_radius ?? 13,
+        card_border_width: profile.card_border_width ?? 1,
+        card_opacity: profile.card_opacity ?? 100,
+        card_padding: profile.card_padding ?? 12,
         avatar_shape: profile.avatar_shape,
         avatar_size: profile.avatar_size,
         avatar_scale: profile.avatar_scale,
@@ -1267,10 +1274,20 @@ function DesignEditor({
             ['mist', 'Туман'],
             ['cobalt', 'Кобальт'],
           ] as const).map(([value, label]) => (
-            <button aria-pressed={profile.background_preset === value} className={`theme-option theme-option--${value} ${profile.background_preset === value ? 'selected' : ''}`} onClick={() => setProfile({ ...profile, background_preset: value })} key={value}>
+            <button aria-pressed={profile.background_style !== 'solid' && profile.background_style !== 'gradient' && profile.background_preset === value} className={`theme-option theme-option--${value} ${profile.background_style !== 'solid' && profile.background_style !== 'gradient' && profile.background_preset === value ? 'selected' : ''}`} onClick={() => setProfile({ ...profile, background_preset: value, background_style: 'preset' })} key={value}>
               <span className="theme-option__swatch"><i /><i /></span><strong>{label}</strong>{profile.background_preset === value && <Check size={16} />}
             </button>
           ))}
+        </div>
+        <div className="appearance-custom-colors">
+          <div className="segmented-picker" role="group" aria-label="Режим фона">
+            {([['preset', 'Готовый'], ['solid', 'Цвет'], ['gradient', 'Градиент']] as const).map(([mode, label]) => <button type="button" key={mode} aria-pressed={(profile.background_style ?? 'preset') === mode} className={(profile.background_style ?? 'preset') === mode ? 'selected' : ''} onClick={() => setProfile({ ...profile, background_style: mode })}>{label}</button>)}
+          </div>
+          {profile.background_style !== 'preset' && profile.background_style && <div className="appearance-custom-colors__pickers">
+            <label>Основной цвет<input aria-label="Основной цвет фона" type="color" value={profile.background_primary ?? '#162638'} onChange={event => setProfile({ ...profile, background_primary: event.target.value })} /></label>
+            {profile.background_style === 'gradient' && <label>Второй цвет<input aria-label="Второй цвет фона" type="color" value={profile.background_secondary ?? '#24435b'} onChange={event => setProfile({ ...profile, background_secondary: event.target.value })} /></label>}
+            <small>Проверьте читаемость текста в предпросмотре.</small>
+          </div>}
         </div>
       </section>
 
@@ -1288,6 +1305,12 @@ function DesignEditor({
           <input type="range" aria-label="Скругление карточек" min="4" max="28" step="1" value={profile.card_radius ?? 13} onChange={(event) => setProfile({ ...profile, card_radius: Number(event.target.value) })} />
           <small><span>Строго</span><span>Мягко</span></small>
         </label>
+        <details className="card-style-more"><summary>Дополнительные настройки карточек</summary>
+          <label className="avatar-size-control"><span><span className="field-caption">Внутренний отступ</span><strong>{profile.card_padding ?? 12} px</strong></span><input type="range" aria-label="Внутренний отступ карточек" min="8" max="24" value={profile.card_padding ?? 12} onChange={event => setProfile({ ...profile, card_padding: Number(event.target.value) })} /></label>
+          <label className="avatar-size-control"><span><span className="field-caption">Толщина рамки</span><strong>{profile.card_border_width ?? 1} px</strong></span><input type="range" aria-label="Толщина рамки карточек" min="0" max="3" value={profile.card_border_width ?? 1} onChange={event => setProfile({ ...profile, card_border_width: Number(event.target.value) })} /></label>
+          <label className="avatar-size-control"><span><span className="field-caption">Плотность подложки</span><strong>{profile.card_opacity ?? 100}%</strong></span><input type="range" aria-label="Плотность подложки карточек" min="60" max="100" step="5" value={profile.card_opacity ?? 100} onChange={event => setProfile({ ...profile, card_opacity: Number(event.target.value) })} /></label>
+          <button type="button" className="button button--ghost button--small" onClick={() => setProfile({ ...profile, card_padding: 12, card_border_width: 1, card_opacity: 100, card_radius: 13 })}>Сбросить карточки</button>
+        </details>
       </section>
 
       <AvatarEditor profile={profile} setProfile={setProfile} uploading={avatarUploading} onUpload={onAvatarUpload} onDraftChange={onAvatarDraft} />
@@ -1344,7 +1367,7 @@ function ProfilePage({ session }: { session: Session | null }) {
   const isOwner = session?.user.id === profile.id
 
   return (
-    <main className={`public-preview-page theme-${profile.background_preset}`}>
+    <main className={`public-preview-page theme-${appearanceTheme(profile)}`}>
       {isOwner && <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> Личный кабинет</button>}
       {profile.is_published && <ProfileTools handle={profile.handle} published updatedAt={profile.updated_at} avatarPath={profile.avatar_path} />}
       <div className="public-preview-page__content"><ProfilePreview profile={profile} links={links} contacts={contacts} interactive showPrivacy={!profile.is_published} /></div>

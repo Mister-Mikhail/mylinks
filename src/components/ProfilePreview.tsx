@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { Check, Copy, LockKeyhole, ShieldAlert, X } from 'lucide-react'
 import type { AvatarDraft, EditableContact, EditableLink, Profile } from '../types'
 import { textStyle } from '../lib/typography'
+import { appearanceStyle, appearanceTheme } from '../lib/appearance'
 import { isKnownSensitiveUrl } from '../lib/sensitiveLinks'
 import { copyText, profileUrl } from '../lib/clipboard'
 import { BrandMark } from './BrandMark'
@@ -64,7 +65,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
   }
 
   return (
-    <section className={`profile-card theme-${profile.background_preset}`} style={{ '--card-radius': `${Math.min(28, Math.max(4, profile.card_radius ?? 13))}px` } as CSSProperties} aria-label={`Профиль ${profile.display_name}`}>
+    <section className={`profile-card theme-${appearanceTheme(profile)}`} style={appearanceStyle(profile)} aria-label={`Профиль ${profile.display_name}`}>
       <div className="profile-card__noise" />
       <div className="profile-card__topline">
         {showPrivacy ? (

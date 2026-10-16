@@ -30,8 +30,14 @@ export interface Profile {
   avatar_poster_path?: string | null
   avatar_poster_url?: string | null
   background_preset: BackgroundPreset
+  background_style?: 'preset' | 'solid' | 'gradient'
+  background_primary?: string | null
+  background_secondary?: string | null
   card_preset: CardPreset
   card_radius?: number
+  card_border_width?: number
+  card_opacity?: number
+  card_padding?: number
   avatar_shape: AvatarShape
   avatar_size: AvatarSize
   avatar_scale: number

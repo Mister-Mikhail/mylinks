@@ -24,3 +24,11 @@ jobs:
           cache: npm
       - name: Lint, build, PHP and desktop/mobile e2e
         run: bash scripts/ci.sh
+      - name: Preserve desktop and mobile appearance screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appearance-visual-matrix
+          path: test-results/**/*.png
+          if-no-files-found: ignore
+          retention-days: 7

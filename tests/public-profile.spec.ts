@@ -10,7 +10,7 @@ const cacheKey = `mylinks:page:${handle}`
 const user = { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' }
 const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: id, exp: 2100000000, role: 'authenticated' })).toString('base64url')}.signature`
 const session = { access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user }
-const profile = { id, handle, display_name: 'Проверяемый профиль', bio: 'Мои проекты', avatar_url: null, avatar_path: null as string | null, avatar_master_path: null as string | null, avatar_poster_path: null as string | null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
+const profile = { id, handle, display_name: 'Проверяемый профиль', bio: 'Мои проекты', avatar_url: null, avatar_path: null as string | null, avatar_master_path: null as string | null, avatar_poster_path: null as string | null, avatar_media: 'image' as 'image' | 'video', avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
 
 async function mock(page: Page, options: { owner?: boolean; published?: boolean; expired?: boolean; avatar?: boolean; cachedPrivate?: boolean } = {}) {
   const state = { profile: { ...profile, is_published: options.published ?? true, avatar_path: options.avatar ? `${id}/avatar.webp` : null }, profileRequests: [] as string[], signs: [] as string[] }
@@ -133,6 +133,7 @@ test('video avatar switches 560/1000 on a DPR 3 device when its box changes', as
   const { state } = await mock(page, { avatar: true })
   state.profile.avatar_master_path = `${id}/master.mp4`
   state.profile.avatar_path = `${id}/delivery.mp4`
+  state.profile.avatar_media = 'video'
   await page.route(`**/${handle}`, async route => {
     const response = await route.fetch()
     const html = await response.text()

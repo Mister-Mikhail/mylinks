@@ -44,7 +44,7 @@ test('five-step flow saves short links and phone and restores progress', async (
   await expect(page.locator('.onboarding-live-preview')).toContainText('+79990000000')
   await expect(page.locator('.onboarding-live-preview')).toContainText('Мой VK')
   await page.getByRole('button', { name: 'Готово' }).click()
-  expect(state.submitted).toMatchObject({ handle: 'anna.petrova', display_name: 'Анна Мария', bio: 'Дизайнер и автор', contact: { kind: 'phone', value: '+79990000000', is_visible: true }, links: [{ url: 'https://vk.com/id12345', is_sensitive: true }, { url: 'https://wa.me/79990000000', is_sensitive: false }] })
+  await expect.poll(() => state.submitted).toMatchObject({ handle: 'anna.petrova', display_name: 'Анна Мария', bio: 'Дизайнер и автор', contact: { kind: 'phone', value: '+79990000000', is_visible: true }, links: [{ url: 'https://vk.com/id12345', is_sensitive: true }, { url: 'https://wa.me/79990000000', is_sensitive: false }] })
   await expect(page).toHaveURL(/\/anna.petrova$/)
   await expect(page.getByRole('link', { name: 'Мой VK' })).toBeVisible()
   await page.getByRole('button', { name: 'Личный кабинет' }).click()

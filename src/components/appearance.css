@@ -14,6 +14,7 @@
 .appearance-settings button:focus-visible, .appearance-settings input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .appearance-settings input[type='range'] { min-height: 32px; touch-action: pan-y; background: linear-gradient(90deg, var(--accent), #2a3340) center / 100% 4px no-repeat; }
 .appearance-fields { display: grid; gap: 12px; }
+.appearance-contact-fields { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(153, 185, 209, .22); }
 .appearance-item-list { display: grid; gap: 10px; }
 .appearance-item { min-width: 0; padding: 12px; border: 1px solid rgba(153, 185, 209, .22); border-radius: 12px; background: rgba(12, 27, 43, .33); }
 .appearance-item__heading { display: flex; align-items: center; gap: 10px; min-width: 0; }

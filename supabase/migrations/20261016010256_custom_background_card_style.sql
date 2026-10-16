@@ -1,10 +1,10 @@
 alter table public.profiles
-  add column background_style text not null default 'preset' check (background_style in ('preset','solid','gradient')),
-  add column background_primary text check (background_primary is null or background_primary ~ '^#[0-9a-fA-F]{6}$'),
-  add column background_secondary text check (background_secondary is null or background_secondary ~ '^#[0-9a-fA-F]{6}$'),
-  add column card_border_width integer not null default 1 check (card_border_width between 0 and 3),
-  add column card_opacity integer not null default 100 check (card_opacity between 60 and 100),
-  add column card_padding integer not null default 12 check (card_padding between 8 and 24);
+  add column if not exists background_style text not null default 'preset' check (background_style in ('preset','solid','gradient')),
+  add column if not exists background_primary text check (background_primary is null or background_primary ~ '^#[0-9a-fA-F]{6}$'),
+  add column if not exists background_secondary text check (background_secondary is null or background_secondary ~ '^#[0-9a-fA-F]{6}$'),
+  add column if not exists card_border_width integer not null default 1 check (card_border_width between 0 and 3),
+  add column if not exists card_opacity integer not null default 100 check (card_opacity between 60 and 100),
+  add column if not exists card_padding integer not null default 12 check (card_padding between 8 and 24);
 
 comment on column public.profiles.background_style is 'Preset, solid colour or two-colour gradient; existing profiles keep their preset.';
 

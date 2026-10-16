@@ -62,6 +62,8 @@ export interface ProfileLink {
   position: number
   is_visible: boolean
   is_sensitive: boolean
+  card_preset_override?: CardPreset | null
+  card_radius_override?: number | null
   created_at?: string
   updated_at?: string
 }

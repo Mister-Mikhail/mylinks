@@ -91,6 +91,8 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
 
       <div className="profile-card__links">
         {visibleLinks.length > 0 ? visibleLinks.map((link) => {
+          const cardStyle = link.card_radius_override == null ? undefined : { '--card-radius': `${Math.min(28, Math.max(4, link.card_radius_override))}px` } as CSSProperties
+          const cardClass = `profile-link card-${link.card_preset_override ?? profile.card_preset}`
           const content = (
             <>
               <span className="profile-link__icon"><LinkIcon name={link.icon_key} url={link.url} /></span>
@@ -98,11 +100,11 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
             </>
           )
           return interactive ? (
-            <a className={`profile-link card-${profile.card_preset}`} href={link.url} target="_blank" rel="noreferrer" key={link.localId} onClick={(event) => openLink(event, link)}>
+            <a className={cardClass} style={cardStyle} href={link.url} target="_blank" rel="noreferrer" key={link.localId} onClick={(event) => openLink(event, link)}>
               {content}
             </a>
           ) : (
-            <div className={`profile-link card-${profile.card_preset}`} key={link.localId}>{content}</div>
+            <div className={cardClass} style={cardStyle} key={link.localId}>{content}</div>
           )
         }) : (
           <div className={`profile-link profile-link--empty card-${profile.card_preset}`}>

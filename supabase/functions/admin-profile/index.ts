@@ -50,6 +50,8 @@ const formatLink = (raw: Record<string, unknown>, owner: string, position: numbe
   position, is_visible: raw.is_visible === true, is_sensitive: raw.is_sensitive === true,
   label_font: font(raw.label_font), label_font_size: number(raw.label_font_size,11,5,60),
   label_color: color(raw.label_color),
+  card_preset_override: raw.card_preset_override == null ? null : ['glass','solid','outline'].includes(String(raw.card_preset_override)) ? raw.card_preset_override : (() => { throw new Error('Проверьте оформление ссылки.') })(),
+  card_radius_override: raw.card_radius_override == null ? null : number(raw.card_radius_override,13,4,28),
 })
 const formatContact = (raw: Record<string, unknown>, owner: string, position: number) => {
   const kind = text(raw.kind,10), value = text(raw.value,500)

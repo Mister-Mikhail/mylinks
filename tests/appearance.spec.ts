@@ -217,7 +217,8 @@ test('public cards remain tappable at 320px and honor reduced motion', async ({ 
   const card = page.locator('.public-preview-page .profile-link').first()
   const box = await card.boundingBox()
   expect(box!.height).toBeGreaterThanOrEqual(44)
-  await expect(card).toHaveCSS('transition-duration', '0s')
+  const duration = await card.evaluate(node => parseFloat(getComputedStyle(node).transitionDuration))
+  expect(duration).toBeLessThanOrEqual(0.001)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
 })
 

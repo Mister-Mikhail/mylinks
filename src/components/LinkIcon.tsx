@@ -27,12 +27,11 @@ const onDomain = (host: string, ...domains: string[]) => domains.some(domain => 
 
 /** Icons the owner picked for popular services; these never come from the site itself. */
 const localBrandIcon = (name: LinkIconName, url: string): BrandIcon | null => {
-  const normalizedUrl = url.toLowerCase()
   const host = hostOf(url)
-  if (name === 'instagram' || normalizedUrl.includes('instagram.com')) return { src: '/icons/platforms/instagram.png' }
-  if (name === 'telegram' || normalizedUrl.includes('t.me/') || normalizedUrl.includes('telegram.me/')) return { src: '/icons/platforms/telegram.png' }
-  if (name === 'whatsapp' || normalizedUrl.includes('whatsapp.com/') || normalizedUrl.includes('wa.me/')) return { src: '/icons/platforms/whatsapp.png' }
-  if (name === 'onlyfans' || normalizedUrl.includes('onlyfans.com/')) return { src: '/icons/platforms/onlyfans.png' }
+  if (name === 'instagram' || onDomain(host, 'instagram.com')) return { src: '/icons/platforms/instagram.png' }
+  if (name === 'telegram' || onDomain(host, 't.me', 'telegram.me')) return { src: '/icons/platforms/telegram.png' }
+  if (name === 'whatsapp' || onDomain(host, 'whatsapp.com', 'wa.me')) return { src: '/icons/platforms/whatsapp.png' }
+  if (name === 'onlyfans' || onDomain(host, 'onlyfans.com')) return { src: '/icons/platforms/onlyfans.png' }
   if (name === 'vk' || onDomain(host, 'vk.com', 'vk.ru', 'vk.me', 'vkvideo.ru')) return { src: '/icons/platforms/vk.svg' }
   if (onDomain(host, 'capcut.com', 'capcut.net', 'capcut.cn')) return { src: '/icons/platforms/capcut.svg', mono: true }
   if (onDomain(host, 'dzen.ru') || host === 'zen.yandex.ru') return { src: '/icons/platforms/dzen.svg', mono: true }

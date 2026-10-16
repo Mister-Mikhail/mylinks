@@ -9,6 +9,14 @@ if (!preg_match('/^Bearer ([A-Za-z0-9._-]+)$/D',$authorization,$match)) { http_r
 $user=preview_api('/auth/v1/user',null,$match[1]);
 $id=$user['id'] ?? null;
 if (!is_string($id) || !preg_match('/^[a-f0-9-]{36}$/D',$id)) { http_response_code(401); exit; }
+$staffHandle=preview_handle($_POST['staff_handle'] ?? null);
+if ($staffHandle) {
+    $role=preview_api('/rest/v1/rpc/staff_role',array(),$match[1]);
+    if ($role !== 'admin' && $role !== 'moderator') { http_response_code(403); exit; }
+    @unlink(preview_cache_path($staffHandle));
+    echo '{"ok":true}';
+    exit;
+}
 $rows=preview_api('/rest/v1/profiles?select=handle&id=eq.' . rawurlencode($id) . '&limit=1',null,$match[1]);
 if (!is_array($rows) || !isset($rows[0]['handle'])) { http_response_code(403); exit; }
 $current=preview_handle($rows[0]['handle']);

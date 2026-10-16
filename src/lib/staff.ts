@@ -110,6 +110,15 @@ export async function staffChange(target: string, action: StaffAction, reason: s
   const { error } = await supabase.rpc('staff_change', { target, action, reason })
   if (error) throw error
 }
+export async function invalidatePublicProfile(handle: string) {
+  if (!handle) return
+  const { data } = await supabase.auth.getSession()
+  if (data.session) await fetch('/profile-cache.php', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${data.session.access_token}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ staff_handle: handle }),
+  }).catch(() => undefined)
+}
 export function staffError(error: unknown): string {
   const message = error instanceof Error ? error.message : (error as { message?: string })?.message
   if (message?.includes('Staff access required') || message?.includes('Admin access required')) return 'Недостаточно прав. Обновите страницу или войдите в другой аккаунт.'

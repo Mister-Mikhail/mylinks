@@ -55,7 +55,7 @@ import { supabase } from './lib/supabase'
 import { copyText, profileUrl } from './lib/clipboard'
 import { appearanceTheme } from './lib/appearance'
 import { useStaffRole } from './lib/useStaffRole'
-import { loadStaffProfile, saveStaffProfile, uploadStaffAvatar } from './lib/staff'
+import { invalidatePublicProfile, loadStaffProfile, saveStaffProfile, uploadStaffAvatar } from './lib/staff'
 import { CONTACT_OPTIONS, contactPlaceholder, isValidContactValue } from './lib/contacts'
 import { isKnownSensitiveUrl } from './lib/sensitiveLinks'
 import { isValidDisplayName, isValidHandle, isValidNewHandle, isValidHttpUrl, normalizeDisplayNameInput, normalizeHandle, normalizeHandleInput, normalizeUrl } from './lib/validation'
@@ -763,6 +763,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
       if (invalidContact) throw new Error('Проверьте адрес, телефон или email в разделе контактов.')
       if (targetId) {
         await saveStaffProfile(targetId, { ...profile, display_name: profile.display_name.trim(), bio: profile.bio.trim() }, readyLinks.map(link => ({ ...link, url: normalizeUrl(link.url) })), readyContacts)
+        await invalidatePublicProfile(profile.handle)
         await loadData()
         setNotice('Изменения пользователя сохранены в журнале')
         return

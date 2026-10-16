@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
+import { FONT_OPTIONS } from '../src/lib/typography'
 
 export async function mockAppearance(page: Page, failUpload = false) {
   const id = '00000000-0000-4000-8000-000000000001'
@@ -174,6 +175,21 @@ test('font changed in Appearance survives reload and appears on the profile page
   await expect(page.getByLabel('Шрифт: Имя', { exact: true })).toHaveValue('georgia')
   await page.goto('/sample-user')
   await expect(page.locator('.public-preview-page h1')).toHaveCSS('font-family', /Georgia/)
+})
+
+test('all 15 font choices persist after reload for Cyrillic and Latin text', async ({ page }) => {
+  test.setTimeout(120_000)
+  await mockAppearance(page)
+  const font = page.getByLabel('Шрифт: Имя', { exact: true })
+  for (const option of FONT_OPTIONS) {
+    await font.selectOption(option.value)
+    await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+    await expect(page.getByText('Изменения сохранены')).toBeVisible()
+    await page.reload()
+    await page.getByRole('button', { name: 'Оформление', exact: true }).click()
+    await expect(page.getByLabel('Шрифт: Имя', { exact: true })).toHaveValue(option.value)
+    await expect(page.locator('.preview-panel h1')).toHaveCSS('font-family', new RegExp(option.family.split(',')[0].replaceAll("'", '')))
+  }
 })
 
 test('per-card padding, border and opacity survive reload without changing the old default', async ({ page }) => {

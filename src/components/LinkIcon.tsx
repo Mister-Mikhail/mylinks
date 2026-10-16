@@ -7,6 +7,8 @@ interface LinkIconProps {
   name: LinkIconName
   url?: string
   size?: number
+  snapshotPath?: string | null
+  publicView?: boolean
 }
 
 interface BrandIcon {
@@ -43,9 +45,9 @@ const localBrandIcon = (name: LinkIconName, url: string): BrandIcon | null => {
   return null
 }
 
-export function LinkIcon({ name, url = '', size = 19 }: LinkIconProps) {
+export function LinkIcon({ name, url = '', size = 19, snapshotPath, publicView = false }: LinkIconProps) {
   const localIcon = localBrandIcon(name, url)
-  const candidates = faviconCandidates(url)
+  const candidates = publicView ? (snapshotPath ? [snapshotPath] : []) : faviconCandidates(url)
   // Progress is remembered per address, so editing the URL starts the search over.
   const [attempt, setAttempt] = useState({ key: '', index: 0, localFailed: false })
   const key = `${localIcon?.src ?? ''}|${url}`

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 
-export function DeleteAccount({ onDeleted }: { onDeleted: () => Promise<void> }) {
+export function DeleteAccount({ onDeleted, handle }: { onDeleted: () => Promise<void>; handle?: string }) {
   const [open, setOpen] = useState(false)
   const [confirmation, setConfirmation] = useState('')
   const [busy, setBusy] = useState(false)
@@ -13,6 +13,11 @@ export function DeleteAccount({ onDeleted }: { onDeleted: () => Promise<void> })
     if (confirmation !== 'УДАЛИТЬ' || busy) return
     setBusy(true); setError('')
     try {
+      // Purge while the account still exists: its JWT cannot authorize a purge after deletion.
+      if (handle) {
+        const { data: auth } = await supabase.auth.getSession()
+        if (auth.session) await fetch('/profile-cache.php', { method: 'POST', headers: { Authorization: `Bearer ${auth.session.access_token}` }, body: new URLSearchParams() }).catch(() => undefined)
+      }
       const { data, error: deletionError } = await supabase.functions.invoke('delete-own-account', { body: { confirmation } })
       if (deletionError) {
         const detail = await deletionError.context?.json?.().catch(() => null)

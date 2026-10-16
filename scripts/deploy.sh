@@ -114,3 +114,14 @@ code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE_URL/mister"); echo "/mister
 [ "$code" = "200" ] || { echo "Profile URL failed (SPA fallback in .htaccess?)"; exit 1; }
 echo "Deploy OK"
 
+# Backfill immutable icon snapshots once, only after the updated site is live.
+ICON_WARM_MARKER=".mylinks-link-icons-v1-ready"
+if FTP_TIMEOUT=30 ftp "$TLS" "cd $REMOTE_DIR; get $ICON_WARM_MARKER -o /tmp/mylinks-link-icons-v1-marker" > /dev/null 2>&1; then
+  echo "Icon snapshots already prewarmed"
+else
+  echo "== Prewarm existing link icons"
+  node scripts/prewarm-link-icons.mjs
+  printf 'ready\n' > /tmp/mylinks-link-icons-v1-marker
+  FTP_TIMEOUT=60 ftp "$TLS" "cd $REMOTE_DIR; put /tmp/mylinks-link-icons-v1-marker -o $ICON_WARM_MARKER"
+fi
+

@@ -145,3 +145,9 @@ alter table public.profile_contacts
 \i supabase/migrations/20261015060932_staff_editor_and_public_share.sql
 \i scripts/test-staff-profile.sql
 \i scripts/test-trash.sql
+\i supabase/migrations/20261016140000_link_icon_snapshot.sql
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='profile_links' and column_name='icon_snapshot_path') then
+    raise exception 'Missing generated icon snapshot path';
+  end if;
+end $$;

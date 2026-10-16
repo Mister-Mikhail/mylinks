@@ -175,7 +175,7 @@ export function OnboardingWizard({ userId, profile, setProfile, onFinish, avatar
         <div className="onboarding-actions">{step > 0 ? <button type="button" className="onboarding-back" onClick={() => void move(step - 1)} disabled={locked}><ArrowLeft size={16} />Назад</button> : <span />}<button type="submit" className="onboarding-next" disabled={locked}>{busy ? <LoaderCircle size={17} className="spin" /> : step === 4 ? 'Готово' : 'Продолжить'}{!busy && step < 4 && <ArrowRight size={16} />}</button></div>
       </form>
       <p className="onboarding-footnote">Шаг сохраняется при переходе дальше. Настройки доступны и в личном кабинете.</p>
-      <DeleteAccount onDeleted={onDeleted} />
+      <DeleteAccount onDeleted={onDeleted} handle={profile.handle} />
     </section>
   </div></main>
 }

@@ -95,11 +95,12 @@ export const handler = (clientFactory=createClient,env=(key:string)=>Deno.env.ge
       ])
       if(linksError||contactsError) return reply(500,{error:'Не удалось загрузить содержимое профиля.'})
       const profile=detail.profile
-      const [avatar,poster]=await Promise.all([
+      const [avatar,poster,master]=await Promise.all([
         profile.avatar_path?admin.storage.from('avatars').createSignedUrl(profile.avatar_path,3600):Promise.resolve(null),
         profile.avatar_poster_path?admin.storage.from('avatars').createSignedUrl(profile.avatar_poster_path,3600):Promise.resolve(null),
+        profile.avatar_master_path?admin.storage.from('avatars').createSignedUrl(profile.avatar_master_path,3600):Promise.resolve(null),
       ])
-      return reply(200,{profile:{...profile,avatar_preview_url:avatar?.data?.signedUrl??null,avatar_poster_url:poster?.data?.signedUrl??null},links,contacts})
+      return reply(200,{profile:{...profile,avatar_preview_url:avatar?.data?.signedUrl??null,avatar_master_url:master?.data?.signedUrl??null,avatar_poster_url:poster?.data?.signedUrl??null},links,contacts})
     }
     if(action==='save') {
       if(!input.profile||!Array.isArray(input.links)||!Array.isArray(input.contacts)||input.links.length>500||input.contacts.length>100) return reply(400,{error:'Проверьте поля профиля.'})
@@ -139,13 +140,14 @@ export const handler = (clientFactory=createClient,env=(key:string)=>Deno.env.ge
     }
     const {error:updateError}=await caller.rpc('staff_set_avatar_with_master',{target,avatar:path,media:kind,crop:input.crop??null,poster:posterPath,master:masterPath})
     if(updateError){await admin.storage.from('avatars').remove([path,...(posterPath?[posterPath]:[]),...(masterPath?[masterPath]:[])]);return reply(500,{error:'Не удалось сохранить аватар.'})}
-    const [signed,posterSigned]=await Promise.all([
+    const [signed,posterSigned,masterSigned]=await Promise.all([
       admin.storage.from('avatars').createSignedUrl(path,3600),
       posterPath?admin.storage.from('avatars').createSignedUrl(posterPath,3600):Promise.resolve(null),
+      masterPath?admin.storage.from('avatars').createSignedUrl(masterPath,3600):Promise.resolve(null),
     ])
     const oldPaths=[detail.profile.avatar_path,detail.profile.avatar_poster_path,detail.profile.avatar_master_path].filter((old:string)=>Boolean(old && old.startsWith(target+'/') && old!==path && old!==posterPath && old!==masterPath))
     if(oldPaths.length) await admin.storage.from('avatars').remove(oldPaths)
-    return reply(200,{avatar_path:path,avatar_master_path:masterPath,avatar_preview_url:signed.data?.signedUrl??null,avatar_media:kind,avatar_crop:input.crop??null,avatar_poster_path:posterPath,avatar_poster_url:posterSigned?.data?.signedUrl??null})
+    return reply(200,{avatar_path:path,avatar_master_path:masterPath,avatar_preview_url:signed.data?.signedUrl??null,avatar_master_url:masterSigned?.data?.signedUrl??null,avatar_media:kind,avatar_crop:input.crop??null,avatar_poster_path:posterPath,avatar_poster_url:posterSigned?.data?.signedUrl??null})
   } catch(error) {return reply(400,{error:error instanceof Error?error.message:'Действие не завершено.'})}
 }
 Deno.serve(handler())

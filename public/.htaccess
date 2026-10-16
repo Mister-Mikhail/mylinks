@@ -20,6 +20,8 @@ AddType font/woff2 .woff2
   RewriteRule ^(?:assets|icons|sounds|fonts|admin)/ - [L]
   # Preview images are PNGs served directly on this domain, without redirects.
   RewriteRule ^share-image/([a-z0-9][a-z0-9._-]{1,28}[a-z0-9])\.[a-f0-9]{12}\.png$ share-image.php?handle=$1 [L]
+  RewriteRule ^avatar/([a-z0-9][a-z0-9._-]{1,28}[a-z0-9])/([a-f0-9]{8})-(560|1000)(-poster)?\.(webp|mp4)$ avatar-asset.php?handle=$1&hash=$2&size=$3&poster=$4&extension=$5 [L]
+  RewriteRule ^link-icon/([a-z0-9][a-z0-9._-]{1,28}[a-z0-9])/([a-f0-9-]{36})/([a-f0-9]{12})\.png$ link-icon.php?handle=$1&id=$2&hash=$3 [L]
   # Metadata must be present for every visitor, regardless of crawler User-Agent.
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d

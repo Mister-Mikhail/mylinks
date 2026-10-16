@@ -12,3 +12,12 @@
 Файл `supabase/config.toml` также указывает на HTML-шаблон для локальной конфигурации Supabase CLI. Обычный `supabase db push` не меняет SMTP-настройки облачного проекта. Для облачной отправки шаги в панели и SMTP-данные провайдера обязательны; без них Supabase продолжит отправлять письма со своего системного адреса.
 
 Используйте отдельный адрес для транзакционных писем. Не передавайте SMTP-пароль в Git или в клиентский код.
+
+## Восстановление пароля (PR по issue #57)
+
+Перед выпуском владелец вручную настраивает в облачном Supabase:
+
+1. **Authentication → URL Configuration → Redirect URLs:** добавить `https://mylinks.bar/auth/reset`.
+2. **Authentication → Email Templates → Reset Password:** тема «Сброс пароля — mylinks.bar» и HTML из `supabase/templates/recovery.html`.
+
+Письмо ведёт на `https://mylinks.bar/auth/reset#token_hash={{ .TokenHash }}&type=recovery`. Проверка `verifyOtp` происходит только в браузере после открытия страницы. Не заменяйте эту ссылку на `{{ .ConfirmationURL }}`: почтовые сканеры могут открыть её до пользователя и израсходовать токен. Файл `config.toml` обеспечивает шаблон для локальной конфигурации; облачные настройки он автоматически не обновляет.

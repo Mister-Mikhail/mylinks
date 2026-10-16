@@ -5,6 +5,10 @@ verify_jwt = false
 subject = "Подтвердите email — mylinks.bar"
 content_path = "./supabase/templates/confirmation.html"
 
+[auth.email.template.recovery]
+subject = "Сброс пароля — mylinks.bar"
+content_path = "./supabase/templates/recovery.html"
+
 [functions.admin-delete-user]
 verify_jwt = false
 

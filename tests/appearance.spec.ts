@@ -6,6 +6,7 @@ export async function mockAppearance(page: Page, failUpload = false) {
   const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: id, exp: 2100000000, role: 'authenticated' })).toString('base64url')}.signature`
   await page.addInitScript(({ id, token }) => localStorage.setItem('sb-loykiawbqdkitndqkegk-auth-token', JSON.stringify({ access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user: { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' } })), { id, token })
   let profile = { id, handle: 'sample-user', display_name: 'Тестовый профиль', bio: 'Мои проекты', avatar_url: null, avatar_path: null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
+  let links: Record<string, unknown>[] = [{ id: 'link-test', profile_id: id, label: 'Мой сайт', url: 'https://example.com', icon_key: 'website', position: 0, is_visible: true, is_sensitive: false }]
   const patches: Record<string, unknown>[] = []
   const uploads: Buffer[] = []
   let savedImage: Buffer | null = null
@@ -29,7 +30,8 @@ export async function mockAppearance(page: Page, failUpload = false) {
       patches.push(patch); profile = { ...profile, ...patch }
       return route.fulfill({ status: 204 })
     }
-    const data = name === 'profiles' ? profile : name === 'profile_links' ? [{ id: 'link-test', profile_id: id, label: 'Мой сайт', url: 'https://example.com', icon_key: 'website', position: 0, is_visible: true, is_sensitive: false }] : []
+    if (name === 'profile_links' && request.method() === 'POST') { links = request.postDataJSON(); return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(links) }) }
+    const data = name === 'profiles' ? profile : name === 'profile_links' ? links : []
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify(data) })
   })
   await page.route('**/storage/v1/**', async route => {
@@ -172,6 +174,23 @@ test('font changed in Appearance survives reload and appears on the profile page
   await expect(page.getByLabel('Шрифт: Имя', { exact: true })).toHaveValue('georgia')
   await page.goto('/sample-user')
   await expect(page.locator('.public-preview-page h1')).toHaveCSS('font-family', /Georgia/)
+})
+
+test('per-card padding, border and opacity survive reload without changing the old default', async ({ page }) => {
+  await mockAppearance(page)
+  const card = page.locator('.preview-panel .profile-link').first()
+  await expect(card).toHaveCSS('padding-left', '12px')
+  await card.click()
+  await page.getByText('Дополнительные настройки', { exact: true }).last().click()
+  await page.getByLabel('Отступ этой карточки').fill('20')
+  await page.getByLabel('Толщина рамки этой карточки').fill('2')
+  await page.getByLabel('Плотность подложки этой карточки').fill('80')
+  await expect(card).toHaveCSS('padding-left', '20px')
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+  await expect(page.getByText('Изменения сохранены')).toBeVisible()
+  await page.reload()
+  await page.goto('/sample-user')
+  await expect(page.locator('.public-preview-page .profile-link').first()).toHaveCSS('padding-left', '20px')
 })
 
 test('inline crop supports positioning, zoom and cancelling without uploading', async ({ page }) => {

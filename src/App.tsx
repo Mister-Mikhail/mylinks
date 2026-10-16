@@ -798,6 +798,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         card_border_width: profile.card_border_width ?? 1,
         card_opacity: profile.card_opacity ?? 100,
         card_padding: profile.card_padding ?? 12,
+        card_style: profile.card_style ?? { version: 1 },
         avatar_shape: profile.avatar_shape,
         avatar_size: profile.avatar_size,
         avatar_scale: profile.avatar_scale,
@@ -829,6 +830,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         is_sensitive: link.is_sensitive,
         card_preset_override: link.card_preset_override ?? null,
         card_radius_override: link.card_radius_override ?? null,
+        card_style: link.card_style ?? null,
       }))
       if (existing.length) {
         const { error: updateError } = await supabase.from('profile_links').upsert(existing)
@@ -848,6 +850,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         is_sensitive: link.is_sensitive,
         card_preset_override: link.card_preset_override ?? null,
         card_radius_override: link.card_radius_override ?? null,
+        card_style: link.card_style ?? null,
       }))
       if (fresh.length) {
         const { error: insertError } = await supabase.from('profile_links').insert(fresh)
@@ -1280,9 +1283,9 @@ function DesignEditor({
       <section className="settings-card">
         <div className="settings-card__title"><UserRound size={18} /><div><h2>Текст профиля</h2><p>Шрифты, размер и цвет имени, адреса и описания.</p></div></div>
         <div className="appearance-fields">
-          <TypographyControls label="Имя" slot="name" font={profile.name_font} size={profile.name_font_size} color={profile.name_color} onChange={(font, size) => setProfile({ ...profile, name_font: font, name_font_size: size })} onColorChange={color => setProfile({ ...profile, name_color: color })} />
-          <TypographyControls label="Мастер-ссылка" slot="handle" font={profile.handle_font} size={profile.handle_font_size} color={profile.handle_color} onChange={(font, size) => setProfile({ ...profile, handle_font: font, handle_font_size: size })} onColorChange={color => setProfile({ ...profile, handle_color: color })} />
-          <TypographyControls label="О себе" slot="bio" font={profile.bio_font} size={profile.bio_font_size} color={profile.bio_color} onChange={(font, size) => setProfile({ ...profile, bio_font: font, bio_font_size: size })} onColorChange={color => setProfile({ ...profile, bio_color: color })} />
+          <TypographyControls sample={profile.display_name} label="Имя" slot="name" font={profile.name_font} size={profile.name_font_size} color={profile.name_color} onChange={(font, size) => setProfile({ ...profile, name_font: font, name_font_size: size })} onColorChange={color => setProfile({ ...profile, name_color: color })} />
+          <TypographyControls sample={profile.handle} label="Мастер-ссылка" slot="handle" font={profile.handle_font} size={profile.handle_font_size} color={profile.handle_color} onChange={(font, size) => setProfile({ ...profile, handle_font: font, handle_font_size: size })} onColorChange={color => setProfile({ ...profile, handle_color: color })} />
+          <TypographyControls sample={profile.bio} label="О себе" slot="bio" font={profile.bio_font} size={profile.bio_font_size} color={profile.bio_color} onChange={(font, size) => setProfile({ ...profile, bio_font: font, bio_font_size: size })} onColorChange={color => setProfile({ ...profile, bio_color: color })} />
         </div>
       </section>
 
@@ -1314,9 +1317,12 @@ function DesignEditor({
         <div className="appearance-item-list">{links.map((link, index) => <article className={`appearance-item ${selectedLinkId === link.localId ? 'appearance-item--selected' : ''}`} key={link.localId}>
           <div className="appearance-item__heading"><span className="appearance-item__number">{index + 1}</span><button type="button" className="appearance-item__select" aria-pressed={selectedLinkId === link.localId} onClick={() => onSelectLink(link.localId)}>{link.label || link.url || 'Новая ссылка'}</button><div className="appearance-item__arrows"><button type="button" className="icon-button" disabled={index === 0} onClick={() => moveLink(index, -1)} aria-label={`Переместить ссылку выше: ${link.label || index + 1}`}><ArrowUp size={16} /></button><button type="button" className="icon-button" disabled={index === links.length - 1} onClick={() => moveLink(index, 1)} aria-label={`Переместить ссылку ниже: ${link.label || index + 1}`}><ArrowDown size={16} /></button></div></div>
           {selectedLinkId === link.localId && <div className="appearance-item__controls">
-            <TypographyControls label="Название ссылки" slot="link" font={link.label_font} size={link.label_font_size} color={link.label_color} onChange={(font, size) => updateLink(link.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateLink(link.localId, { label_color: color })} />
+            <TypographyControls sample={link.label} label="Название ссылки" slot="link" font={link.label_font} size={link.label_font_size} color={link.label_color} onChange={(font, size) => updateLink(link.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateLink(link.localId, { label_color: color })} />
             <div className="link-card-style__controls"><label>Стиль<select aria-label={`Стиль этой карточки: ${link.label}`} value={link.card_preset_override ?? ''} onChange={event => updateLink(link.localId, { card_preset_override: event.target.value ? event.target.value as Profile['card_preset'] : null })}><option value="">Как у остальных</option><option value="glass">Стекло</option><option value="solid">Сплошная</option><option value="outline">Контур</option></select></label><label>Скругление<select aria-label={`Скругление этой карточки: ${link.label}`} value={link.card_radius_override ?? ''} onChange={event => updateLink(link.localId, { card_radius_override: event.target.value ? Number(event.target.value) : null })}><option value="">Как у остальных</option><option value="4">4 px</option><option value="13">13 px</option><option value="21">21 px</option><option value="28">28 px</option></select></label></div>
-          <button type="button" className="button button--ghost button--small" onClick={() => updateLink(link.localId, { label_font: 'manrope', label_font_size: 11, label_color: null, card_preset_override: null, card_radius_override: null })}>Как у всех</button></div>}
+            <details className="card-style-more"><summary>Дополнительные настройки</summary>
+              {([['padding', 'Отступ', 8, 24, 12], ['borderWidth', 'Толщина рамки', 0, 3, 1], ['opacity', 'Плотность подложки', 60, 100, 100]] as const).map(([key, label, min, max, fallback]) => <label className="avatar-size-control" key={key}><span><span className="field-caption">{label} этой карточки</span><strong>{link.card_style?.[key] ?? fallback}{key === 'opacity' ? '%' : ' px'}</strong></span><input type="range" aria-label={`${label} этой карточки`} min={min} max={max} value={link.card_style?.[key] ?? fallback} onChange={event => updateLink(link.localId, { card_style: { version: 1, ...link.card_style, [key]: Number(event.target.value) } })} /></label>)}
+            </details>
+          <button type="button" className="button button--ghost button--small" onClick={() => updateLink(link.localId, { label_font: 'manrope', label_font_size: 11, label_color: null, card_preset_override: null, card_radius_override: null, card_style: null })}>Как у всех</button></div>}
         </article>)}</div>
         {links.length === 0 && <p className="appearance-item__empty">Добавьте ссылки в разделе «Ссылки» — они появятся здесь.</p>}
       </section>
@@ -1325,7 +1331,7 @@ function DesignEditor({
         <div className="settings-card__title"><MapPin size={18} /><div><h2>Вид и порядок контактов</h2><p>Настройте подписи, значения и расположение контактов.</p></div></div>
         <div className="appearance-item-list">{contacts.map((contact, index) => <article className="appearance-item" key={contact.localId}>
           <div className="appearance-item__heading"><span className="appearance-item__number">{index + 1}</span><strong>{contact.label || contact.value || 'Новый контакт'}</strong><div className="appearance-item__arrows"><button type="button" className="icon-button" disabled={index === 0} onClick={() => moveContact(index, -1)} aria-label={`Переместить контакт выше: ${contact.label || index + 1}`}><ArrowUp size={16} /></button><button type="button" className="icon-button" disabled={index === contacts.length - 1} onClick={() => moveContact(index, 1)} aria-label={`Переместить контакт ниже: ${contact.label || index + 1}`}><ArrowDown size={16} /></button></div></div>
-          <details className="appearance-item__details"><summary>Шрифт контакта</summary><div className="appearance-item__controls"><TypographyControls label="Подпись контакта" slot="contactLabel" font={contact.label_font} size={contact.label_font_size} color={contact.label_color} onChange={(font, size) => updateContact(contact.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateContact(contact.localId, { label_color: color })} /><TypographyControls label="Значение контакта" slot="contactValue" font={contact.value_font} size={contact.value_font_size} color={contact.value_color} onChange={(font, size) => updateContact(contact.localId, { value_font: font, value_font_size: size })} onColorChange={color => updateContact(contact.localId, { value_color: color })} /></div></details>
+          <details className="appearance-item__details"><summary>Шрифт контакта</summary><div className="appearance-item__controls"><TypographyControls sample={contact.label} label="Подпись контакта" slot="contactLabel" font={contact.label_font} size={contact.label_font_size} color={contact.label_color} onChange={(font, size) => updateContact(contact.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateContact(contact.localId, { label_color: color })} /><TypographyControls sample={contact.value} label="Значение контакта" slot="contactValue" font={contact.value_font} size={contact.value_font_size} color={contact.value_color} onChange={(font, size) => updateContact(contact.localId, { value_font: font, value_font_size: size })} onColorChange={color => updateContact(contact.localId, { value_color: color })} /></div></details>
         </article>)}</div>
         {contacts.length === 0 && <p className="appearance-item__empty">Добавьте контакты в разделе «Ссылки» — они появятся здесь.</p>}
       </section>

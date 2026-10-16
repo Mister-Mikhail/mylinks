@@ -61,6 +61,7 @@ const toEditable = (link: ProfileLink, handle?: string): EditableLink => ({
     ? link.icon_snapshot_path.replace('/link-icon/', `/link-icon/${handle}/`) : link.icon_snapshot_path,
   card_preset_override: link.card_preset_override,
   card_radius_override: link.card_radius_override,
+  card_style: link.card_style,
   position: link.position,
   is_visible: link.is_visible,
   is_sensitive: link.is_sensitive ?? false,

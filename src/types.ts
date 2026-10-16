@@ -2,6 +2,7 @@ import type { FontKey } from './lib/typography'
 
 export type BackgroundPreset = 'midnight' | 'mist' | 'cobalt'
 export type CardPreset = 'glass' | 'solid' | 'outline'
+export interface CardStyleV1 { version: 1; padding?: number; borderWidth?: number; opacity?: number }
 export type AvatarShape = 'round' | 'square'
 export type AvatarSize = 'small' | 'medium' | 'large'
 export type LinkIcon = 'instagram' | 'telegram' | 'youtube' | 'tiktok' | 'whatsapp' | 'onlyfans' | 'vk' | 'facebook' | 'x' | 'website' | 'email' | 'link'
@@ -40,6 +41,7 @@ export interface Profile {
   card_border_width?: number
   card_opacity?: number
   card_padding?: number
+  card_style?: CardStyleV1 | null
   avatar_shape: AvatarShape
   avatar_size: AvatarSize
   avatar_scale: number
@@ -67,6 +69,7 @@ export interface ProfileLink {
   is_sensitive: boolean
   card_preset_override?: CardPreset | null
   card_radius_override?: number | null
+  card_style?: CardStyleV1 | null
   created_at?: string
   updated_at?: string
 }

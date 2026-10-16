@@ -5,6 +5,7 @@ import { Check, Copy, LockKeyhole, ShieldAlert, X } from 'lucide-react'
 import type { AvatarDraft, EditableContact, EditableLink, Profile } from '../types'
 import { textStyle } from '../lib/typography'
 import { appearanceStyle, appearanceTheme } from '../lib/appearance'
+import { cardOverrideStyle } from '../lib/cardStyle'
 import { isKnownSensitiveUrl } from '../lib/sensitiveLinks'
 import { copyText, profileUrl } from '../lib/clipboard'
 import { BrandMark } from './BrandMark'
@@ -93,7 +94,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
 
       <div className="profile-card__links">
         {visibleLinks.length > 0 ? visibleLinks.map((link) => {
-          const cardStyle = link.card_radius_override == null ? undefined : { '--card-radius': `${Math.min(28, Math.max(4, link.card_radius_override))}px` } as CSSProperties
+          const cardStyle = { ...(link.card_radius_override == null ? {} : { '--card-radius': `${Math.min(28, Math.max(4, link.card_radius_override))}px` }), ...cardOverrideStyle(link.card_style) } as CSSProperties
           const cardClass = `profile-link card-${link.card_preset_override ?? profile.card_preset}`
           const content = (
             <>

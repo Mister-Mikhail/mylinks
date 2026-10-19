@@ -57,11 +57,11 @@ if (!defined('MYLINKS_ICON_LIBRARY_ONLY')) {
     $host=icon_snapshot_from_bundle(preview_bundle($handle),$id,$hash);
     if (!$host) { http_response_code(404); header('Cache-Control: no-store'); exit; }
     $cache=sys_get_temp_dir() . '/mylinks-link-icon-' . hash('sha256',$id . ':' . $hash) . '.png';
-    if (!is_file($cache)) {
+    if (!is_file($cache) || filemtime($cache) < time() - 21600) {
         $lock=fopen($cache . '.lock','c');
         if ($lock) {
             flock($lock,LOCK_EX);
-            if (!is_file($cache)) {
+            if (!is_file($cache) || filemtime($cache) < time() - 21600) {
                 $png=icon_snapshot_fetch($host);
                 if ($png) { $temporary=tempnam(sys_get_temp_dir(),'mylinks-icon-write-'); if ($temporary) { file_put_contents($temporary,$png); if (@rename($temporary,$cache)) asset_cache_cleanup(); if (is_file($temporary)) @unlink($temporary); } }
             }
@@ -70,5 +70,5 @@ if (!defined('MYLINKS_ICON_LIBRARY_ONLY')) {
     }
     if (!is_file($cache)) { http_response_code(404); header('Cache-Control: no-store'); exit; }
     header('Content-Type: image/png'); header('Content-Length: ' . filesize($cache));
-    header('Cache-Control: public, max-age=31536000, immutable'); readfile($cache);
+    header('Cache-Control: public, max-age=' . (filemtime($cache) < time() - 21600 ? '300' : '21600') . ', must-revalidate'); readfile($cache);
 }

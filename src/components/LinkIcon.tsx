@@ -37,6 +37,25 @@ const localBrandIcon = (name: LinkIconName, url: string): BrandIcon | null => {
   if (name === 'vk' || onDomain(host, 'vk.com', 'vk.ru', 'vk.me', 'vkvideo.ru')) return { src: '/icons/platforms/vk.svg' }
   if (onDomain(host, 'capcut.com', 'capcut.net', 'capcut.cn')) return { src: '/icons/platforms/capcut.svg', mono: true }
   if (onDomain(host, 'dzen.ru') || host === 'zen.yandex.ru') return { src: '/icons/platforms/dzen.svg', mono: true }
+  if (name === 'youtube' || onDomain(host, 'youtube.com', 'youtu.be')) return { src: '/icons/platforms/youtube.svg', mono: true }
+  if (name === 'tiktok' || onDomain(host, 'tiktok.com')) return { src: '/icons/platforms/tiktok.svg', mono: true }
+  if (name === 'x' || onDomain(host, 'x.com', 'twitter.com')) return { src: '/icons/platforms/x.svg', mono: true }
+  if (name === 'facebook' || onDomain(host, 'facebook.com', 'fb.com')) return { src: '/icons/platforms/facebook.svg', mono: true }
+  if (onDomain(host, 'boosty.to')) return { src: '/icons/platforms/boosty.svg', mono: true }
+  if (onDomain(host, 'discord.com', 'discord.gg')) return { src: '/icons/platforms/discord.svg', mono: true }
+  if (onDomain(host, 'twitch.tv')) return { src: '/icons/platforms/twitch.svg', mono: true }
+  if (onDomain(host, 'pinterest.com', 'pin.it')) return { src: '/icons/platforms/pinterest.svg', mono: true }
+  if (onDomain(host, 'reddit.com')) return { src: '/icons/platforms/reddit.svg', mono: true }
+  if (onDomain(host, 'github.com')) return { src: '/icons/platforms/github.svg', mono: true }
+  if (onDomain(host, 'spotify.com')) return { src: '/icons/platforms/spotify.svg', mono: true }
+  if (onDomain(host, 'soundcloud.com')) return { src: '/icons/platforms/soundcloud.svg', mono: true }
+  if (onDomain(host, 'music.apple.com')) return { src: '/icons/platforms/applemusic.svg', mono: true }
+  if (onDomain(host, 'patreon.com')) return { src: '/icons/platforms/patreon.svg', mono: true }
+  if (onDomain(host, 'behance.net')) return { src: '/icons/platforms/behance.svg', mono: true }
+  if (onDomain(host, 'dribbble.com')) return { src: '/icons/platforms/dribbble.svg', mono: true }
+  if (onDomain(host, 'figma.com')) return { src: '/icons/platforms/figma.svg', mono: true }
+  if (onDomain(host, 'notion.so', 'notion.site')) return { src: '/icons/platforms/notion.svg', mono: true }
+  if (onDomain(host, 'vimeo.com')) return { src: '/icons/platforms/vimeo.svg', mono: true }
   // Russian banks refuse visitors from abroad, so their own icons would not load there.
   if (onDomain(host, 'alfabank.ru', 'alfa-bank.ru', 'alfabank.com')) return { src: '/icons/platforms/alfabank.svg' }
   if (onDomain(host, 'sovcombank.ru', 'halvacard.ru')) return { src: '/icons/platforms/sovcombank.svg' }

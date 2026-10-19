@@ -69,3 +69,17 @@ test('export refuses changed identity and provides short-lived URLs only when ex
  await page.getByRole('button',{name:'Скачать JSON'}).click()
  await expect(page.getByRole('alert')).toContainText('Не удалось загрузить ваши данные')
 })
+
+test('export preserves custom appearance and individual card overrides without changing saved data',async({page})=>{
+ const state=await setup(page)
+ Object.assign(state.profile,{background_style:'gradient',background_primary:'#e17209',background_secondary:'#162638',card_radius:24,card_padding:20,card_border_width:2,card_opacity:80,link_font:'lora',link_font_size:18,link_color:'#e17209',show_qr:true,qr_size:180})
+ Object.assign(state.links[0] as object,{card_preset_override:'outline',card_radius_override:12,card_style:{version:1,padding:16,borderWidth:1,opacity:90},label_color:null})
+ const saved=JSON.stringify(state)
+ await page.getByRole('button',{name:'Экспорт данных'}).click()
+ const pending=page.waitForEvent('download')
+ await page.getByRole('button',{name:'Скачать JSON'}).click()
+ const data=JSON.parse((await bytes(await pending)).toString())
+ expect(data.appearance).toMatchObject({background_style:'gradient',background_primary:'#e17209',background_secondary:'#162638',card_radius:24,card_padding:20,card_border_width:2,card_opacity:80,link_font:'lora',link_font_size:18,link_color:'#e17209',show_qr:true,qr_size:180})
+ expect(data.links[0]).toMatchObject({id:'link',card_preset_override:'outline',card_radius_override:12,card_style:{version:1,padding:16,borderWidth:1,opacity:90},label_color:null})
+ expect(JSON.stringify(state)).toBe(saved)
+})

@@ -1,6 +1,6 @@
 import { lookup } from 'node:dns/promises'
-import { request } from 'node:https'
 import { isIP } from 'node:net'
+import { createPinnedRequest } from './pinned-transport.ts'
 
 export const validHost = (host: string) => /^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(host) && !/(?:^|\.)(localhost|local|internal|test|invalid)$/.test(host)
 
@@ -19,23 +19,7 @@ type Address = {address:string;family:number}
 export type Resolver = (host:string)=>Promise<Address[]>
 export type Transport = (url:URL,address:Address,limit:number,accept:string,ua:string,timeout:number)=>Promise<Fetched|null>
 
-export const pinnedRequest:Transport = (url,address,limit,accept,ua,timeout)=>new Promise(resolve=>{
-  let done=false
-  const finish=(result:Fetched|null)=>{if(done)return;done=true;clearTimeout(timer);resolve(result)}
-  // Connect to the validated IP itself: there is no second DNS lookup to rebind.
-  // SNI/certificate validation and HTTP Host still use the original hostname.
-  const req=request({protocol:'https:',hostname:address.address,family:address.family,port:443,servername:url.hostname,path:url.pathname+url.search,method:'GET',agent:false,headers:{Host:url.hostname,Accept:accept,'User-Agent':ua,'Accept-Encoding':'identity'}},res=>{
-    const status=res.statusCode || 0
-    if (status>=300 && status<400) { res.destroy();finish({body:new Uint8Array(),type:'',url:url.href,status,location:res.headers.location});return }
-    if (status!==200 || Number(res.headers['content-length'] || 0)>limit) {res.destroy();finish(null);return}
-    const chunks:Uint8Array[]=[];let size=0
-    res.on('data',(chunk:Uint8Array)=>{size+=chunk.length;if(size>limit){res.destroy();finish(null)}else chunks.push(chunk)})
-    res.on('error',()=>finish(null))
-    res.on('end',()=>{const body=new Uint8Array(size);let offset=0;for(const chunk of chunks){body.set(chunk,offset);offset+=chunk.length}finish({body,type:res.headers['content-type'] || '',url:url.href,status})})
-  })
-  const timer=setTimeout(()=>{req.destroy();finish(null)},timeout)
-  req.on('error',()=>finish(null));req.end()
-})
+export const pinnedRequest:Transport = createPinnedRequest()
 
 export async function safeFetch(input:string,limit:number,accept:string,ua:string,timeout=5000,resolve:Resolver=host=>lookup(host,{all:true}),transport:Transport=pinnedRequest):Promise<Fetched|null> {
   const deadline=Date.now()+timeout

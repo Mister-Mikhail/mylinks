@@ -33,7 +33,7 @@ if (!$out) profile_image_error(503,'Не удалось подготовить �
 try {
  $args=array('/usr/bin/timeout','20s',$ffmpeg,'-nostdin','-v','error','-y','-i',$f['tmp_name'],'-frames:v','1','-map_metadata','-1','-vf','scale=1600:1600:force_original_aspect_ratio=decrease','-c:v','libwebp','-quality','82','-f','webp',$out);
  $p=proc_open(implode(' ',array_map('escapeshellarg',$args)),array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes);
- if (!is_resource($p)) throw new Exception('Не удалось начать обработку.');
+ if (!is_resource($p)) {@unlink($out);profile_image_error(503,'Не удалось начать обработку.');}
  fclose($pipes[0]);stream_get_contents($pipes[1]);fclose($pipes[1]);stream_get_contents($pipes[2]);fclose($pipes[2]);
  $ok=proc_close($p)===0 && filesize($out)>0 && filesize($out)<=1500000;
  $bytes=$ok?file_get_contents($out):null;

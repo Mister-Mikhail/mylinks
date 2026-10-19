@@ -787,6 +787,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
       }
 
       const { error: profileError } = await supabase.from('profiles').update({
+        ...(profile.link_layout == null ? {link_layout:null} : {}),
         handle: profile.handle,
         display_name: profile.display_name.trim(),
         bio: profile.bio.trim(),
@@ -884,9 +885,11 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         if (insertError) throw insertError
       }
 
-      const layout = profile.link_layout ? {version:1,blocks:layoutFor(readyLinks,profile.link_layout)} : null
-      const {error:layoutError}=await supabase.from('profiles').update({link_layout:layout}).eq('id',user.id)
-      if(layoutError)throw layoutError
+      if(profile.link_layout){
+        const layout={version:1,blocks:layoutFor(readyLinks,profile.link_layout)}
+        const {error:layoutError}=await supabase.from('profiles').update({link_layout:layout}).eq('id',user.id)
+        if(layoutError)throw layoutError
+      }
 
       const keptContactIds = readyContacts.flatMap((contact) => contact.id ? [contact.id] : [])
       const removedContactIds = originalContactIds.filter((id) => !keptContactIds.includes(id))

@@ -1302,7 +1302,7 @@ function DesignEditor({
 
       <section className="settings-card">
         <div className="settings-card__title"><LayoutGrid size={18} /><div><h2>Карточки</h2><p>Общий стиль текста, рамок и подложки.</p></div></div>
-        <TypographyControls label="Текст ссылок" slot="link" font={profile.link_font} size={profile.link_font_size} color={profile.link_color} onChange={(font, size) => setProfile(current => ({ ...current, link_font: font, link_font_size: size }))} onColorChange={color => setProfile(current => ({ ...current, link_color: color }))} />
+        <TypographyControls label="Текст ссылок" slot="link" font={profile.link_font} size={profile.link_font_size} color={profile.link_color} onChange={(font, size) => setProfile({ ...profile, link_font: font, link_font_size: size })} onColorChange={color => setProfile({ ...profile, link_color: color })} />
         <div className="segmented-picker">
           {([
             ['glass', 'Стекло'],

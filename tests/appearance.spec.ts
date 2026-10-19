@@ -329,13 +329,19 @@ test('default card text maintains accessible contrast across themes, presets and
       const styles = await page.locator('.preview-panel .profile-link').first().evaluate(element => {
         const card = getComputedStyle(element)
         const label = getComputedStyle(element.querySelector('.profile-link__label')!)
-        return { background: card.backgroundColor, foreground: label.color }
+        const rgba = (color: string) => {
+          const canvas = document.createElement('canvas')
+          canvas.width = canvas.height = 1
+          const context = canvas.getContext('2d')!
+          context.fillStyle = color
+          context.fillRect(0, 0, 1, 1)
+          return Array.from(context.getImageData(0, 0, 1, 1).data)
+        }
+        return { background: rgba(card.backgroundColor), foreground: rgba(label.color) }
       })
-      const bg = styles.background.match(/[\d.]+/g)?.map(Number) ?? []
-      const fg = styles.foreground.match(/[\d.]+/g)?.map(Number) ?? []
-      expect(bg.length, `${theme.label} / ${preset}: background channels`).toBeGreaterThanOrEqual(3)
-      expect(fg.length, `${theme.label} / ${preset}: foreground channels`).toBeGreaterThanOrEqual(3)
-      const alpha = bg.length > 3 ? bg[3] : 1
+      const bg = styles.background
+      const fg = styles.foreground
+      const alpha = bg[3] / 255
       for (const stop of theme.stops) {
         const backing = rgb(stop)
         const composited = backing.map((channel, i) => bg[i] * alpha + channel * (1 - alpha))

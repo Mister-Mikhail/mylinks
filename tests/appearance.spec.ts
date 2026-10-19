@@ -325,6 +325,7 @@ test('default card text maintains accessible contrast across themes, presets and
   }
   for (const theme of themes) {
     await page.getByRole('button', { name: theme.label, exact: true }).click()
+    await expect(page.locator('.preview-panel .profile-card')).toHaveClass(new RegExp(`theme-${({ 'Полночь': 'midnight', 'Туман': 'mist', 'Кобальт': 'cobalt' } as Record<string, string>)[theme.label]}`))
     for (const preset of presets) {
       await page.getByRole('button', { name: preset, exact: true }).click()
       await expect(page.locator('.preview-panel .profile-link').first()).toHaveClass(new RegExp(`card-${({ 'Стекло': 'glass', 'Плотные': 'solid', 'Контур': 'outline' } as Record<string, string>)[preset]}`))
@@ -347,7 +348,7 @@ test('default card text maintains accessible contrast across themes, presets and
       for (const stop of theme.stops) {
         const backing = rgb(stop)
         const composited = backing.map((channel, i) => bg[i] * alpha + channel * (1 - alpha))
-        expect(contrast(fg, composited), `${theme.label} / ${preset} over ${stop}`).toBeGreaterThanOrEqual(4.5)
+        expect(contrast(fg, composited), `${theme.label} / ${preset} over ${stop}; fg=${fg.join(',')} bg=${bg.join(',')}`).toBeGreaterThanOrEqual(4.5)
       }
     }
   }

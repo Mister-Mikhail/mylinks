@@ -75,7 +75,9 @@ do $$ declare details jsonb; payload jsonb; first_id uuid; begin
  payload:=jsonb_build_object('profile',details->'profile','links',details->'links','contacts','[]'::jsonb);
  payload:=jsonb_set(payload,'{links,0,card_style}','{"version":1,"padding":20,"borderWidth":2,"opacity":80}');
  perform public.staff_save_profile('00000000-0000-4000-8000-000000000017',payload);
- if not exists(select 1 from public.profile_links where id=first_id and card_style->>'padding'='20') then
+ details:=moderation.detail('00000000-0000-4000-8000-000000000017');
+ if not exists(select 1 from jsonb_array_elements(details->'links') link
+   where link->>'id'=first_id::text and link#>>'{card_style,padding}'='20') then
    raise exception 'Admin did not save a custom card style';
  end if;
  payload:=jsonb_set(payload,'{links,0,card_style}','null');
@@ -83,9 +85,12 @@ do $$ declare details jsonb; payload jsonb; first_id uuid; begin
    'label','Admin new','url','https://example.com/admin-new','icon_key','website',
    'is_visible',true,'is_sensitive',false,'card_style',null)));
  perform public.staff_save_profile('00000000-0000-4000-8000-000000000017',payload);
- if exists(select 1 from public.profile_links where id=first_id and card_style is not null)
-   or not exists(select 1 from public.profile_links where profile_id='00000000-0000-4000-8000-000000000017'
-     and label='Admin new' and card_style is null and label_font is null and label_font_size is null) then
+ details:=moderation.detail('00000000-0000-4000-8000-000000000017');
+ if not exists(select 1 from jsonb_array_elements(details->'links') link
+     where link->>'id'=first_id::text and link->'card_style'='null'::jsonb)
+   or not exists(select 1 from jsonb_array_elements(details->'links') link
+     where link->>'label'='Admin new' and link->'card_style'='null'::jsonb
+       and link->'label_font'='null'::jsonb and link->'label_font_size'='null'::jsonb) then
    raise exception 'Admin insert or reset did not normalize JSON null';
  end if;
 end $$;

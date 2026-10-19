@@ -15,6 +15,7 @@ do $$ begin
  if (select count(*) from storage.objects where bucket_id='profile-assets')<>2 then raise exception 'Owner cannot read private draft';end if;
 end $$;
 reset role;
+grant usage on schema storage to anon;
 grant select on storage.objects to anon;
 set role anon;
 do $$ begin

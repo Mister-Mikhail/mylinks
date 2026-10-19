@@ -41,6 +41,7 @@ import { TypographyControls } from './components/TypographyControls'
 import { LinkIcon } from './components/LinkIcon'
 import { ProfileTools } from './components/ProfileTools'
 import { StatisticsPanel } from './components/StatisticsPanel'
+import { PasswordRecoveryForm, PasswordRecoveryRequest } from './components/PasswordRecovery'
 import './components/extras.css'
 import './components/admin.css'
 import { capabilitiesForTier, FREE_CAPABILITIES } from './config/capabilities'
@@ -190,6 +191,8 @@ function App() {
   return (
     <Routes>
       <Route path="/auth/confirmed" element={<AuthConfirmation session={session} />} />
+      <Route path="/auth/forgot-password" element={<PasswordRecoveryRequest />} />
+      <Route path="/auth/reset" element={<PasswordRecoveryForm />} />
       <Route path="/admin/*" element={<Suspense fallback={<LoadingScreen />}><AdminPanel session={session} /></Suspense>} />
       <Route path="/admin/users/:targetId/edit" element={session ? <StaffProfileEditor user={session.user} /> : <Navigate to="/admin" replace />} />
       <Route path="/admin/users/:targetId/preview" element={session ? <StaffProfilePreview user={session.user} /> : <Navigate to="/admin" replace />} />
@@ -486,6 +489,7 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
             {busy ? <LoaderCircle className="spin" size={18} /> : pendingSignup ? 'Ожидаем подтверждение почты…' : mode === 'register' ? 'Создать профиль' : 'Войти'}
           </button>
         </form>
+        {mode === 'login' && <Link className="auth-switch" to="/auth/forgot-password" onClick={onClose}>Забыли пароль?</Link>}
         <button className="auth-switch" onClick={switchMode}>
           {mode === 'register' ? 'Уже зарегистрированы? Войти' : 'Нет профиля? Создать бесплатно'}
         </button>

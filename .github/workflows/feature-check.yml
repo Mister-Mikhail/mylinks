@@ -1,0 +1,26 @@
+name: Feature branch checks
+on:
+  push:
+    branches: ['feature/**']
+
+permissions:
+  contents: read
+
+env:
+  VITE_SUPABASE_URL: https://loykiawbqdkitndqkegk.supabase.co
+  VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_GjGkSeQ5okx58Tphh7Hfrw_6psgCioE
+  SITE_URL: https://mylinks.bar
+  IS_PR: 'true'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Lint, build, PHP and desktop/mobile e2e
+        run: bash scripts/ci.sh

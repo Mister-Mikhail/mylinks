@@ -22,7 +22,7 @@ set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000003',false);
 do $$ declare detail jsonb; payload jsonb; begin
  detail:=moderation.detail('00000000-0000-4000-8000-000000000017');
- payload:=jsonb_build_object('profile',(detail->'profile')||jsonb_build_object('background_position_x',10,'background_position_y',90,'background_zoom',250),'links',detail->'links','contacts',detail->'contacts');
+ payload:=jsonb_build_object('profile',(detail->'profile')||jsonb_build_object('background_position_x',10,'background_position_y',90,'background_zoom',250),'links',detail->'links','contacts','[]'::jsonb);
  perform public.staff_save_profile('00000000-0000-4000-8000-000000000017',payload);
  if not exists(select 1 from public.profiles where id='00000000-0000-4000-8000-000000000017' and background_position_x=10 and background_position_y=90 and background_zoom=250)then raise exception 'Staff crop not saved';end if;
  payload:=jsonb_set(payload,'{profile}',(payload->'profile')-'background_position_x'-'background_position_y'-'background_zoom');

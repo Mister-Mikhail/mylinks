@@ -1,3 +1,4 @@
+import { layoutFor, linkKey } from '../lib/linkLayout'
 import { useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
@@ -67,6 +68,29 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
     setSensitiveLink(null)
   }
 
+  const renderLink = (link: EditableLink) => {
+          const cardStyle = { ...(link.card_radius_override == null ? {} : { '--card-radius': `${Math.min(28, Math.max(4, link.card_radius_override))}px` }), ...cardOverrideStyle(link.card_style) } as CSSProperties
+          const featured=link.presentation === 'featured'
+          const cardClass = `profile-link card-${link.card_preset_override ?? profile.card_preset}${featured?' profile-link--featured':''}`
+          const content = (
+            <>
+              {featured && (link.image_url && !(interactive && (link.is_sensitive || isKnownSensitiveUrl(link.url))) ? <img className="profile-link__image" src={link.image_url} alt={link.image_alt || ''} loading="lazy" decoding="async" style={{objectPosition:`${link.image_position_x ?? 50}% ${link.image_position_y ?? 50}%`}} onError={event=>{event.currentTarget.style.visibility='hidden'}}/> : <span className="profile-link__image-placeholder">{link.is_sensitive || isKnownSensitiveUrl(link.url) ? <ShieldAlert size={28}/> : <LinkIcon name={link.icon_key} url={link.url} publicView={interactive}/>}</span>)}
+              <span className="profile-link__icon"><LinkIcon name={link.icon_key} url={link.url} snapshotPath={link.icon_snapshot_path} publicView={interactive} /></span>
+              <span className="profile-link__label" style={textStyle(link.label_font ?? profile.link_font, link.label_font_size ?? profile.link_font_size, 'link', link.label_color ?? profile.link_color)}><span className="profile-link__text">{link.label}</span>{(link.is_sensitive || isKnownSensitiveUrl(link.url)) && <small>18+</small>}</span>
+            </>
+          )
+          return interactive ? (
+            <a className={cardClass} style={cardStyle} href={link.url} target="_blank" rel="noreferrer" key={link.localId} onClick={(event) => openLink(event, link)}>
+              {content}
+            </a>
+          ) : (
+            onSelectLink ? <button type="button" className={`${cardClass} ${selectedLinkId === link.localId ? 'profile-link--selected' : ''}`} style={cardStyle} key={link.localId} onClick={() => onSelectLink(link.localId)} aria-pressed={selectedLinkId === link.localId} aria-label={`Оформить карточку: ${link.label}`}>{content}</button> : <div className={cardClass} style={cardStyle} key={link.localId}>{content}</div>
+          )
+
+  }
+  const byId=new Map(visibleLinks.map(link=>[linkKey(link),link]))
+  const blocks=layoutFor(links,profile.link_layout)
+
   return (
     <section className={`profile-card theme-${appearanceTheme(profile)}`} style={appearanceStyle(profile)} aria-label={`Профиль ${profile.display_name}`}>
       <div className="profile-card__noise" />
@@ -93,29 +117,8 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
       <ProfileContacts contacts={contacts} cardPreset={profile.card_preset} interactive={interactive} onActivate={playClickSound} />
 
       <div className="profile-card__links">
-        {visibleLinks.length > 0 ? visibleLinks.map((link) => {
-          const cardStyle = { ...(link.card_radius_override == null ? {} : { '--card-radius': `${Math.min(28, Math.max(4, link.card_radius_override))}px` }), ...cardOverrideStyle(link.card_style) } as CSSProperties
-          const featured=link.presentation === 'featured'
-          const cardClass = `profile-link card-${link.card_preset_override ?? profile.card_preset}${featured?' profile-link--featured':''}`
-          const content = (
-            <>
-              {featured && (link.image_url && !(interactive && (link.is_sensitive || isKnownSensitiveUrl(link.url))) ? <img className="profile-link__image" src={link.image_url} alt={link.image_alt || ''} loading="lazy" decoding="async" style={{objectPosition:`${link.image_position_x ?? 50}% ${link.image_position_y ?? 50}%`}} onError={event=>{event.currentTarget.style.visibility='hidden'}}/> : <span className="profile-link__image-placeholder">{link.is_sensitive || isKnownSensitiveUrl(link.url) ? <ShieldAlert size={28}/> : <LinkIcon name={link.icon_key} url={link.url} publicView={interactive}/>}</span>)}
-              <span className="profile-link__icon"><LinkIcon name={link.icon_key} url={link.url} snapshotPath={link.icon_snapshot_path} publicView={interactive} /></span>
-              <span className="profile-link__label" style={textStyle(link.label_font ?? profile.link_font, link.label_font_size ?? profile.link_font_size, 'link', link.label_color ?? profile.link_color)}><span className="profile-link__text">{link.label}</span>{(link.is_sensitive || isKnownSensitiveUrl(link.url)) && <small>18+</small>}</span>
-            </>
-          )
-          return interactive ? (
-            <a className={cardClass} style={cardStyle} href={link.url} target="_blank" rel="noreferrer" key={link.localId} onClick={(event) => openLink(event, link)}>
-              {content}
-            </a>
-          ) : (
-            onSelectLink ? <button type="button" className={`${cardClass} ${selectedLinkId === link.localId ? 'profile-link--selected' : ''}`} style={cardStyle} key={link.localId} onClick={() => onSelectLink(link.localId)} aria-pressed={selectedLinkId === link.localId} aria-label={`Оформить карточку: ${link.label}`}>{content}</button> : <div className={cardClass} style={cardStyle} key={link.localId}>{content}</div>
-          )
-        }) : (
-          <div className={`profile-link profile-link--empty card-${profile.card_preset}`}>
-            <span>Здесь появятся ваши ссылки</span>
-          </div>
-        )}
+        {blocks.map(block=>block.type==='link' ? (byId.has(block.link_id)?renderLink(byId.get(block.link_id)!):null) : block.type==='heading' ? <h2 className="profile-section__heading" key={block.id}>{block.title}</h2> : block.type==='divider' ? <hr className="profile-section__divider" key={block.id}/> : <section className="profile-section__group" aria-label={block.title || 'Группа ссылок'} key={block.id}><h2 className="profile-section__heading">{block.title}</h2>{block.link_ids.map(id=>byId.has(id)?renderLink(byId.get(id)!):null)}</section>)}
+        {!visibleLinks.length&&!profile.link_layout&&<div className={`profile-link profile-link--empty card-${profile.card_preset}`}><span>Здесь появятся ваши ссылки</span></div>}
       </div>
 
       {interactive && profile.is_published && <PublicShareTools handle={profile.handle} name={profile.display_name} contacts={contacts} showQr={Boolean(profile.show_qr)} size={profile.qr_size ?? 176} updatedAt={profile.updated_at} avatarPath={profile.avatar_path} />}

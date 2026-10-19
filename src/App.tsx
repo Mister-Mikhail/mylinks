@@ -1,3 +1,5 @@
+import { LinkSectionsEditor } from './components/LinkSectionsEditor'
+import { moveLayoutLink, layoutFor } from './lib/linkLayout'
 import { ImageAssetField } from './components/ImageAssetField'
 import { signedImage } from './lib/profileImages'
 import { ColorField } from './components/ColorField'
@@ -671,6 +673,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
   }
 
   const moveLink = (index: number, direction: -1 | 1) => {
+    if(profile.link_layout){setProfile({...profile,link_layout:moveLayoutLink(profile.link_layout,links,links[index].id || links[index].localId,direction)});return}
     const target = index + direction
     if (target < 0 || target >= links.length) return
     setLinks((current) => {
@@ -784,6 +787,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
       }
 
       const { error: profileError } = await supabase.from('profiles').update({
+        ...(profile.link_layout == null ? {link_layout:null} : {}),
         handle: profile.handle,
         display_name: profile.display_name.trim(),
         bio: profile.bio.trim(),
@@ -856,6 +860,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
       }
 
       const fresh = positionedLinks.filter(({ link }) => !link.id).map(({ link, position }) => ({
+        id: link.localId,
         profile_id: user.id,
         label: link.label.trim(),
         label_font: link.label_font ?? null,
@@ -878,6 +883,12 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
       if (fresh.length) {
         const { error: insertError } = await supabase.from('profile_links').insert(fresh)
         if (insertError) throw insertError
+      }
+
+      if(profile.link_layout){
+        const layout={version:1,blocks:layoutFor(readyLinks,profile.link_layout)}
+        const {error:layoutError}=await supabase.from('profiles').update({link_layout:layout}).eq('id',user.id)
+        if(layoutError)throw layoutError
       }
 
       const keptContactIds = readyContacts.flatMap((contact) => contact.id ? [contact.id] : [])
@@ -1209,6 +1220,8 @@ function ContentEditor({ onOpenDesign,
           ))}
         </div>
       </section>
+
+      <LinkSectionsEditor links={links} value={profile.link_layout} onChange={layout=>setProfile({...profile,link_layout:layout})}/>
 
       <section className="settings-card">
         <div className="settings-card__title settings-card__title--action">

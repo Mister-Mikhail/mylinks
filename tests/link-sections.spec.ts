@@ -1,0 +1,34 @@
+import { expect, test } from '@playwright/test'
+import { mockWizard } from './helpers/wizard'
+test('groups, headings and dividers preserve links, order and saved layout; ungroup never deletes links',async({page},info)=>{
+ const state=await mockWizard(page)
+ state.profile={...state.profile,onboarding_completed:true,handle:'anna.page',display_name:'Анна'}
+ const first='00000000-0000-4000-8000-000000000081',second='00000000-0000-4000-8000-000000000082'
+ state.links=[first,second].map((id,i)=>({id,profile_id:state.profile.id,label:`Проект ${i+1}`,url:`https://example.com/${i}`,position:i,is_visible:true,icon_key:'link'}))
+ await page.route('**/rest/v1/profile_links**',route=>{if(route.request().method()==='GET')return route.fulfill({contentType:'application/json',body:JSON.stringify(state.links)});if(route.request().method()==='DELETE')throw Error('Grouping must not delete links');state.links=route.request().postDataJSON();return route.fulfill({status:201,contentType:'application/json',body:JSON.stringify(state.links)})})
+ await page.reload()
+ const editor=page.getByRole('region',{name:'Группы и порядок блоков'})
+ await editor.getByRole('button',{name:'Группа',exact:true}).click()
+ await editor.getByLabel('Название группы',{exact:true}).fill('Мои проекты')
+ await editor.getByLabel('Добавить ссылку в группу: Мои проекты').selectOption(first)
+ await editor.getByLabel('Добавить ссылку в группу: Мои проекты').selectOption(second)
+ await expect(page.locator('.preview-panel .profile-section__group .profile-link')).toHaveCount(2)
+ await editor.getByRole('button',{name:'Заголовок',exact:true}).click()
+ await editor.getByLabel('Текст заголовка').fill('Связаться со мной')
+ await editor.getByRole('button',{name:'Разделитель',exact:true}).click()
+ await expect(page.locator('.preview-panel .profile-section__divider')).toHaveCount(1)
+ await page.getByRole('button',{name:'Сохранить',exact:true}).click()
+ await expect(page.getByText('Изменения сохранены')).toBeVisible()
+ const layout=state.profile.link_layout as {version:number;blocks:{type:string;link_ids?:string[]}[]}
+ expect(layout.version).toBe(1);expect(layout.blocks.find(b=>b.type==='group')?.link_ids).toEqual([first,second])
+ expect(state.links.map(link=>(link as {id:string}).id)).toEqual([first,second])
+ await page.reload()
+ await expect(page.locator('.preview-panel .profile-section__group .profile-link')).toHaveCount(2)
+ await page.locator('.preview-panel').screenshot({path:info.outputPath('grouped-profile.png')})
+ await page.getByRole('button',{name:'Разгруппировать',exact:true}).click()
+ await expect(page.locator('.preview-panel .profile-section__group')).toHaveCount(0)
+ await expect(page.locator('.preview-panel .profile-link')).toHaveCount(2)
+ await page.getByRole('button',{name:'Сохранить',exact:true}).click()
+ await expect(page.getByText('Изменения сохранены')).toBeVisible()
+ expect(state.links.map(link=>(link as {id:string}).id)).toEqual([first,second])
+})

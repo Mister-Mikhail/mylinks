@@ -8,7 +8,11 @@ export type AvatarSize = 'small' | 'medium' | 'large'
 export type LinkIcon = 'instagram' | 'telegram' | 'youtube' | 'tiktok' | 'whatsapp' | 'onlyfans' | 'vk' | 'facebook' | 'x' | 'website' | 'email' | 'link'
 export type ContactKind = 'address' | 'phone' | 'email'
 
+export type LinkLayoutBlock = {id:string;type:'link';link_id:string} | {id:string;type:'heading';title:string} | {id:string;type:'divider'} | {id:string;type:'group';title:string;link_ids:string[]}
+export interface LinkLayout {version:1;blocks:LinkLayoutBlock[]}
+
 export interface Profile {
+  link_layout?: LinkLayout | null
   id: string
   handle: string
   display_name: string

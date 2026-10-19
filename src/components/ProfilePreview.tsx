@@ -22,10 +22,12 @@ interface ProfilePreviewProps {
   avatarDraft?: AvatarDraft | null
   showPrivacy?: boolean
   onLinkActivate?: (link: EditableLink) => void
+  selectedLinkId?: string | null
+  onSelectLink?: (id: string) => void
 }
 
 
-export function ProfilePreview({ profile, links, contacts = [], interactive = false, showPrivacy = true, avatarDraft = null, onLinkActivate }: ProfilePreviewProps) {
+export function ProfilePreview({ profile, links, contacts = [], interactive = false, showPrivacy = true, avatarDraft = null, onLinkActivate, selectedLinkId, onSelectLink }: ProfilePreviewProps) {
   const visibleLinks = links.filter((link) => link.is_visible && link.label && link.url)
   const [sensitiveLink, setSensitiveLink] = useState<EditableLink | null>(null)
   const [profileLinkCopied, setProfileLinkCopied] = useState(false)
@@ -96,7 +98,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
           const content = (
             <>
               <span className="profile-link__icon"><LinkIcon name={link.icon_key} url={link.url} snapshotPath={link.icon_snapshot_path} publicView={interactive} /></span>
-              <span className="profile-link__label" style={textStyle(link.label_font, link.label_font_size, 'link', link.label_color)}><span className="profile-link__text">{link.label}</span>{(link.is_sensitive || isKnownSensitiveUrl(link.url)) && <small>18+</small>}</span>
+              <span className="profile-link__label" style={textStyle(link.label_font ?? profile.link_font, link.label_font_size ?? profile.link_font_size, 'link', link.label_color ?? profile.link_color)}><span className="profile-link__text">{link.label}</span>{(link.is_sensitive || isKnownSensitiveUrl(link.url)) && <small>18+</small>}</span>
             </>
           )
           return interactive ? (
@@ -104,7 +106,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
               {content}
             </a>
           ) : (
-            <div className={cardClass} style={cardStyle} key={link.localId}>{content}</div>
+            onSelectLink ? <button type="button" className={`${cardClass} ${selectedLinkId === link.localId ? 'profile-link--selected' : ''}`} style={cardStyle} key={link.localId} onClick={() => onSelectLink(link.localId)} aria-pressed={selectedLinkId === link.localId} aria-label={`Оформить карточку: ${link.label}`}>{content}</button> : <div className={cardClass} style={cardStyle} key={link.localId}>{content}</div>
           )
         }) : (
           <div className={`profile-link profile-link--empty card-${profile.card_preset}`}>

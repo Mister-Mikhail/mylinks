@@ -6,6 +6,7 @@ export async function mockAppearance(page: Page, failUpload = false) {
   const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: id, exp: 2100000000, role: 'authenticated' })).toString('base64url')}.signature`
   await page.addInitScript(({ id, token }) => localStorage.setItem('sb-loykiawbqdkitndqkegk-auth-token', JSON.stringify({ access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user: { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' } })), { id, token })
   let profile = { id, handle: 'sample-user', display_name: 'Тестовый профиль', bio: 'Мои проекты', avatar_url: null, avatar_path: null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
+  let linkRows = [{ id: 'link-test', profile_id: id, label: 'Мой сайт', url: 'https://example.com', icon_key: 'website', position: 0, is_visible: true, is_sensitive: false, label_font: null as string | null, label_font_size: null as number | null, label_color: null as string | null }]
   const patches: Record<string, unknown>[] = []
   const uploads: Buffer[] = []
   let savedImage: Buffer | null = null
@@ -24,12 +25,17 @@ export async function mockAppearance(page: Page, failUpload = false) {
     const request = route.request()
     const name = new URL(request.url()).pathname.split('/').pop()
     if (name === 'staff_role') return route.fulfill({ contentType: 'application/json', body: 'null' })
+    if (name === 'profile_links' && request.method() === 'POST') {
+      const rows = request.postDataJSON() as typeof linkRows
+      linkRows = rows.map((row, index) => ({ ...row, id: row.id || `link-${index}` }))
+      return route.fulfill({ contentType: 'application/json', body: '[]' })
+    }
     if (name === 'profiles' && request.method() === 'PATCH') {
       const patch = request.postDataJSON()
       patches.push(patch); profile = { ...profile, ...patch }
       return route.fulfill({ status: 204 })
     }
-    const data = name === 'profiles' ? profile : name === 'profile_links' ? [{ id: 'link-test', profile_id: id, label: 'Мой сайт', url: 'https://example.com', icon_key: 'website', position: 0, is_visible: true, is_sensitive: false }] : []
+    const data = name === 'profiles' ? profile : name === 'profile_links' ? linkRows : []
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify(data) })
   })
   await page.route('**/storage/v1/**', async route => {
@@ -148,10 +154,10 @@ test('a link can override its card style while keeping the same link id', async 
       if (Array.isArray(body)) sent.push(...body)
     }
   })
-  await page.getByRole('button', { name: 'Ссылки', exact: true }).click()
-  await page.getByText('Оформление этой карточки').click()
-  await page.getByLabel('Стиль этой карточки').selectOption('solid')
-  await page.getByLabel('Скругление этой карточки').selectOption('21')
+  await page.getByRole('button', { name: 'Оформление', exact: true }).click()
+  await page.locator('.preview-panel .profile-link').first().click()
+  await page.getByLabel(/Стиль этой карточки/).selectOption('solid')
+  await page.getByLabel(/Скругление этой карточки/).selectOption('21')
   const link = page.locator('.preview-panel .profile-link').first()
   await expect(link).toHaveClass(/card-solid/)
   await expect(link).toHaveCSS('border-radius', '21px')
@@ -159,6 +165,19 @@ test('a link can override its card style while keeping the same link id', async 
   await expect(page.getByText('Изменения сохранены')).toBeVisible()
   expect(sent).toContainEqual(expect.objectContaining({ id: 'link-test', card_preset_override: 'solid', card_radius_override: 21 }))
   expect(pageErrors).toEqual([])
+})
+
+test('font changed in Appearance survives reload and appears on the profile page', async ({ page }) => {
+  const { patches } = await mockAppearance(page)
+  await page.getByLabel('Шрифт: Имя', { exact: true }).selectOption('georgia')
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+  await expect(page.getByText('Изменения сохранены')).toBeVisible()
+  expect(patches.at(-1)).toMatchObject({ name_font: 'georgia' })
+  await page.reload()
+  await page.getByRole('button', { name: 'Оформление', exact: true }).click()
+  await expect(page.getByLabel('Шрифт: Имя', { exact: true })).toHaveValue('georgia')
+  await page.goto('/sample-user')
+  await expect(page.locator('.public-preview-page h1')).toHaveCSS('font-family', /Georgia/)
 })
 
 test('inline crop supports positioning, zoom and cancelling without uploading', async ({ page }) => {
@@ -236,4 +255,38 @@ test('preview stays pinned on small portrait and landscape phones', async ({ pag
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
     await expect(page.getByRole('button', { name: 'Сохранить', exact: true })).toBeVisible()
   }
+})
+
+
+test('global link font preserves overrides and new links inherit it', async ({ page }) => {
+  await mockAppearance(page)
+  const sent: Array<Record<string, unknown>> = []
+  page.on('request', request => {
+    if (request.url().includes('/profile_links') && request.method() === 'POST') {
+      const body = request.postDataJSON()
+      if (Array.isArray(body)) sent.push(...body)
+    }
+  })
+  await page.locator('.preview-panel .profile-link').first().click()
+  await page.getByLabel('Шрифт: Название ссылки').selectOption('georgia')
+  await page.getByLabel('Шрифт: Текст ссылок').selectOption('oswald')
+  await expect(page.locator('.preview-panel .profile-link__label').first()).toHaveCSS('font-family', /Georgia/)
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+  await expect(page.getByText('Изменения сохранены')).toBeVisible()
+  expect(sent.at(-1)).toMatchObject({ label_font: 'georgia' })
+  await page.reload()
+  await page.getByRole('button', { name: 'Оформление', exact: true }).click()
+  await expect(page.getByLabel('Шрифт: Текст ссылок')).toHaveValue('oswald')
+  await expect(page.locator('.preview-panel .profile-link__label').first()).toHaveCSS('font-family', /Georgia/)
+  await page.locator('.preview-panel .profile-link').first().click()
+  await page.getByRole('button', { name: 'Как у всех' }).click()
+  await expect(page.locator('.preview-panel .profile-link__label').first()).toHaveCSS('font-family', /Oswald/)
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+  await expect(page.getByText('Изменения сохранены')).toBeVisible()
+  expect(sent.at(-1)).toMatchObject({ label_font: null, label_font_size: null, label_color: null })
+  await page.getByRole('button', { name: 'Ссылки', exact: true }).click()
+  await page.getByRole('button', { name: /Добавить/ }).first().click()
+  await expect(page.locator('.preview-panel .profile-link__label').first()).toHaveCSS('font-family', /Oswald/)
+  await page.goto('/sample-user')
+  await expect(page.locator('.public-preview-page .profile-link__label').first()).toHaveCSS('font-family', /Oswald/)
 })

@@ -21,6 +21,9 @@ export interface Profile {
   handle_font?: FontKey
   handle_font_size?: number
   handle_color?: string | null
+  link_font?: FontKey
+  link_font_size?: number
+  link_color?: string | null
   avatar_url: string | null
   avatar_path: string | null
   avatar_master_path?: string | null
@@ -57,8 +60,8 @@ export interface ProfileLink {
   profile_id: string
   label: string
   url: string
-  label_font?: FontKey
-  label_font_size?: number
+  label_font?: FontKey | null
+  label_font_size?: number | null
   label_color?: string | null
   icon_key: LinkIcon
   icon_snapshot_path?: string | null

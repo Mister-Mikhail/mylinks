@@ -94,7 +94,7 @@ Deno.serve(async (request) => {
   if (!validHost(host)) return new Response('bad domain', { status: 400, headers: headers('text/plain', 3600) })
 
   const cached = memory.get(`${host}:${rasterOnly}`)
-  if (cached && Date.now() - cached.at < 6 * 3600_000) return new Response(cached.body, { headers: headers(cached.type, 604800) })
+  if (cached && Date.now() - cached.at < 6 * 3600_000) return new Response(new Uint8Array(cached.body).buffer, { headers: headers(cached.type, 21600) })
 
   const now = Date.now()
   if (misses.size > 1000) misses.clear()
@@ -108,5 +108,5 @@ Deno.serve(async (request) => {
 
   if (memory.size > 500) memory.clear()
   memory.set(`${host}:${rasterOnly}`, { ...icon, at: Date.now() })
-  return new Response(icon.body, { headers: headers(icon.type, 604800) })
+  return new Response(new Uint8Array(icon.body).buffer, { headers: headers(icon.type, 21600) })
 })

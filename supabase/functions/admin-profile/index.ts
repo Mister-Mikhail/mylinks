@@ -32,6 +32,7 @@ const formatProfile = (raw: Record<string, unknown>, currentHandle: string, owne
   if (!['midnight','mist','cobalt'].includes(String(raw.background_preset)) || !['glass','solid','outline'].includes(String(raw.card_preset)) || !['round','square'].includes(String(raw.avatar_shape))) throw new Error('Проверьте оформление.')
   if (!['preset','solid','gradient','image'].includes(String(raw.background_style ?? 'preset'))) throw new Error('Проверьте тип фона.')
   return {
+    ...(Object.hasOwn(raw,'link_layout')?{link_layout:raw.link_layout}:{}),
     handle, display_name: displayName, bio: text(raw.bio, 160),
     name_font: font(raw.name_font), bio_font: font(raw.bio_font), handle_font: font(raw.handle_font),
     name_color: color(raw.name_color), bio_color: color(raw.bio_color), handle_color: color(raw.handle_color),
@@ -49,6 +50,7 @@ const formatProfile = (raw: Record<string, unknown>, currentHandle: string, owne
 }
 const formatLink = (raw: Record<string, unknown>, owner: string, position: number) => ({
   ...(typeof raw.id === 'string' && uuid.test(raw.id) ? { id: raw.id } : {}),
+  client_id:typeof raw.localId==='string'&&uuid.test(raw.localId)?raw.localId:null,
   profile_id: owner, label: text(raw.label,80), url: url(raw.url), icon_key: text(raw.icon_key,30),
   position, is_visible: raw.is_visible === true, is_sensitive: raw.is_sensitive === true,
   label_font: raw.label_font==null?null:font(raw.label_font), label_font_size: raw.label_font_size==null?null:number(raw.label_font_size,11,5,60),

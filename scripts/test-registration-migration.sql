@@ -152,3 +152,4 @@ do $$ begin
   end if;
 end $$;
 \i scripts/test-appearance-migrations.sql
+\i scripts/test-background-images.sql

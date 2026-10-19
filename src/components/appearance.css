@@ -160,3 +160,6 @@
 .link-card-style__controls label { min-width: 0; }
 .link-card-style__controls select { width: 100%; }
 @media(max-width: 380px) { .link-card-style__controls { grid-template-columns: 1fr; } }
+
+.appearance-custom-colors__pickers .color-field__row input {width:112px;height:36px;padding:7px 9px;}
+.appearance-image-controls,.image-asset-field{display:grid;gap:12px;margin-top:14px;min-width:0}.image-asset-field>small{color:#aab7c5;font-size:11px;line-height:1.5}

@@ -1,3 +1,4 @@
+import { signedImage } from '../lib/profileImages'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, LockKeyhole, RefreshCw } from 'lucide-react'
@@ -134,6 +135,7 @@ const fetchPage = async (client: SupabaseClient, handle: string, reuse: AvatarRe
   return {
     profile: {
       ...profileRow,
+      background_image_url: published ? assetUrls.background_image_url : await signedImage(profileRow.background_image_path),
       avatar_url: published && (profileRow.avatar_path || profileRow.avatar_url?.includes('/storage/v1/object/sign/')) ? null : profileRow.avatar_url,
       avatar_scale: Number(profileRow.avatar_scale) || ({ small: 12, medium: 28, large: 40 }[profileRow.avatar_size] ?? 28),
       avatar_preview_url: published ? assetUrls.avatar_preview_url : avatarUrl,

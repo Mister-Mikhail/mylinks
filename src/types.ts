@@ -36,7 +36,10 @@ export interface Profile {
   avatar_poster_url?: string | null
   avatar_master_poster_url?: string | null
   background_preset: BackgroundPreset
-  background_style?: 'preset' | 'solid' | 'gradient'
+  background_style?: 'preset' | 'solid' | 'gradient' | 'image'
+  background_image_path?: string | null
+  background_image_url?: string | null
+  background_overlay?: number
   background_primary?: string | null
   background_secondary?: string | null
   card_preset: CardPreset

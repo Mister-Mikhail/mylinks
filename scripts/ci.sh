@@ -19,6 +19,9 @@ npm run build
 php -l dist/share-profile.php
 php -l dist/share-avatar.php
 php -l dist/share-image.php
+php -l dist/profile-image-process.php
+php -l dist/profile-image.php
+php tests/profile-image.php
 php -l dist/avatar-process.php
 php -l dist/preview-config.php
 php -l dist/avatar-asset.php

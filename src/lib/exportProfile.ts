@@ -11,7 +11,7 @@ export function buildProfileExport(profile:Profile, links:ProfileLink[], contact
   ...(options.metadata?{profile:selectFields(profile,['handle','display_name','bio','is_published','created_at','updated_at'])}:{}),
   ...(options.links?{links:links.map(l=>selectFields(l,['id','label','url','label_font','label_font_size','label_color','icon_key','card_preset_override','card_radius_override','card_style','position','is_visible','is_sensitive']))}:{}),
   ...(options.contacts?{contacts:contacts.filter(c=>options.privateContacts||c.is_visible).map(c=>selectFields(c,['id','kind','label','value','latitude','longitude','label_font','label_font_size','label_color','value_font','value_font_size','value_color','position','is_visible']))}:{}),
-  ...(options.appearance?{appearance:selectFields(profile,['background_preset','background_style','background_primary','background_secondary','card_preset','card_radius','card_border_width','card_opacity','card_padding','link_font','link_font_size','link_color','show_qr','qr_size','avatar_shape','avatar_size','avatar_scale','avatar_media','avatar_crop','name_font','name_font_size','name_color','bio_font','bio_font_size','bio_color','handle_font','handle_font_size','handle_color'])}:{}),
+  ...(options.appearance?{appearance:selectFields(profile,['background_preset','background_style','background_image_path','background_overlay','background_primary','background_secondary','card_preset','card_radius','card_border_width','card_opacity','card_padding','link_font','link_font_size','link_color','show_qr','qr_size','avatar_shape','avatar_size','avatar_scale','avatar_media','avatar_crop','name_font','name_font_size','name_color','bio_font','bio_font_size','bio_color','handle_font','handle_font_size','handle_color'])}:{}),
  } as Record<string,unknown>
 }
 let lastExport=0
@@ -30,12 +30,13 @@ export async function exportOwnProfile(expectedUserId:string,options:ExportOptio
  const profile=p.data as Profile, result=buildProfileExport(profile,(l.data||[]) as ProfileLink[],(c.data||[]) as ProfileContact[],options)
  if(options.assets){
   const assets=[]
-  for(const [kind,path] of [['avatar',profile.avatar_path],['avatar_master',profile.avatar_master_path],['avatar_poster',profile.avatar_poster_path]] as const){
+  for(const [kind,path] of [['background',profile.background_image_path],['avatar',profile.avatar_path],['avatar_master',profile.avatar_master_path],['avatar_poster',profile.avatar_poster_path]] as const){
    if(!path)continue
    if(!path.startsWith(`${user.id}/`)||path.includes('..')||path.includes('\\'))throw new Error('Не удалось проверить принадлежность файла.')
-   const asset:Record<string,unknown>={kind,bucket:'avatars',path}
+   const bucket=kind==='background'?'profile-assets':'avatars'
+   const asset:Record<string,unknown>={kind,bucket,path}
    if(options.assetUrls){
-    const {data,error}=await supabase.storage.from('avatars').createSignedUrl(path,300)
+    const {data,error}=await supabase.storage.from(bucket).createSignedUrl(path,300)
     if(error||!data?.signedUrl)throw new Error('Не удалось подготовить ссылку на файл.')
     asset.download_url=data.signedUrl;asset.expires_at=new Date(Date.now()+300000).toISOString()
    }

@@ -52,7 +52,7 @@ function preview_bundle($handle) {
         if (is_array($saved) && !empty($saved['profile']['is_published'])) return $saved;
     }
     // The publishable key has no user JWT: all three reads are subject to anon RLS and moderation.
-    $fields = 'id,handle,display_name,bio,name_font,name_font_size,name_color,bio_font,bio_font_size,bio_color,handle_font,handle_font_size,handle_color,avatar_url,avatar_path,avatar_master_path,avatar_poster_path,avatar_media,avatar_crop,background_preset,background_style,background_image_path,background_overlay,link_layout,link_font,link_font_size,link_color,background_primary,background_secondary,card_preset,card_radius,card_border_width,card_opacity,card_padding,avatar_shape,avatar_size,avatar_scale,is_published,show_qr,qr_size,created_at,updated_at';
+    $fields = 'id,handle,display_name,bio,name_font,name_font_size,name_color,bio_font,bio_font_size,bio_color,handle_font,handle_font_size,handle_color,avatar_url,avatar_path,avatar_master_path,avatar_poster_path,avatar_media,avatar_crop,background_preset,background_style,background_image_path,background_overlay,background_position_x,background_position_y,background_zoom,link_layout,link_font,link_font_size,link_color,background_primary,background_secondary,card_preset,card_radius,card_border_width,card_opacity,card_padding,avatar_shape,avatar_size,avatar_scale,is_published,show_qr,qr_size,created_at,updated_at';
     $rows = preview_api('/rest/v1/profiles?select=' . $fields . '&handle=eq.' . rawurlencode($handle) . '&is_published=eq.true&limit=1');
     if (!is_array($rows) || !isset($rows[0]) || empty($rows[0]['is_published'])) return null;
     $profile = $rows[0];

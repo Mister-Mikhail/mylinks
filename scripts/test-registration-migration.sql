@@ -155,3 +155,4 @@ end $$;
 \i scripts/test-background-images.sql
 \i scripts/test-featured-images.sql
 \i scripts/test-link-sections.sql
+\i scripts/test-background-position.sql

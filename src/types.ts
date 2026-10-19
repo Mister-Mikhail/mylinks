@@ -44,6 +44,9 @@ export interface Profile {
   background_image_path?: string | null
   background_image_url?: string | null
   background_overlay?: number
+  background_position_x?: number
+  background_position_y?: number
+  background_zoom?: number
   background_primary?: string | null
   background_secondary?: string | null
   card_preset: CardPreset

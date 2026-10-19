@@ -4,7 +4,7 @@ language plpgsql immutable set search_path = '' as $$
 declare k text; v jsonb; n numeric;
 begin
  if style is null then return true; end if;
- if jsonb_typeof(style) <> 'object' or style->'version' <> '1'::jsonb then return false; end if;
+ if jsonb_typeof(style) <> 'object' or style->'version' is distinct from '1'::jsonb then return false; end if;
  for k,v in select key,value from jsonb_each(style) loop
    if k='version' then continue; end if;
    if k not in ('padding','borderWidth','opacity') or jsonb_typeof(v)<>'number' then return false; end if;
@@ -18,11 +18,11 @@ exception when others then return false;
 end; $$;
 
 alter table public.profile_links add column if not exists card_style jsonb;
-do $ begin
+do $$ begin
   if not exists (select 1 from pg_constraint where conrelid = 'public.profile_links'::regclass and conname = 'profile_links_card_style_v1_check') then
     alter table public.profile_links add constraint profile_links_card_style_v1_check check (public.valid_card_style_v1(card_style));
   end if;
-end $;
+end $$;
 
 create or replace function moderation.save_staff_profile(target uuid, payload jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
@@ -63,12 +63,12 @@ begin
      if not exists(select 1 from public.profile_links where id=item_id and profile_id=target) or item_id=any(kept_links) then raise exception 'Ссылка не принадлежит этому профилю.' using errcode='42501'; end if;
      update public.profile_links set label=item->>'label',url=item->>'url',icon_key=item->>'icon_key',
        label_font=item->>'label_font',label_font_size=(item->>'label_font_size')::integer,label_color=item->>'label_color',
-       card_preset_override=item->>'card_preset_override',card_radius_override=(item->>'card_radius_override')::integer,card_style=item->'card_style',
+       card_preset_override=item->>'card_preset_override',card_radius_override=(item->>'card_radius_override')::integer,card_style=nullif(item->'card_style','null'::jsonb),
        is_visible=(item->>'is_visible')::boolean,is_sensitive=(item->>'is_sensitive')::boolean,position=n
      where id=item_id and profile_id=target;
    else
      insert into public.profile_links(profile_id,label,url,icon_key,label_font,label_font_size,label_color,card_preset_override,card_radius_override,card_style,is_visible,is_sensitive,position)
-     values(target,item->>'label',item->>'url',item->>'icon_key',item->>'label_font',(item->>'label_font_size')::integer,item->>'label_color',item->>'card_preset_override',(item->>'card_radius_override')::integer,item->'card_style',(item->>'is_visible')::boolean,(item->>'is_sensitive')::boolean,n)
+     values(target,item->>'label',item->>'url',item->>'icon_key',item->>'label_font',(item->>'label_font_size')::integer,item->>'label_color',item->>'card_preset_override',(item->>'card_radius_override')::integer,nullif(item->'card_style','null'::jsonb),(item->>'is_visible')::boolean,(item->>'is_sensitive')::boolean,n)
      returning id into item_id;
    end if;
    kept_links:=array_append(kept_links,item_id);n:=n+1;

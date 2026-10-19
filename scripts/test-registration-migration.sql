@@ -151,3 +151,4 @@ do $$ begin
     raise exception 'Missing generated icon snapshot path';
   end if;
 end $$;
+\i scripts/test-appearance-migrations.sql

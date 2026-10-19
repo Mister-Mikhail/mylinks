@@ -100,6 +100,9 @@ const emptyProfile = (id = ''): Profile => ({
   is_published: false,
   show_qr: true,
   qr_size: 176,
+  link_font: 'manrope',
+  link_font_size: 11,
+  link_color: null,
   created_at: '',
   updated_at: '',
 })
@@ -787,6 +790,9 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         handle_font: profile.handle_font ?? 'manrope',
         handle_font_size: profile.handle_font_size ?? 10,
         handle_color: profile.handle_color ?? null,
+        link_font: profile.link_font ?? 'manrope',
+        link_font_size: profile.link_font_size ?? 11,
+        link_color: profile.link_color ?? null,
         avatar_url: profile.avatar_url?.trim() || null,
         avatar_path: profile.avatar_path,
         background_preset: profile.background_preset,
@@ -819,8 +825,8 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         id: link.id,
         profile_id: user.id,
         label: link.label.trim(),
-        label_font: link.label_font ?? 'manrope',
-        label_font_size: link.label_font_size ?? 11,
+        label_font: link.label_font ?? null,
+        label_font_size: link.label_font_size ?? null,
         label_color: link.label_color ?? null,
         url: normalizeUrl(link.url),
         icon_key: link.icon_key,
@@ -838,8 +844,8 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
       const fresh = positionedLinks.filter(({ link }) => !link.id).map(({ link, position }) => ({
         profile_id: user.id,
         label: link.label.trim(),
-        label_font: link.label_font ?? 'manrope',
-        label_font_size: link.label_font_size ?? 11,
+        label_font: link.label_font ?? null,
+        label_font_size: link.label_font_size ?? null,
         label_color: link.label_color ?? null,
         url: normalizeUrl(link.url),
         icon_key: link.icon_key,
@@ -1109,9 +1115,9 @@ function ContentEditor({
 
       <section className="settings-card">
         <div className="settings-card__title settings-card__title--action">
-          <div className="settings-card__title-copy"><Link2 size={18} /><div><h2>Ссылки</h2><p>{links.length} добавлено</p></div></div>
+          <div className="settings-card__title-copy"><Link2 size={18} /><div><h2>Ссылки</h2><p>{links.length} из {FREE_CAPABILITIES.maxLinks}</p></div></div>
           <div className="settings-card__actions">
-            <button className="button button--secondary button--small" onClick={addLink} disabled={links.length >= FREE_CAPABILITIES.maxLinks}><Plus size={16} /> Добавить</button>
+            <button className="button button--secondary button--small" onClick={addLink} disabled={links.length >= FREE_CAPABILITIES.maxLinks} title={links.length >= FREE_CAPABILITIES.maxLinks ? `Можно добавить не больше ${FREE_CAPABILITIES.maxLinks} ссылок` : undefined}><Plus size={16} /> Добавить</button>
           </div>
         </div>
 
@@ -1296,7 +1302,7 @@ function DesignEditor({
 
       <section className="settings-card">
         <div className="settings-card__title"><LayoutGrid size={18} /><div><h2>Карточки</h2><p>Общий стиль текста, рамок и подложки.</p></div></div>
-        <TypographyControls label="Текст ссылок" slot="link" font={links[0]?.label_font ?? 'manrope'} size={links[0]?.label_font_size ?? 11} color={links[0]?.label_color ?? null} onChange={(font, size) => links.forEach(link => updateLink(link.localId, { label_font: font, label_font_size: size }))} onColorChange={color => links.forEach(link => updateLink(link.localId, { label_color: color }))} />
+        <TypographyControls label="Текст ссылок" slot="link" font={profile.link_font} size={profile.link_font_size} color={profile.link_color} onChange={(font, size) => setProfile(current => ({ ...current, link_font: font, link_font_size: size }))} onColorChange={color => setProfile(current => ({ ...current, link_color: color }))} />
         <div className="segmented-picker">
           {([
             ['glass', 'Стекло'],
@@ -1322,9 +1328,9 @@ function DesignEditor({
         <div className="appearance-item-list">{links.map((link, index) => <article className={`appearance-item ${selectedLinkId === link.localId ? 'appearance-item--selected' : ''}`} key={link.localId}>
           <div className="appearance-item__heading"><span className="appearance-item__number">{index + 1}</span><button type="button" className="appearance-item__select" aria-pressed={selectedLinkId === link.localId} onClick={() => onSelectLink(link.localId)}>{link.label || link.url || 'Новая ссылка'}</button><div className="appearance-item__arrows"><button type="button" className="icon-button" disabled={index === 0} onClick={() => moveLink(index, -1)} aria-label={`Переместить ссылку выше: ${link.label || index + 1}`}><ArrowUp size={16} /></button><button type="button" className="icon-button" disabled={index === links.length - 1} onClick={() => moveLink(index, 1)} aria-label={`Переместить ссылку ниже: ${link.label || index + 1}`}><ArrowDown size={16} /></button></div></div>
           {selectedLinkId === link.localId && <div className="appearance-item__controls">
-            <TypographyControls label="Название ссылки" slot="link" font={link.label_font} size={link.label_font_size} color={link.label_color} onChange={(font, size) => updateLink(link.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateLink(link.localId, { label_color: color })} />
+            <TypographyControls label="Название ссылки" slot="link" font={link.label_font ?? profile.link_font} size={link.label_font_size ?? profile.link_font_size} color={link.label_color ?? profile.link_color} onChange={(font, size) => updateLink(link.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateLink(link.localId, { label_color: color })} />
             <div className="link-card-style__controls"><label>Стиль<select aria-label={`Стиль этой карточки: ${link.label}`} value={link.card_preset_override ?? ''} onChange={event => updateLink(link.localId, { card_preset_override: event.target.value ? event.target.value as Profile['card_preset'] : null })}><option value="">Как у остальных</option><option value="glass">Стекло</option><option value="solid">Сплошная</option><option value="outline">Контур</option></select></label><label>Скругление<select aria-label={`Скругление этой карточки: ${link.label}`} value={link.card_radius_override ?? ''} onChange={event => updateLink(link.localId, { card_radius_override: event.target.value ? Number(event.target.value) : null })}><option value="">Как у остальных</option><option value="4">4 px</option><option value="13">13 px</option><option value="21">21 px</option><option value="28">28 px</option></select></label></div>
-          <button type="button" className="button button--ghost button--small" onClick={() => { const common = links.find(other => other.localId !== link.localId); updateLink(link.localId, { label_font: common?.label_font ?? link.label_font ?? 'manrope', label_font_size: common?.label_font_size ?? link.label_font_size ?? 11, label_color: common?.label_color ?? null, card_preset_override: null, card_radius_override: null }) }}>Как у всех</button></div>}
+          <button type="button" className="button button--ghost button--small" onClick={() => { updateLink(link.localId, { label_font: null, label_font_size: null, label_color: null, card_preset_override: null, card_radius_override: null }) }}>Как у всех</button></div>}
         </article>)}</div>
         {links.length === 0 && <p className="appearance-item__empty">Добавьте ссылки в разделе «Ссылки» — они появятся здесь.</p>}
       </section>
@@ -1335,6 +1341,7 @@ function DesignEditor({
 
       <section className="settings-card">
         <div className="settings-card__title"><LayoutGrid size={18} /><div><h2>QR-код на странице</h2><p>Показывать код внизу опубликованного профиля.</p></div></div>
+        {!profile.show_qr && <p className="appearance-item__empty">Включите QR-код в разделе «Ссылки».</p>}
         {profile.show_qr && <label className="avatar-size-control"><span><span className="field-caption">Размер QR-кода на странице</span><strong>{profile.qr_size ?? 176} px</strong></span><input aria-label="Размер QR-кода на странице" type="range" min="80" max="220" step="4" value={Math.min(220, Math.max(80, profile.qr_size ?? 176))} onChange={event => setProfile({ ...profile, qr_size: Number(event.target.value) })} /><small><span>Компактный</span><span>Крупный</span></small></label>}
       </section>
     </div>

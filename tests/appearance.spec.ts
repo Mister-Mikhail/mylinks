@@ -336,27 +336,31 @@ test('default card text maintains accessible contrast across themes, presets and
     for (const preset of presets) {
       await page.getByRole('button', { name: preset, exact: true }).click()
       await expect(page.locator('.preview-panel .profile-link').first()).toHaveClass(new RegExp(`card-${({ 'Стекло': 'glass', 'Плотные': 'solid', 'Контур': 'outline' } as Record<string, string>)[preset]}`))
-      const styles = await page.locator('.preview-panel .profile-link').first().evaluate(element => {
-        const card = getComputedStyle(element)
-        const label = getComputedStyle(element.querySelector('.profile-link__label')!)
-        const rgba = (color: string) => {
-          const canvas = document.createElement('canvas')
-          canvas.width = canvas.height = 1
-          const context = canvas.getContext('2d')!
-          context.fillStyle = color
-          context.fillRect(0, 0, 1, 1)
-          return Array.from(context.getImageData(0, 0, 1, 1).data)
+      // Class changes can precede the next painted computed-color update.
+      // Wait for the actual contrast requirement; a persistent failure still fails.
+      await expect(async () => {
+        const styles = await page.locator('.preview-panel .profile-link').first().evaluate(element => {
+          const card = getComputedStyle(element)
+          const label = getComputedStyle(element.querySelector('.profile-link__label')!)
+          const rgba = (color: string) => {
+            const canvas = document.createElement('canvas')
+            canvas.width = canvas.height = 1
+            const context = canvas.getContext('2d')!
+            context.fillStyle = color
+            context.fillRect(0, 0, 1, 1)
+            return Array.from(context.getImageData(0, 0, 1, 1).data)
+          }
+          return { background: rgba(card.backgroundColor), foreground: rgba(label.color) }
+        })
+        const bg = styles.background
+        const fg = styles.foreground
+        const alpha = bg[3] / 255
+        for (const stop of theme.stops) {
+          const backing = rgb(stop)
+          const composited = backing.map((channel, i) => bg[i] * alpha + channel * (1 - alpha))
+          expect(contrast(fg, composited), `${theme.label} / ${preset} over ${stop}; fg=${fg.join(',')} bg=${bg.join(',')}`).toBeGreaterThanOrEqual(4.5)
         }
-        return { background: rgba(card.backgroundColor), foreground: rgba(label.color) }
-      })
-      const bg = styles.background
-      const fg = styles.foreground
-      const alpha = bg[3] / 255
-      for (const stop of theme.stops) {
-        const backing = rgb(stop)
-        const composited = backing.map((channel, i) => bg[i] * alpha + channel * (1 - alpha))
-        expect(contrast(fg, composited), `${theme.label} / ${preset} over ${stop}; fg=${fg.join(',')} bg=${bg.join(',')}`).toBeGreaterThanOrEqual(4.5)
-      }
+      }).toPass({ timeout: 5000 })
     }
   }
 })

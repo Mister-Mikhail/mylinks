@@ -365,3 +365,37 @@ test('capture typography and card preset visual matrix for desktop and mobile re
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
+
+
+test('global link font preserves overrides and new links inherit it', async ({ page }) => {
+  await mockAppearance(page)
+  const sent: Array<Record<string, unknown>> = []
+  page.on('request', request => {
+    if (request.url().includes('/profile_links') && request.method() === 'POST') {
+      const body = request.postDataJSON()
+      if (Array.isArray(body)) sent.push(...body)
+    }
+  })
+  await page.locator('.preview-panel .profile-link').first().click()
+  await page.getByLabel('Шрифт: Название ссылки').selectOption('georgia')
+  await page.getByLabel('Шрифт: Текст ссылок').selectOption('oswald')
+  await expect(page.locator('.preview-panel .profile-link__label').first()).toHaveCSS('font-family', /Georgia/)
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+  await expect(page.getByText('Изменения сохранены')).toBeVisible()
+  expect(sent.at(-1)).toMatchObject({ label_font: 'georgia' })
+  await page.reload()
+  await page.getByRole('button', { name: 'Оформление', exact: true }).click()
+  await expect(page.getByLabel('Шрифт: Текст ссылок')).toHaveValue('oswald')
+  await expect(page.locator('.preview-panel .profile-link__label').first()).toHaveCSS('font-family', /Georgia/)
+  await page.locator('.preview-panel .profile-link').first().click()
+  await page.getByRole('button', { name: 'Как у всех' }).click()
+  await expect(page.locator('.preview-panel .profile-link__label').first()).toHaveCSS('font-family', /Oswald/)
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+  await expect(page.getByText('Изменения сохранены')).toBeVisible()
+  expect(sent.at(-1)).toMatchObject({ label_font: null, label_font_size: null, label_color: null })
+  await page.getByRole('button', { name: 'Ссылки', exact: true }).click()
+  await page.getByRole('button', { name: /Добавить/ }).first().click()
+  await expect(page.locator('.preview-panel .profile-link__label').first()).toHaveCSS('font-family', /Oswald/)
+  await page.goto('/sample-user')
+  await expect(page.locator('.public-preview-page .profile-link__label').first()).toHaveCSS('font-family', /Oswald/)
+})

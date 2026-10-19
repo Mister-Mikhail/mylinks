@@ -17,10 +17,12 @@ begin
 exception when others then return false;
 end; $$;
 
-alter table public.profiles add column if not exists card_style jsonb not null default '{"version":1}'::jsonb;
 alter table public.profile_links add column if not exists card_style jsonb;
-alter table public.profiles add constraint profiles_card_style_v1_check check (public.valid_card_style_v1(card_style));
-alter table public.profile_links add constraint profile_links_card_style_v1_check check (public.valid_card_style_v1(card_style));
+do $ begin
+  if not exists (select 1 from pg_constraint where conrelid = 'public.profile_links'::regclass and conname = 'profile_links_card_style_v1_check') then
+    alter table public.profile_links add constraint profile_links_card_style_v1_check check (public.valid_card_style_v1(card_style));
+  end if;
+end $;
 
 create or replace function moderation.save_staff_profile(target uuid, payload jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
@@ -46,10 +48,11 @@ begin
    name_font=p->>'name_font',name_font_size=(p->>'name_font_size')::integer,name_color=p->>'name_color',
    bio_font=p->>'bio_font',bio_font_size=(p->>'bio_font_size')::integer,bio_color=p->>'bio_color',
    handle_font=p->>'handle_font',handle_font_size=(p->>'handle_font_size')::integer,handle_color=p->>'handle_color',
+    link_font=coalesce(p->>'link_font','manrope'),link_font_size=coalesce((p->>'link_font_size')::integer,11),link_color=p->>'link_color',
    background_preset=p->>'background_preset',background_style=coalesce(p->>'background_style','preset'),
    background_primary=p->>'background_primary',background_secondary=p->>'background_secondary',
    card_preset=p->>'card_preset',card_border_width=coalesce((p->>'card_border_width')::integer,1),
-   card_opacity=coalesce((p->>'card_opacity')::integer,100),card_padding=coalesce((p->>'card_padding')::integer,12),card_style=coalesce(p->'card_style','{"version":1}'::jsonb),
+   card_opacity=coalesce((p->>'card_opacity')::integer,100),card_padding=coalesce((p->>'card_padding')::integer,12),
    avatar_shape=p->>'avatar_shape',avatar_size=p->>'avatar_size',avatar_scale=(p->>'avatar_scale')::integer,
    is_published=(p->>'is_published')::boolean,show_qr=(p->>'show_qr')::boolean,qr_size=coalesce((p->>'qr_size')::integer,176),card_radius=coalesce((p->>'card_radius')::integer,13)
  where id=target;

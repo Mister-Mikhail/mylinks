@@ -99,7 +99,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
           const content = (
             <>
               <span className="profile-link__icon"><LinkIcon name={link.icon_key} url={link.url} snapshotPath={link.icon_snapshot_path} publicView={interactive} /></span>
-              <span className="profile-link__label" style={textStyle(link.label_font, link.label_font_size, 'link', link.label_color)}><span className="profile-link__text">{link.label}</span>{(link.is_sensitive || isKnownSensitiveUrl(link.url)) && <small>18+</small>}</span>
+              <span className="profile-link__label" style={textStyle(link.label_font ?? profile.link_font, link.label_font_size ?? profile.link_font_size, 'link', link.label_color ?? profile.link_color)}><span className="profile-link__text">{link.label}</span>{(link.is_sensitive || isKnownSensitiveUrl(link.url)) && <small>18+</small>}</span>
             </>
           )
           return interactive ? (

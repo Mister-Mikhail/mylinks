@@ -301,6 +301,7 @@ test('preview stays pinned on small portrait and landscape phones', async ({ pag
 
 
 test('default card text maintains accessible contrast across themes, presets and minimum opacity', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   await mockAppearance(page)
   await page.getByText('Дополнительные настройки карточек').click()
   await page.getByLabel('Плотность подложки карточек').fill('60')
@@ -326,6 +327,7 @@ test('default card text maintains accessible contrast across themes, presets and
     await page.getByRole('button', { name: theme.label, exact: true }).click()
     for (const preset of presets) {
       await page.getByRole('button', { name: preset, exact: true }).click()
+      await expect(page.locator('.preview-panel .profile-link').first()).toHaveClass(new RegExp(`card-${({ 'Стекло': 'glass', 'Плотные': 'solid', 'Контур': 'outline' } as Record<string, string>)[preset]}`))
       const styles = await page.locator('.preview-panel .profile-link').first().evaluate(element => {
         const card = getComputedStyle(element)
         const label = getComputedStyle(element.querySelector('.profile-link__label')!)

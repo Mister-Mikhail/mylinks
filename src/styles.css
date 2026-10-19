@@ -776,7 +776,7 @@ a.profile-link:hover {
 
 .profile-link.card-solid {
   color: #17202c;
-  background: rgb(248 251 255 / calc(.92 * var(--card-alpha, 1)));
+  background: rgb(248 251 255 / calc(.88 + .04 * var(--card-alpha, 1)));
 }
 
 /* The preview renders links as buttons, so set the label's foreground explicitly. */

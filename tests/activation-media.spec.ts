@@ -20,11 +20,15 @@ test('confirming in another tab automatically opens the wizard in both tabs', as
   await page.route('**/auth/v1/token**', route => route.fulfill({ status: 400, contentType: 'application/json', body: '{"code":"email_not_confirmed","msg":"Email not confirmed"}' }))
   await signup(page)
   const confirmation = await context.newPage()
-  await confirmation.clock.install({ time: new Date('2026-10-19T12:00:00Z') })
-  await confirmation.clock.pauseAt(new Date('2026-10-19T12:00:01Z'))
+  await confirmation.clock.install()
   await mockWizard(confirmation, false)
   let requests = 0
-  await confirmation.route('**/auth/v1/verify**', route => { requests++; return route.fulfill({ contentType: 'application/json', body: JSON.stringify(session) }) })
+  await confirmation.route('**/auth/v1/verify**', async route => {
+    // Initial session setup needs its timers. Freeze only after the app reaches verification.
+    await confirmation.clock.pauseAt(new Date(Date.now() + 1000))
+    requests++
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(session) })
+  })
   await confirmation.goto('/auth/confirmed#token_hash=confirmation-test&type=email')
   await expect(confirmation.getByRole('heading', { name: 'Почта подтверждена' })).toBeVisible()
   await expect(confirmation.getByRole('button', { name: 'Подтвердить email' })).toHaveCount(0)

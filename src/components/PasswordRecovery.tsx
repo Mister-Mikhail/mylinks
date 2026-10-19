@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Check, Eye, EyeOff, LoaderCircle, Mail, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { isAuthSessionMissingError } from '@supabase/supabase-js'
 import { BrandMark } from './BrandMark'
 import { supabase } from '../lib/supabase'
 
@@ -88,7 +89,7 @@ export function PasswordRecoveryForm() {
         setError('Пароль не соответствует требованиям безопасности. Выберите более сложный пароль.')
       } else if (updateError.status === 429) {
         setError('Слишком много попыток. Подождите минуту и повторите.')
-      } else if (updateError.status === 401 || ['session_expired', 'session_not_found', 'refresh_token_not_found', 'reauthentication_needed'].includes(updateError.code ?? '')) {
+      } else if (isAuthSessionMissingError(updateError) || updateError.status === 401 || ['session_expired', 'session_not_found', 'refresh_token_not_found', 'reauthentication_needed'].includes(updateError.code ?? '')) {
         setError('Сеанс восстановления истёк. Запросите новое письмо.')
       } else {
         setError('Не удалось изменить пароль. Повторите попытку чуть позже.')

@@ -2,11 +2,11 @@ import { expect, test, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { FONT_OPTIONS } from '../src/lib/typography'
 
-export async function mockAppearance(page: Page, failUpload = false) {
+export async function mockAppearance(page: Page, failUpload = false, displayName = 'Тестовый профиль') {
   const id = '00000000-0000-4000-8000-000000000001'
   const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: id, exp: 2100000000, role: 'authenticated' })).toString('base64url')}.signature`
   await page.addInitScript(({ id, token }) => localStorage.setItem('sb-loykiawbqdkitndqkegk-auth-token', JSON.stringify({ access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user: { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' } })), { id, token })
-  let profile = { id, handle: 'sample-user', display_name: 'Тестовый профиль', bio: 'Мои проекты', avatar_url: null, avatar_path: null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
+  let profile = { id, handle: 'sample-user', display_name: displayName, bio: 'Мои проекты', avatar_url: null, avatar_path: null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
   let links: Record<string, unknown>[] = [{ id: 'link-test', profile_id: id, label: 'Мой сайт', url: 'https://example.com', icon_key: 'website', position: 0, is_visible: true, is_sensitive: false }]
   const patches: Record<string, unknown>[] = []
   const uploads: Buffer[] = []
@@ -179,7 +179,7 @@ test('font changed in Appearance survives reload and appears on the profile page
 
 test('all 15 font choices persist after reload for Cyrillic and Latin text', async ({ page }) => {
   test.setTimeout(120_000)
-  await mockAppearance(page)
+  await mockAppearance(page, false, 'Кириллица Latin')
   const font = page.getByLabel('Шрифт: Имя', { exact: true })
   for (const option of FONT_OPTIONS) {
     await font.selectOption(option.value)
@@ -189,6 +189,13 @@ test('all 15 font choices persist after reload for Cyrillic and Latin text', asy
     await page.getByRole('button', { name: 'Оформление', exact: true }).click()
     await expect(page.getByLabel('Шрифт: Имя', { exact: true })).toHaveValue(option.value)
     await expect(page.locator('.preview-panel h1')).toHaveCSS('font-family', new RegExp(option.family.split(',')[0].replaceAll("'", '')))
+    await expect(page.locator('.preview-panel h1')).toHaveText('Кириллица Latin')
+    const family = option.family.split(',')[0].replaceAll("'", '').trim()
+    const loaded = await page.evaluate(async family => {
+      const faces = await document.fonts.load(`400 21px "${family}"`, 'Кириллица Latin')
+      return faces.filter(face => face.status === 'loaded').length
+    }, family)
+    expect(loaded, `${option.value}: both Cyrillic and Latin subsets load`).toBeGreaterThanOrEqual(2)
   }
 })
 
@@ -357,18 +364,23 @@ test('default card text maintains accessible contrast across themes, presets and
 
 test('capture typography and card preset visual matrix for desktop and mobile review', async ({ page }, testInfo) => {
   test.setTimeout(120_000)
-  await mockAppearance(page)
+  await mockAppearance(page, false, 'Кириллица Latin')
   const control = page.getByLabel('Шрифт: Имя', { exact: true })
   const card = page.locator('.preview-panel .profile-card')
   for (const font of FONT_OPTIONS) {
     await control.selectOption(font.value)
+    await expect(page.locator('.preview-panel h1')).toHaveCSS('font-family', new RegExp(font.family.split(',')[0].replaceAll("'", '')))
     await page.evaluate(() => document.fonts.ready.then(() => true))
     await card.screenshot({ path: testInfo.outputPath(`font-${font.value}.png`) })
   }
+  await control.selectOption('manrope')
+  await expect(page.locator('.preview-panel h1')).toHaveCSS('font-family', /Manrope/)
   for (const theme of ['Полночь', 'Туман', 'Кобальт']) {
     await page.getByRole('button', { name: theme, exact: true }).click()
+    await expect(card).toHaveClass(new RegExp(`theme-${({ 'Полночь': 'midnight', 'Туман': 'mist', 'Кобальт': 'cobalt' } as Record<string, string>)[theme]}`))
     for (const preset of ['Стекло', 'Плотные', 'Контур']) {
       await page.getByRole('button', { name: preset, exact: true }).click()
+      await expect(card.locator('.profile-link').first()).toHaveClass(new RegExp(`card-${({ 'Стекло': 'glass', 'Плотные': 'solid', 'Контур': 'outline' } as Record<string, string>)[preset]}`))
       await card.screenshot({ path: testInfo.outputPath(`card-${theme}-${preset}.png`) })
     }
   }

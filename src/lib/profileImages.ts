@@ -18,5 +18,6 @@ export async function uploadProfileImage(file:File,owner:string,signal:AbortSign
  const path=`${owner}/${crypto.randomUUID()}.webp`
  const {error}=await supabase.storage.from('profile-assets').upload(path,blob,{upsert:false,contentType:'image/webp',cacheControl:'3600'})
  if(error)throw error
+ if(signal.aborted){await supabase.storage.from('profile-assets').remove([path]);throw new DOMException('Aborted','AbortError')}
  try {return {path,url:await signedImage(path)}}catch(error){await supabase.storage.from('profile-assets').remove([path]);throw error}
 }

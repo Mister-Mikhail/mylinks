@@ -53,6 +53,9 @@ const formatLink = (raw: Record<string, unknown>, owner: string, position: numbe
   position, is_visible: raw.is_visible === true, is_sensitive: raw.is_sensitive === true,
   label_font: raw.label_font==null?null:font(raw.label_font), label_font_size: raw.label_font_size==null?null:number(raw.label_font_size,11,5,60),
   card_style: raw.card_style ?? null,
+  presentation:['normal','featured'].includes(String(raw.presentation ?? 'normal'))?String(raw.presentation ?? 'normal'):(()=>{throw Error('Некорректный вид карточки.')})(),
+  image_path:raw.image_path==null?null:new RegExp('^'+owner+'/[a-f0-9-]{36}\\.webp$').test(String(raw.image_path))?String(raw.image_path):(()=>{throw Error('Изображение принадлежит другому профилю.')})(),
+  image_alt:text(String(raw.image_alt ?? ''),160),image_position_x:number(raw.image_position_x,50,0,100),image_position_y:number(raw.image_position_y,50,0,100),
   label_color: color(raw.label_color),
   card_preset_override: raw.card_preset_override == null ? null : ['glass','solid','outline'].includes(String(raw.card_preset_override)) ? raw.card_preset_override : (() => { throw new Error('Проверьте оформление ссылки.') })(),
   card_radius_override: raw.card_radius_override == null ? null : number(raw.card_radius_override,13,4,28),
@@ -105,7 +108,8 @@ export const handler = (clientFactory=createClient,env=(key:string)=>Deno.env.ge
         profile.avatar_master_path?admin.storage.from('avatars').createSignedUrl(profile.avatar_master_path,3600):Promise.resolve(null),
         profile.background_image_path?admin.storage.from('profile-assets').createSignedUrl(profile.background_image_path,3600):Promise.resolve(null),
       ])
-      return reply(200,{profile:{...profile,background_image_url:background?.data?.signedUrl??null,avatar_preview_url:avatar?.data?.signedUrl??null,avatar_master_url:master?.data?.signedUrl??null,avatar_poster_url:poster?.data?.signedUrl??null},links,contacts})
+      const signedLinks=await Promise.all(links.map(async(link:Record<string,unknown>)=>({...link,image_url:link.image_path?(await admin.storage.from('profile-assets').createSignedUrl(String(link.image_path),3600)).data?.signedUrl:null})))
+      return reply(200,{profile:{...profile,background_image_url:background?.data?.signedUrl??null,avatar_preview_url:avatar?.data?.signedUrl??null,avatar_master_url:master?.data?.signedUrl??null,avatar_poster_url:poster?.data?.signedUrl??null},links:signedLinks,contacts})
     }
     if(action==='asset') {
       if(typeof input.data!=='string'||input.data.length>2_000_000)return reply(400,{error:'Изображение слишком велико.'})

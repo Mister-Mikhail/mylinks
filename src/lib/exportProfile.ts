@@ -9,7 +9,7 @@ export function buildProfileExport(profile:Profile, links:ProfileLink[], contact
  return {
   schema_version:1, exported_at:new Date().toISOString(), canonical_url:profileUrl(profile.handle),
   ...(options.metadata?{profile:selectFields(profile,['handle','display_name','bio','is_published','created_at','updated_at'])}:{}),
-  ...(options.links?{links:links.map(l=>selectFields(l,['id','label','url','label_font','label_font_size','label_color','icon_key','card_preset_override','card_radius_override','card_style','position','is_visible','is_sensitive']))}:{}),
+  ...(options.links?{links:links.map(l=>selectFields(l,['id','label','url','label_font','label_font_size','label_color','icon_key','presentation','image_path','image_alt','image_position_x','image_position_y','card_preset_override','card_radius_override','card_style','position','is_visible','is_sensitive']))}:{}),
   ...(options.contacts?{contacts:contacts.filter(c=>options.privateContacts||c.is_visible).map(c=>selectFields(c,['id','kind','label','value','latitude','longitude','label_font','label_font_size','label_color','value_font','value_font_size','value_color','position','is_visible']))}:{}),
   ...(options.appearance?{appearance:selectFields(profile,['background_preset','background_style','background_image_path','background_overlay','background_primary','background_secondary','card_preset','card_radius','card_border_width','card_opacity','card_padding','link_font','link_font_size','link_color','show_qr','qr_size','avatar_shape','avatar_size','avatar_scale','avatar_media','avatar_crop','name_font','name_font_size','name_color','bio_font','bio_font_size','bio_color','handle_font','handle_font_size','handle_color'])}:{}),
  } as Record<string,unknown>
@@ -42,6 +42,7 @@ export async function exportOwnProfile(expectedUserId:string,options:ExportOptio
    }
    assets.push(asset)
   }
+  if(options.links)for(const link of (l.data||[]) as ProfileLink[]){if(!link.image_path)continue;const path=link.image_path;if(!path.startsWith(`${user.id}/`)||path.includes('..')||path.includes('\\'))throw Error('Не удалось проверить принадлежность файла.');const asset:Record<string,unknown>={kind:'link_image',link_id:link.id,bucket:'profile-assets',path};if(options.assetUrls){const {data,error}=await supabase.storage.from('profile-assets').createSignedUrl(path,300);if(error||!data?.signedUrl)throw Error('Не удалось подготовить файл.');asset.download_url=data.signedUrl;asset.expires_at=new Date(Date.now()+300000).toISOString()}assets.push(asset)}
   result.assets=assets
  }
  if(options.statistics){

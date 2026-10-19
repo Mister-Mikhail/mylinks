@@ -4,7 +4,9 @@ require_once __DIR__.'/share-profile.php';
 function profile_image_path($bundle,$asset) {
  if (!is_array($bundle) || empty($bundle['profile']['is_published']) || !preg_match('/^[a-f0-9-]{36}\.webp$/D',$asset)) return null;
  $profile=$bundle['profile'];$path=($profile['id'] ?? '').'/'.$asset;
- return ($profile['background_image_path'] ?? null)===$path && ($profile['background_style'] ?? '')==='image' ? $path : null;
+ if (($profile['background_image_path'] ?? null)===$path && ($profile['background_style'] ?? '')==='image') return $path;
+ foreach (($bundle['links'] ?? array()) as $link) if (!empty($link['is_visible']) && ($link['profile_id'] ?? null)===($profile['id'] ?? null) && ($link['presentation'] ?? '')==='featured' && ($link['image_path'] ?? null)===$path) return $path;
+ return null;
 }
 if (!defined('MYLINKS_PROFILE_IMAGE_LIBRARY_ONLY')) {
  header('X-Content-Type-Options: nosniff');header('Cache-Control: no-store');

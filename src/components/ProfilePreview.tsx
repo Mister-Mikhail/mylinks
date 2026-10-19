@@ -95,9 +95,11 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
       <div className="profile-card__links">
         {visibleLinks.length > 0 ? visibleLinks.map((link) => {
           const cardStyle = { ...(link.card_radius_override == null ? {} : { '--card-radius': `${Math.min(28, Math.max(4, link.card_radius_override))}px` }), ...cardOverrideStyle(link.card_style) } as CSSProperties
-          const cardClass = `profile-link card-${link.card_preset_override ?? profile.card_preset}`
+          const featured=link.presentation === 'featured'
+          const cardClass = `profile-link card-${link.card_preset_override ?? profile.card_preset}${featured?' profile-link--featured':''}`
           const content = (
             <>
+              {featured && (link.image_url && !(interactive && (link.is_sensitive || isKnownSensitiveUrl(link.url))) ? <img className="profile-link__image" src={link.image_url} alt={link.image_alt || ''} loading="lazy" decoding="async" style={{objectPosition:`${link.image_position_x ?? 50}% ${link.image_position_y ?? 50}%`}} onError={event=>{event.currentTarget.style.visibility='hidden'}}/> : <span className="profile-link__image-placeholder">{link.is_sensitive || isKnownSensitiveUrl(link.url) ? <ShieldAlert size={28}/> : <LinkIcon name={link.icon_key} url={link.url} publicView={interactive}/>}</span>)}
               <span className="profile-link__icon"><LinkIcon name={link.icon_key} url={link.url} snapshotPath={link.icon_snapshot_path} publicView={interactive} /></span>
               <span className="profile-link__label" style={textStyle(link.label_font ?? profile.link_font, link.label_font_size ?? profile.link_font_size, 'link', link.label_color ?? profile.link_color)}><span className="profile-link__text">{link.label}</span>{(link.is_sensitive || isKnownSensitiveUrl(link.url)) && <small>18+</small>}</span>
             </>

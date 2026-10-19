@@ -609,7 +609,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
     }
 
     const nextProfile = !profileResult.error ? await withAvatarPreview(profileResult.data as Profile) : null
-    const nextLinks = !linksResult.error ? (linksResult.data as ProfileLink[]).map(toEditable) : null
+    const nextLinks = !linksResult.error ? await Promise.all((linksResult.data as ProfileLink[]).map(async link=>({...toEditable(link),image_url:await signedImage(link.image_path)}))) : null
     const nextContacts = !contactsResult.error ? (contactsResult.data as ProfileContact[]).map(toEditableContact) : null
 
     if (nextProfile) { setProfile(nextProfile); persistedHandle.current = nextProfile.handle; persistedPublished.current = nextProfile.is_published }
@@ -837,6 +837,11 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         label_font_size: link.label_font_size ?? null,
         label_color: link.label_color ?? null,
         url: normalizeUrl(link.url),
+        presentation: link.presentation ?? 'normal',
+        image_path: link.image_path ?? null,
+        image_alt: link.image_alt ?? '',
+        image_position_x: link.image_position_x ?? 50,
+        image_position_y: link.image_position_y ?? 50,
         icon_key: link.icon_key,
         position,
         is_visible: link.is_visible,
@@ -857,6 +862,11 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         label_font_size: link.label_font_size ?? null,
         label_color: link.label_color ?? null,
         url: normalizeUrl(link.url),
+        presentation: link.presentation ?? 'normal',
+        image_path: link.image_path ?? null,
+        image_alt: link.image_alt ?? '',
+        image_position_x: link.image_position_x ?? 50,
+        image_position_y: link.image_position_y ?? 50,
         icon_key: link.icon_key,
         position,
         is_visible: link.is_visible,
@@ -1171,6 +1181,12 @@ function ContentEditor({ onOpenDesign,
                   )
                 })()}
                 <small className="link-editor__hint">{getLinkPlatform(link.icon_key).baseUrl ? 'Введите только имя после адреса площадки' : 'Можно без https:// · логотип подтянется автоматически'}</small>
+                <label>Вид карточки<select aria-label={`Вид карточки: ${link.label || 'Новая ссылка'}`} value={link.presentation ?? 'normal'} onChange={event=>updateLink(link.localId,{presentation:event.target.value as 'normal'|'featured'})}><option value="normal">Обычная</option><option value="featured">Большая с изображением</option></select></label>
+                {link.presentation === 'featured' && <div className="featured-image-controls">
+                  <ImageAssetField label={`Изображение карточки: ${link.label || 'Новая ссылка'}`} owner={profile.id} url={link.image_url} onChange={(path,url)=>updateLink(link.localId,{image_path:path,image_url:url})}/>
+                  <label>Описание изображения<input aria-label={`Описание изображения: ${link.label}`} maxLength={160} value={link.image_alt ?? ''} onChange={event=>updateLink(link.localId,{image_alt:event.target.value})}/></label>
+                  {link.image_path && <>{(['x','y'] as const).map(axis=><label className="avatar-size-control" key={axis}>Кадрирование {axis==='x'?'по горизонтали':'по вертикали'}<input type="range" aria-label={`Кадрирование ${axis}: ${link.label}`} min="0" max="100" value={link[axis==='x'?'image_position_x':'image_position_y'] ?? 50} onChange={event=>updateLink(link.localId,{[axis==='x'?'image_position_x':'image_position_y']:Number(event.target.value)})}/></label>)}</>}
+                </div>}
                 <div className="link-editor__footer">
                   <span className="link-editor__site-icon" role="img" aria-label="Иконка сайта"><LinkIcon name={link.icon_key} url={link.url} size={28} /></span>
                 <label className={`sensitive-toggle ${isKnownSensitiveUrl(link.url) ? 'sensitive-toggle--forced' : ''}`}>

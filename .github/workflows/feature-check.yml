@@ -44,6 +44,10 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno check --node-modules-dir=auto supabase/functions/favicon/index.ts
       - name: Lint, build, PHP and desktop/mobile e2e
         run: bash scripts/ci.sh
       - name: Preserve desktop and mobile appearance screenshots

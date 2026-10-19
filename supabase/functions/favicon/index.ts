@@ -1,3 +1,5 @@
+import { safeFetch, validHost } from './safe-fetch.ts'
+import { getDomain } from 'npm:tldts@7.0.22'
 // Public favicon proxy for link cards: GET /functions/v1/favicon?domain=example.com
 // Finds the icon the site itself declares (<link rel="icon">, apple-touch-icon, SVG),
 // falls back to /favicon.ico and to the main domain, and returns the image bytes.
@@ -9,7 +11,7 @@ const UA = 'Mozilla/5.0 (compatible; mylinks.bar-favicon/1.0; +https://mylinks.b
 const MAX_HTML = 400 * 1024
 const MAX_ICON = 512 * 1024
 const TIMEOUT = 5000
-const SECOND_LEVEL = new Set(['co', 'com', 'org', 'net', 'gov', 'edu', 'ac', 'msk', 'spb'])
+const misses = new Map<string, {at:number;count:number}>()
 const memory = new Map<string, { body: Uint8Array; type: string; at: number }>()
 
 const headers = (type: string, maxAge: number) => ({
@@ -21,41 +23,8 @@ const headers = (type: string, maxAge: number) => ({
   'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
 })
 
-const validHost = (host: string) =>
-  /^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(host) && !/^(localhost|.*\.local|.*\.internal)$/.test(host)
-
-const mainDomain = (host: string) => {
-  const labels = host.split('.')
-  if (labels.length <= 2) return host
-  return labels.slice(SECOND_LEVEL.has(labels[labels.length - 2]) ? -3 : -2).join('.')
-}
-
-async function fetchLimited(url: string, limit: number, accept: string) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT)
-  try {
-    const response = await fetch(url, { redirect: 'follow', signal: controller.signal, headers: { 'User-Agent': UA, Accept: accept } })
-    if (!response.ok || !response.body) return null
-    const reader = response.body.getReader()
-    const chunks: Uint8Array[] = []
-    let size = 0
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      size += value.length
-      if (size > limit) { await reader.cancel(); if (accept.startsWith('text')) break; return null }
-      chunks.push(value)
-    }
-    const body = new Uint8Array(size > limit ? chunks.reduce((n, c) => n + c.length, 0) : size)
-    let offset = 0
-    for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.length }
-    return { body, type: response.headers.get('content-type') ?? '', url: response.url || url }
-  } catch {
-    return null
-  } finally {
-    clearTimeout(timer)
-  }
-}
+const mainDomain = (host: string) => getDomain(host, { allowPrivateDomains: true }) || host
+const fetchLimited = (url: string, limit: number, accept: string) => safeFetch(url, limit, accept, UA, TIMEOUT)
 
 interface Candidate { href: string; score: number }
 
@@ -127,6 +96,11 @@ Deno.serve(async (request) => {
   const cached = memory.get(`${host}:${rasterOnly}`)
   if (cached && Date.now() - cached.at < 6 * 3600_000) return new Response(cached.body, { headers: headers(cached.type, 604800) })
 
+  const now = Date.now()
+  if (misses.size > 1000) misses.clear()
+  const count = misses.get(host)
+  if (count && now - count.at < 60000 && count.count >= 12) return new Response('try later', {status: 429, headers: {...headers('text/plain',0),'Retry-After':'60'}})
+  misses.set(host, {at: count && now-count.at < 60000 ? count.at : now, count: count && now-count.at < 60000 ? count.count+1 : 1})
   let icon = await iconFor(host, rasterOnly)
   const parent = mainDomain(host)
   if (!icon && parent !== host) icon = await iconFor(parent, rasterOnly)

@@ -809,6 +809,9 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         background_style: profile.background_style ?? 'preset',
         background_image_path: profile.background_image_path ?? null,
         background_overlay: profile.background_overlay ?? 45,
+        background_position_x: profile.background_position_x ?? 50,
+        background_position_y: profile.background_position_y ?? 50,
+        background_zoom: profile.background_zoom ?? 100,
         background_primary: profile.background_primary ?? null,
         background_secondary: profile.background_secondary ?? null,
         card_preset: profile.card_preset,
@@ -1324,9 +1327,16 @@ function DesignEditor({
           </div>}
         </div>
         {profile.background_style === 'image' && <div className="appearance-image-controls">
-          <ImageAssetField label="Загрузить фон" owner={profile.id} url={profile.background_image_url} onChange={(path,url) => setProfile({...profile,background_image_path:path,background_image_url:url})} />
+          <ImageAssetField label="Загрузить фон" owner={profile.id} url={profile.background_image_url} onChange={(path,url) => setProfile({...profile,background_image_path:path,background_image_url:url,background_position_x:50,background_position_y:50,background_zoom:100})} />
+          {profile.background_image_url && <>
+            <p>Область фото · сдвиньте и увеличьте снимок. Результат сразу виден в предпросмотре.</p>
+            <label className="avatar-size-control"><span>По горизонтали · {profile.background_position_x ?? 50}%</span><input type="range" aria-label="Положение фона по горизонтали" min="0" max="100" value={profile.background_position_x ?? 50} onChange={event=>setProfile({...profile,background_position_x:Number(event.target.value)})}/></label>
+            <label className="avatar-size-control"><span>По вертикали · {profile.background_position_y ?? 50}%</span><input type="range" aria-label="Положение фона по вертикали" min="0" max="100" value={profile.background_position_y ?? 50} onChange={event=>setProfile({...profile,background_position_y:Number(event.target.value)})}/></label>
+            <label className="avatar-size-control"><span>Увеличение фото · {profile.background_zoom ?? 100}%</span><input type="range" aria-label="Увеличение фонового фото" min="100" max="300" value={profile.background_zoom ?? 100} onChange={event=>setProfile({...profile,background_zoom:Number(event.target.value)})}/></label>
+            <button type="button" className="button button--ghost button--small" onClick={()=>setProfile({...profile,background_position_x:50,background_position_y:50,background_zoom:100})}>Сбросить область фото</button>
+          </>}
           <label className="avatar-size-control"><span>Затемнение фона · {profile.background_overlay ?? 45}%</span><input type="range" aria-label="Затемнение фона" min="0" max="80" value={profile.background_overlay ?? 45} onChange={event=>setProfile({...profile,background_overlay:Number(event.target.value)})}/></label>
-          <button type="button" className="button button--ghost button--small" onClick={()=>setProfile({...profile,background_style:'preset',background_image_path:null,background_image_url:null,background_overlay:45})}>Вернуть исходный фон</button>
+          <button type="button" className="button button--ghost button--small" onClick={()=>setProfile({...profile,background_style:'preset',background_image_path:null,background_image_url:null,background_overlay:45,background_position_x:50,background_position_y:50,background_zoom:100})}>Вернуть исходный фон</button>
           <p>Проверьте читаемость текста поверх изображения.</p>
         </div>}
       </section>

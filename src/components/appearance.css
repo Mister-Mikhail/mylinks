@@ -1,4 +1,5 @@
 /* Mobile appearance composition follows the accepted two-state editor. */
+.profile-card--image::before { content: ''; position: absolute; inset: 0; z-index: -2; pointer-events: none; background: var(--profile-image-background); transform: scale(var(--profile-image-scale, 1)); transform-origin: var(--profile-image-origin, 50% 50%); }
 .profile-card__identity > .avatar { position: relative; }
 .profile-card__body { display: contents; }
 .appearance-topbar-title { display: none; }

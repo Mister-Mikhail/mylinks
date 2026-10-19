@@ -92,7 +92,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
   const blocks=layoutFor(links,profile.link_layout)
 
   return (
-    <section className={`profile-card theme-${appearanceTheme(profile)}`} style={appearanceStyle(profile)} aria-label={`Профиль ${profile.display_name}`}>
+    <section className={`profile-card theme-${appearanceTheme(profile)}${profile.background_style === 'image' && profile.background_image_url ? ' profile-card--image' : ''}`} style={appearanceStyle(profile)} aria-label={`Профиль ${profile.display_name}`}>
       <div className="profile-card__noise" />
       <div className="profile-card__topline">
         {showPrivacy ? (

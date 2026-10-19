@@ -1,3 +1,4 @@
+import { ColorField } from './ColorField'
 import { DEFAULT_SIZES, FONT_OPTIONS, TEXT_SIZES, type FontKey, type TextSlot } from '../lib/typography'
 import './typography-controls.css'
 
@@ -28,7 +29,7 @@ export function TypographyControls({ label, slot, font = 'manrope', size = DEFAU
     <label>Размер<select aria-label={`Размер: ${label}`} value={size} onChange={event => onChange(font, Number(event.target.value))}>
       {TEXT_SIZES[slot].map(value => <option key={value} value={value}>{value} px</option>)}
     </select></label>
-    {onColorChange && <label className="typography-controls__color">Цвет<input type="color" aria-label={`Цвет: ${label}`} value={color || '#ffffff'} onChange={event => onColorChange(event.target.value)} />{color || 'Авто'}</label>}
+    {onColorChange && <ColorField label={label} value={color} onChange={onColorChange} />}
     <span className="typography-controls__sample" style={{ fontFamily: family, color: color || undefined, fontSize: `${size}px` }}>{sample?.trim() || 'Аа Бб 123'} <small>{FONT_OPTIONS.find(option => option.value === font)?.label}</small></span>
     {(font !== 'manrope' || size !== DEFAULT_SIZES[slot]) && <button type="button" className="typography-controls__reset" onClick={() => onChange('manrope', DEFAULT_SIZES[slot])} aria-label={`Сбросить шрифт и размер: ${label}`}>Сбросить</button>}
     {color && onColorChange && <button type="button" className="typography-controls__reset" onClick={() => onColorChange(null)} aria-label={`Вернуть автоматический цвет: ${label}`}>Цвет: авто</button>}

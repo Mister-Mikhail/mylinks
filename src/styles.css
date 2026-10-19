@@ -2803,3 +2803,17 @@ select:focus {
 
 /* Avatar size is relative to its profile so 100% fills the available width. */
 .profile-card__identity > .avatar { width:clamp(48px,var(--avatar-width,101px),100%); height:auto; aspect-ratio:1; }
+
+/* Content editor has two children after ordering controls moved to Appearance. */
+.link-editor { grid-template-columns:minmax(0,1fr) auto; align-items:start; }
+.link-editor__body { min-width:0; }
+.link-editor__row { grid-template-columns:minmax(120px,.65fr) minmax(0,1fr); }
+.link-editor__actions { align-self:start; }
+.link-editor input,.link-editor select { width:100%;min-width:0; }
+@media(max-width:650px){
+ .link-editor { grid-template-columns:minmax(0,1fr); }
+ .link-editor__row { grid-template-columns:minmax(0,1fr); }
+ .link-editor__actions { grid-column:1;display:flex;justify-content:flex-end; }
+ .link-editor__actions .icon-button { width:40px;height:36px; }
+ .link-editor__footer { grid-template-columns:36px minmax(0,1fr); }
+}

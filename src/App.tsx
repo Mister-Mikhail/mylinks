@@ -1,3 +1,5 @@
+import { ImageAssetField } from './components/ImageAssetField'
+import { signedImage } from './lib/profileImages'
 import { ColorField } from './components/ColorField'
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
@@ -122,6 +124,7 @@ const sampleLinks: EditableLink[] = [
 ]
 
 const toEditable = (link: ProfileLink): EditableLink => ({
+  ...link,
   id: link.id,
   profile_id: link.profile_id,
   localId: link.id,
@@ -159,7 +162,9 @@ const toEditableContact = (contact: ProfileContact): EditableContact => ({
 })
 
 const withAvatarPreview = async (profile: Profile) => {
+  const backgroundImage = await signedImage(profile.background_image_path)
   const normalizedProfile = {
+    background_image_url: backgroundImage,
     ...profile,
     avatar_scale: Number(profile.avatar_scale) || ({ small: 12, medium: 28, large: 40 }[profile.avatar_size] ?? 28),
   }
@@ -798,6 +803,8 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         avatar_path: profile.avatar_path,
         background_preset: profile.background_preset,
         background_style: profile.background_style ?? 'preset',
+        background_image_path: profile.background_image_path ?? null,
+        background_overlay: profile.background_overlay ?? 45,
         background_primary: profile.background_primary ?? null,
         background_secondary: profile.background_secondary ?? null,
         card_preset: profile.card_preset,
@@ -1279,14 +1286,20 @@ function DesignEditor({
         </div>
         <div className="appearance-custom-colors">
           <div className="segmented-picker" role="group" aria-label="Режим фона">
-            {([['preset', 'Готовый'], ['solid', 'Цвет'], ['gradient', 'Градиент']] as const).map(([mode, label]) => <button type="button" key={mode} aria-pressed={(profile.background_style ?? 'preset') === mode} className={(profile.background_style ?? 'preset') === mode ? 'selected' : ''} onClick={() => setProfile({ ...profile, background_style: mode })}>{label}</button>)}
+            {([['preset', 'Готовый'], ['solid', 'Цвет'], ['gradient', 'Градиент'], ['image', 'Изображение']] as const).map(([mode, label]) => <button type="button" key={mode} aria-pressed={(profile.background_style ?? 'preset') === mode} className={(profile.background_style ?? 'preset') === mode ? 'selected' : ''} onClick={() => setProfile({ ...profile, background_style: mode })}>{label}</button>)}
           </div>
-          {profile.background_style !== 'preset' && profile.background_style && <div className="appearance-custom-colors__pickers">
+          {['solid','gradient'].includes(profile.background_style || '') && <div className="appearance-custom-colors__pickers">
             <ColorField label="Основной цвет фона" value={profile.background_primary ?? '#162638'} onChange={color => setProfile({ ...profile, background_primary: color })} />
             {profile.background_style === 'gradient' && <ColorField label="Второй цвет фона" value={profile.background_secondary ?? '#24435b'} onChange={color => setProfile({ ...profile, background_secondary: color })} />}
             <small>Проверьте читаемость текста в предпросмотре.</small>
           </div>}
         </div>
+        {profile.background_style === 'image' && <div className="appearance-image-controls">
+          <ImageAssetField label="Загрузить фон" owner={profile.id} url={profile.background_image_url} onChange={(path,url) => setProfile({...profile,background_image_path:path,background_image_url:url})} />
+          <label className="avatar-size-control"><span>Затемнение фона · {profile.background_overlay ?? 45}%</span><input type="range" aria-label="Затемнение фона" min="0" max="80" value={profile.background_overlay ?? 45} onChange={event=>setProfile({...profile,background_overlay:Number(event.target.value)})}/></label>
+          <button type="button" className="button button--ghost button--small" onClick={()=>setProfile({...profile,background_style:'preset',background_image_path:null,background_image_url:null,background_overlay:45})}>Вернуть исходный фон</button>
+          <p>Проверьте читаемость текста поверх изображения.</p>
+        </div>}
       </section>
 
       <section className="settings-card">

@@ -6,7 +6,9 @@ const validColor = (value: string | null | undefined, fallback: string) => value
 export function appearanceStyle(profile: Profile): CSSProperties {
   const primary = validColor(profile.background_primary, '#162638')
   const secondary = validColor(profile.background_secondary, '#24435b')
-  const background = profile.background_style === 'solid' ? primary : profile.background_style === 'gradient' ? `linear-gradient(155deg, ${primary}, ${secondary})` : undefined
+  const image = profile.background_image_url && !/[\\"<>]/.test(profile.background_image_url) ? profile.background_image_url : null
+  const overlay = Math.min(80,Math.max(0,profile.background_overlay ?? 45))/100
+  const background = profile.background_style === 'image' && image ? `linear-gradient(rgb(0 0 0 / ${overlay}),rgb(0 0 0 / ${overlay})), url("${image}") center / cover no-repeat` : profile.background_style === 'solid' ? primary : profile.background_style === 'gradient' ? `linear-gradient(155deg, ${primary}, ${secondary})` : undefined
   const padding = Math.min(24, Math.max(8, Number(profile.card_padding) || 12))
   const border = Math.min(3, Math.max(0, Number(profile.card_border_width ?? 1)))
   const opacity = Math.min(100, Math.max(60, Number(profile.card_opacity) || 100))
@@ -14,6 +16,7 @@ export function appearanceStyle(profile: Profile): CSSProperties {
 }
 
 export function appearanceTheme(profile: Profile) {
+  if(profile.background_style === 'image')return 'midnight'
   if (profile.background_style !== 'solid' && profile.background_style !== 'gradient') return profile.background_preset
   const value = validColor(profile.background_primary, '#162638').slice(1)
   const channels = [0, 2, 4].map(index => parseInt(value.slice(index, index + 2), 16) / 255)

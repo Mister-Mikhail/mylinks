@@ -25,19 +25,22 @@ const url = (value: unknown) => {
   if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname) throw new Error('Проверьте адрес ссылки.')
   return result
 }
-const formatProfile = (raw: Record<string, unknown>, currentHandle: string) => {
+const formatProfile = (raw: Record<string, unknown>, currentHandle: string, owner:string) => {
   const handle = text(raw.handle, 30)
   const displayName = text(raw.display_name, 30)
   if ((handle !== currentHandle && (!/^[a-z]+([._][a-z]+)?$/.test(handle) || handle.length < 3)) || !/^[\p{L}]+(?: [\p{L}]+)*$/u.test(displayName)) throw new Error('Проверьте имя и user name.')
   if (!['midnight','mist','cobalt'].includes(String(raw.background_preset)) || !['glass','solid','outline'].includes(String(raw.card_preset)) || !['round','square'].includes(String(raw.avatar_shape))) throw new Error('Проверьте оформление.')
-  if (!['preset','solid','gradient'].includes(String(raw.background_style ?? 'preset'))) throw new Error('Проверьте тип фона.')
+  if (!['preset','solid','gradient','image'].includes(String(raw.background_style ?? 'preset'))) throw new Error('Проверьте тип фона.')
   return {
     handle, display_name: displayName, bio: text(raw.bio, 160),
     name_font: font(raw.name_font), bio_font: font(raw.bio_font), handle_font: font(raw.handle_font),
     name_color: color(raw.name_color), bio_color: color(raw.bio_color), handle_color: color(raw.handle_color),
     name_font_size: number(raw.name_font_size,21,5,60), bio_font_size: number(raw.bio_font_size,10,5,60), handle_font_size: number(raw.handle_font_size,10,5,60),
     background_preset: raw.background_preset, background_style: raw.background_style ?? 'preset',
+    background_image_path: raw.background_image_path==null ? null : new RegExp('^'+owner+'/[a-f0-9-]{36}\\.webp$').test(String(raw.background_image_path)) ? String(raw.background_image_path) : (()=>{throw Error('Файл принадлежит другому профилю.')})(),
+    background_overlay: number(raw.background_overlay,45,0,80),
     background_primary: color(raw.background_primary), background_secondary: color(raw.background_secondary),
+    link_font: font(raw.link_font),link_font_size:number(raw.link_font_size,11,5,60),link_color:color(raw.link_color),
     card_preset: raw.card_preset, avatar_shape: raw.avatar_shape,
     card_border_width: number(raw.card_border_width,1,0,3), card_opacity: number(raw.card_opacity,100,60,100), card_padding: number(raw.card_padding,12,8,24),
     avatar_size: ['small','medium','large'].includes(String(raw.avatar_size)) ? raw.avatar_size : 'medium',
@@ -48,7 +51,8 @@ const formatLink = (raw: Record<string, unknown>, owner: string, position: numbe
   ...(typeof raw.id === 'string' && uuid.test(raw.id) ? { id: raw.id } : {}),
   profile_id: owner, label: text(raw.label,80), url: url(raw.url), icon_key: text(raw.icon_key,30),
   position, is_visible: raw.is_visible === true, is_sensitive: raw.is_sensitive === true,
-  label_font: font(raw.label_font), label_font_size: number(raw.label_font_size,11,5,60),
+  label_font: raw.label_font==null?null:font(raw.label_font), label_font_size: raw.label_font_size==null?null:number(raw.label_font_size,11,5,60),
+  card_style: raw.card_style ?? null,
   label_color: color(raw.label_color),
   card_preset_override: raw.card_preset_override == null ? null : ['glass','solid','outline'].includes(String(raw.card_preset_override)) ? raw.card_preset_override : (() => { throw new Error('Проверьте оформление ссылки.') })(),
   card_radius_override: raw.card_radius_override == null ? null : number(raw.card_radius_override,13,4,28),
@@ -82,7 +86,7 @@ export const handler = (clientFactory=createClient,env=(key:string)=>Deno.env.ge
     if(roleError||!['admin','moderator'].includes(role)) return reply(403,{error:'Нет доступа к профилям пользователей.'})
     const input=await request.json()
     const target=String(input?.target_id||''),action=String(input?.action||'')
-    if(!uuid.test(target)||!['load','save','avatar'].includes(action)) return reply(400,{error:'Проверьте выбранный профиль.'})
+    if(!uuid.test(target)||!['load','save','avatar','asset'].includes(action)) return reply(400,{error:'Проверьте выбранный профиль.'})
     if(action!=='load'&&role!=='admin') return reply(403,{error:'Редактирование доступно только администратору.'})
     const {data:detail,error:detailError}=await caller.rpc('staff_detail',{target})
     if(detailError||!detail?.user||!detail?.profile) return reply(404,{error:'Профиль не найден.'})
@@ -95,16 +99,28 @@ export const handler = (clientFactory=createClient,env=(key:string)=>Deno.env.ge
       ])
       if(linksError||contactsError) return reply(500,{error:'Не удалось загрузить содержимое профиля.'})
       const profile=detail.profile
-      const [avatar,poster,master]=await Promise.all([
+      const [avatar,poster,master,background]=await Promise.all([
         profile.avatar_path?admin.storage.from('avatars').createSignedUrl(profile.avatar_path,3600):Promise.resolve(null),
         profile.avatar_poster_path?admin.storage.from('avatars').createSignedUrl(profile.avatar_poster_path,3600):Promise.resolve(null),
         profile.avatar_master_path?admin.storage.from('avatars').createSignedUrl(profile.avatar_master_path,3600):Promise.resolve(null),
+        profile.background_image_path?admin.storage.from('profile-assets').createSignedUrl(profile.background_image_path,3600):Promise.resolve(null),
       ])
-      return reply(200,{profile:{...profile,avatar_preview_url:avatar?.data?.signedUrl??null,avatar_master_url:master?.data?.signedUrl??null,avatar_poster_url:poster?.data?.signedUrl??null},links,contacts})
+      return reply(200,{profile:{...profile,background_image_url:background?.data?.signedUrl??null,avatar_preview_url:avatar?.data?.signedUrl??null,avatar_master_url:master?.data?.signedUrl??null,avatar_poster_url:poster?.data?.signedUrl??null},links,contacts})
+    }
+    if(action==='asset') {
+      if(typeof input.data!=='string'||input.data.length>2_000_000)return reply(400,{error:'Изображение слишком велико.'})
+      const bytes=Uint8Array.from(atob(input.data),c=>c.charCodeAt(0))
+      if(bytes.length>1_500_000||new TextDecoder().decode(bytes.slice(0,4))!=='RIFF'||new TextDecoder().decode(bytes.slice(8,12))!=='WEBP')return reply(400,{error:'Требуется обработанный WebP.'})
+      const path=`${target}/${crypto.randomUUID()}.webp`
+      const {error}=await admin.storage.from('profile-assets').upload(path,bytes,{contentType:'image/webp',upsert:false})
+      if(error)return reply(400,{error:'Не удалось загрузить изображение.'})
+      const {data:signed,error:signError}=await admin.storage.from('profile-assets').createSignedUrl(path,3600)
+      if(signError){await admin.storage.from('profile-assets').remove([path]);return reply(400,{error:'Не удалось подготовить изображение.'})}
+      return reply(200,{path,url:signed?.signedUrl})
     }
     if(action==='save') {
       if(!input.profile||!Array.isArray(input.links)||!Array.isArray(input.contacts)||input.links.length>500||input.contacts.length>100) return reply(400,{error:'Проверьте поля профиля.'})
-      const profile=formatProfile(input.profile,detail.profile.handle)
+      const profile=formatProfile(input.profile,detail.profile.handle,target)
       const links=input.links.map((raw:Record<string,unknown>,index:number)=>formatLink(raw,target,index))
       const contacts=input.contacts.map((raw:Record<string,unknown>,index:number)=>formatContact(raw,target,index))
       if(links.some((link:{label:string;icon_key:string})=>!link.label||!['link','website','instagram','youtube','telegram','tiktok','whatsapp','vk','facebook','x','onlyfans','email'].includes(link.icon_key))) return reply(400,{error:'Проверьте ссылки.'})

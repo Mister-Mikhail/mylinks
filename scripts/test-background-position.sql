@@ -20,14 +20,16 @@ reset role;
 -- The admin RPC saves crop fields and does not reset them for older payloads.
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000003',false);
-do $$ declare detail jsonb; payload jsonb; begin
+do $$ declare detail jsonb; payload jsonb; saved jsonb; begin
  detail:=moderation.detail('00000000-0000-4000-8000-000000000017');
  payload:=jsonb_build_object('profile',(detail->'profile')||jsonb_build_object('background_position_x',10,'background_position_y',90,'background_zoom',250),'links',detail->'links','contacts','[]'::jsonb);
  perform public.staff_save_profile('00000000-0000-4000-8000-000000000017',payload);
- if not exists(select 1 from public.profiles where id='00000000-0000-4000-8000-000000000017' and background_position_x=10 and background_position_y=90 and background_zoom=250)then raise exception 'Staff crop not saved';end if;
+ saved:=moderation.detail('00000000-0000-4000-8000-000000000017')->'profile';
+ if (saved->>'background_position_x')::integer is distinct from 10 or (saved->>'background_position_y')::integer is distinct from 90 or (saved->>'background_zoom')::integer is distinct from 250 then raise exception 'Staff crop not saved';end if;
  payload:=jsonb_set(payload,'{profile}',(payload->'profile')-'background_position_x'-'background_position_y'-'background_zoom');
  perform public.staff_save_profile('00000000-0000-4000-8000-000000000017',payload);
- if not exists(select 1 from public.profiles where id='00000000-0000-4000-8000-000000000017' and background_position_x=10 and background_position_y=90 and background_zoom=250)then raise exception 'Legacy staff client reset crop';end if;
+ saved:=moderation.detail('00000000-0000-4000-8000-000000000017')->'profile';
+ if (saved->>'background_position_x')::integer is distinct from 10 or (saved->>'background_position_y')::integer is distinct from 90 or (saved->>'background_zoom')::integer is distinct from 250 then raise exception 'Legacy staff client reset crop';end if;
 end $$;
 reset role;
 rollback;

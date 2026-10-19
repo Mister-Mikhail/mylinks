@@ -68,6 +68,12 @@ export interface ProfileLink {
   label_font_size?: number | null
   label_color?: string | null
   icon_key: LinkIcon
+  presentation?: 'normal' | 'featured'
+  image_path?: string | null
+  image_url?: string | null
+  image_alt?: string
+  image_position_x?: number
+  image_position_y?: number
   icon_snapshot_path?: string | null
   position: number
   is_visible: boolean

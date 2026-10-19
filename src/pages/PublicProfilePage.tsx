@@ -1,4 +1,4 @@
-import { signedImage } from '../lib/profileImages'
+import { publicImageUrl, signedImage } from '../lib/profileImages'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, LockKeyhole, RefreshCw } from 'lucide-react'
@@ -49,6 +49,8 @@ const clearCache = (handle: string) => {
 }
 
 const toEditable = (link: ProfileLink, handle?: string): EditableLink => ({
+  ...link,
+  image_url: handle ? publicImageUrl(handle,link.image_path) : link.image_url,
   id: link.id,
   profile_id: link.profile_id,
   localId: link.id,
@@ -143,7 +145,7 @@ const fetchPage = async (client: SupabaseClient, handle: string, reuse: AvatarRe
       avatar_poster_url: published ? assetUrls.avatar_poster_url : poster?.data?.signedUrl ?? null,
       avatar_master_poster_url: published ? assetUrls.avatar_master_poster_url : null,
     },
-    links: ((linksResult.data ?? []) as ProfileLink[]).map(link => toEditable(link, published ? handle : undefined)),
+    links: await Promise.all(((linksResult.data ?? []) as ProfileLink[]).map(async link => toEditable({...link,image_url:published?null:await signedImage(link.image_path)}, published ? handle : undefined))),
     contacts: ((contactsResult.data ?? []) as ProfileContact[]).map(toEditableContact),
   }
 }

@@ -9,4 +9,7 @@ check_profile_image(profile_image_path($bundle,'../../secret.webp')===null,'Trav
 check_profile_image(profile_image_path($bundle,'22222222-2222-4222-8222-222222222222.webp')===null,'Unreferenced file accepted');
 $bundle['profile']['is_published']=false;check_profile_image(profile_image_path($bundle,$asset)===null,'Private profile image public');
 $bundle['profile']['is_published']=true;$bundle['profile']['background_style']='preset';check_profile_image(profile_image_path($bundle,$asset)===null,'Inactive background public');
+$bundle['links']=array(array('profile_id'=>$id,'is_visible'=>true,'presentation'=>'featured','image_path'=>$id.'/'.$asset));
+check_profile_image(profile_image_path($bundle,$asset)===$id.'/'.$asset,'Featured image unavailable');
+$bundle['links'][0]['is_visible']=false;check_profile_image(profile_image_path($bundle,$asset)===null,'Hidden featured image public');
 echo "Profile image checks passed\n";

@@ -153,3 +153,4 @@ do $$ begin
 end $$;
 \i scripts/test-appearance-migrations.sql
 \i scripts/test-background-images.sql
+\i scripts/test-featured-images.sql

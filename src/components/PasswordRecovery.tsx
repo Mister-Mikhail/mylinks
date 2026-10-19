@@ -81,7 +81,19 @@ export function PasswordRecoveryForm() {
     if (password !== confirm) { setError('Пароли не совпадают.'); return }
     setBusy(true)
     const { error: updateError } = await supabase.auth.updateUser({ password })
-    if (updateError) setError('Не удалось изменить пароль. Ссылка могла истечь — запросите новую.')
+    if (updateError) {
+      if (updateError.code === 'same_password') {
+        setError('Новый пароль должен отличаться от текущего. Придумайте другой пароль.')
+      } else if (updateError.code === 'weak_password') {
+        setError('Пароль не соответствует требованиям безопасности. Выберите более сложный пароль.')
+      } else if (updateError.status === 429) {
+        setError('Слишком много попыток. Подождите минуту и повторите.')
+      } else if (updateError.status === 401 || ['session_expired', 'session_not_found', 'refresh_token_not_found', 'reauthentication_needed'].includes(updateError.code ?? '')) {
+        setError('Сеанс восстановления истёк. Запросите новое письмо.')
+      } else {
+        setError('Не удалось изменить пароль. Повторите попытку чуть позже.')
+      }
+    }
     else {
       const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' })
       if (signOutError) setError('Пароль изменён, но не удалось завершить другие сеансы. Повторите выход на других устройствах.')

@@ -757,6 +757,11 @@ a.profile-link:hover {
   transform: translateY(-2px);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .profile-link { transition: none; }
+  a.profile-link:hover { transform: none; }
+}
+
 .profile-link.card-glass {
   background: rgb(255 255 255 / calc(.1 * var(--card-alpha, 1)));
   border-color: rgba(255, 255, 255, 0.13);
@@ -771,12 +776,17 @@ a.profile-link:hover {
 
 .profile-link.card-solid {
   color: #17202c;
-  background: rgb(248 251 255 / calc(.92 * var(--card-alpha, 1)));
+  background: rgb(248 251 255 / calc(.88 + .04 * var(--card-alpha, 1)));
 }
+
+/* The preview renders links as buttons, so set the label's foreground explicitly. */
+.profile-link.card-solid .profile-link__label { color: #17202c; }
+.theme-mist .profile-link.card-solid .profile-link__label { color: #f7faff; }
 
 .theme-mist .profile-link.card-solid {
   color: #f7faff;
-  background: rgb(29 36 45 / calc(.88 * var(--card-alpha, 1)));
+  /* Keep white text readable at the minimum adjustable card opacity (60%). */
+  background: rgb(29 36 45 / calc(.60 + .28 * var(--card-alpha, 1)));
 }
 
 .profile-link.card-outline {

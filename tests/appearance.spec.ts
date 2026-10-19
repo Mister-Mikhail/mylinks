@@ -1,12 +1,13 @@
 import { expect, test, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
+import { FONT_OPTIONS } from '../src/lib/typography'
 
-export async function mockAppearance(page: Page, failUpload = false) {
+export async function mockAppearance(page: Page, failUpload = false, displayName = 'Тестовый профиль') {
   const id = '00000000-0000-4000-8000-000000000001'
   const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: id, exp: 2100000000, role: 'authenticated' })).toString('base64url')}.signature`
   await page.addInitScript(({ id, token }) => localStorage.setItem('sb-loykiawbqdkitndqkegk-auth-token', JSON.stringify({ access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user: { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' } })), { id, token })
-  let profile = { id, handle: 'sample-user', display_name: 'Тестовый профиль', bio: 'Мои проекты', avatar_url: null, avatar_path: null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
-  let linkRows = [{ id: 'link-test', profile_id: id, label: 'Мой сайт', url: 'https://example.com', icon_key: 'website', position: 0, is_visible: true, is_sensitive: false, label_font: null as string | null, label_font_size: null as number | null, label_color: null as string | null }]
+  let profile = { id, handle: 'sample-user', display_name: displayName, bio: 'Мои проекты', avatar_url: null, avatar_path: null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
+  let links: Record<string, unknown>[] = [{ id: 'link-test', profile_id: id, label: 'Мой сайт', url: 'https://example.com', icon_key: 'website', position: 0, is_visible: true, is_sensitive: false }]
   const patches: Record<string, unknown>[] = []
   const uploads: Buffer[] = []
   let savedImage: Buffer | null = null
@@ -25,17 +26,13 @@ export async function mockAppearance(page: Page, failUpload = false) {
     const request = route.request()
     const name = new URL(request.url()).pathname.split('/').pop()
     if (name === 'staff_role') return route.fulfill({ contentType: 'application/json', body: 'null' })
-    if (name === 'profile_links' && request.method() === 'POST') {
-      const rows = request.postDataJSON() as typeof linkRows
-      linkRows = rows.map((row, index) => ({ ...row, id: row.id || `link-${index}` }))
-      return route.fulfill({ contentType: 'application/json', body: '[]' })
-    }
     if (name === 'profiles' && request.method() === 'PATCH') {
       const patch = request.postDataJSON()
       patches.push(patch); profile = { ...profile, ...patch }
       return route.fulfill({ status: 204 })
     }
-    const data = name === 'profiles' ? profile : name === 'profile_links' ? linkRows : []
+    if (name === 'profile_links' && request.method() === 'POST') { links = request.postDataJSON(); return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(links) }) }
+    const data = name === 'profiles' ? profile : name === 'profile_links' ? links : []
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify(data) })
   })
   await page.route('**/storage/v1/**', async route => {
@@ -180,6 +177,58 @@ test('font changed in Appearance survives reload and appears on the profile page
   await expect(page.locator('.public-preview-page h1')).toHaveCSS('font-family', /Georgia/)
 })
 
+test('all 15 font choices persist after reload for Cyrillic and Latin text', async ({ page }) => {
+  test.setTimeout(120_000)
+  await mockAppearance(page, false, 'Кириллица Latin')
+  const font = page.getByLabel('Шрифт: Имя', { exact: true })
+  for (const option of FONT_OPTIONS) {
+    await font.selectOption(option.value)
+    await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+    await expect(page.getByText('Изменения сохранены')).toBeVisible()
+    await page.reload()
+    await page.getByRole('button', { name: 'Оформление', exact: true }).click()
+    await expect(page.getByLabel('Шрифт: Имя', { exact: true })).toHaveValue(option.value)
+    await expect(page.locator('.preview-panel h1')).toHaveCSS('font-family', new RegExp(option.family.split(',')[0].replaceAll("'", '')))
+    await expect(page.locator('.preview-panel h1')).toHaveText('Кириллица Latin')
+    const family = option.family.split(',')[0].replaceAll("'", '').trim()
+    const loaded = await page.evaluate(async family => {
+      const faces = await document.fonts.load(`400 21px "${family}"`, 'Кириллица Latin')
+      return faces.filter(face => face.status === 'loaded').length
+    }, family)
+    expect(loaded, `${option.value}: both Cyrillic and Latin subsets load`).toBeGreaterThanOrEqual(2)
+  }
+})
+
+test('per-card padding, border and opacity survive reload without changing the old default', async ({ page }) => {
+  await mockAppearance(page)
+  const card = page.locator('.preview-panel .profile-link').first()
+  await expect(card).toHaveCSS('padding-left', '12px')
+  await card.click()
+  await page.getByText('Дополнительные настройки', { exact: true }).last().click()
+  await page.getByLabel('Отступ этой карточки').fill('20')
+  await page.getByLabel('Толщина рамки этой карточки').fill('2')
+  await page.getByLabel('Плотность подложки этой карточки').fill('80')
+  await expect(card).toHaveCSS('padding-left', '20px')
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
+  await expect(page.getByText('Изменения сохранены')).toBeVisible()
+  await page.reload()
+  await page.goto('/sample-user')
+  await expect(page.locator('.public-preview-page .profile-link').first()).toHaveCSS('padding-left', '20px')
+})
+
+test('public cards remain tappable at 320px and honor reduced motion', async ({ page }) => {
+  await mockAppearance(page)
+  await page.setViewportSize({ width: 320, height: 640 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/sample-user')
+  const card = page.locator('.public-preview-page .profile-link').first()
+  const box = await card.boundingBox()
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  const duration = await card.evaluate(node => parseFloat(getComputedStyle(node).transitionDuration))
+  expect(duration).toBeLessThanOrEqual(0.001)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
+})
+
 test('inline crop supports positioning, zoom and cancelling without uploading', async ({ page }) => {
   const { uploads, pageErrors } = await mockAppearance(page)
   await selectPhoto(page)
@@ -255,6 +304,91 @@ test('preview stays pinned on small portrait and landscape phones', async ({ pag
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
     await expect(page.getByRole('button', { name: 'Сохранить', exact: true })).toBeVisible()
   }
+})
+
+
+test('default card text maintains accessible contrast across themes, presets and minimum opacity', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await mockAppearance(page)
+  await page.getByText('Дополнительные настройки карточек').click()
+  await page.getByLabel('Плотность подложки карточек').fill('60')
+  const themes = [
+    { label: 'Полночь', stops: ['#152234', '#0b101a', '#111421'] },
+    { label: 'Туман', stops: ['#e7e3dc', '#d6dce0', '#c7d4da'] },
+    { label: 'Кобальт', stops: ['#193c6d', '#102948', '#091725'] },
+  ]
+  const presets = ['Стекло', 'Плотные', 'Контур']
+  const rgb = (hex: string) => [1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16))
+  const luminance = (values: number[]) => {
+    const linear = values.map(channel => {
+      const value = channel / 255
+      return value <= 0.04045 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4)
+    })
+    return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722
+  }
+  const contrast = (foreground: number[], background: number[]) => {
+    const [higher, lower] = [luminance(foreground), luminance(background)].sort((a, b) => b - a)
+    return (higher + 0.05) / (lower + 0.05)
+  }
+  for (const theme of themes) {
+    await page.getByRole('button', { name: theme.label, exact: true }).click()
+    await expect(page.locator('.preview-panel .profile-card')).toHaveClass(new RegExp(`theme-${({ 'Полночь': 'midnight', 'Туман': 'mist', 'Кобальт': 'cobalt' } as Record<string, string>)[theme.label]}`))
+    for (const preset of presets) {
+      await page.getByRole('button', { name: preset, exact: true }).click()
+      await expect(page.locator('.preview-panel .profile-link').first()).toHaveClass(new RegExp(`card-${({ 'Стекло': 'glass', 'Плотные': 'solid', 'Контур': 'outline' } as Record<string, string>)[preset]}`))
+      // Class changes can precede the next painted computed-color update.
+      // Wait for the actual contrast requirement; a persistent failure still fails.
+      await expect(async () => {
+        const styles = await page.locator('.preview-panel .profile-link').first().evaluate(element => {
+          const card = getComputedStyle(element)
+          const label = getComputedStyle(element.querySelector('.profile-link__label')!)
+          const rgba = (color: string) => {
+            const canvas = document.createElement('canvas')
+            canvas.width = canvas.height = 1
+            const context = canvas.getContext('2d')!
+            context.fillStyle = color
+            context.fillRect(0, 0, 1, 1)
+            return Array.from(context.getImageData(0, 0, 1, 1).data)
+          }
+          return { background: rgba(card.backgroundColor), foreground: rgba(label.color) }
+        })
+        const bg = styles.background
+        const fg = styles.foreground
+        const alpha = bg[3] / 255
+        for (const stop of theme.stops) {
+          const backing = rgb(stop)
+          const composited = backing.map((channel, i) => bg[i] * alpha + channel * (1 - alpha))
+          expect(contrast(fg, composited), `${theme.label} / ${preset} over ${stop}; fg=${fg.join(',')} bg=${bg.join(',')}`).toBeGreaterThanOrEqual(4.5)
+        }
+      }).toPass({ timeout: 5000 })
+    }
+  }
+})
+
+
+test('capture typography and card preset visual matrix for desktop and mobile review', async ({ page }, testInfo) => {
+  test.setTimeout(120_000)
+  await mockAppearance(page, false, 'Кириллица Latin')
+  const control = page.getByLabel('Шрифт: Имя', { exact: true })
+  const card = page.locator('.preview-panel .profile-card')
+  for (const font of FONT_OPTIONS) {
+    await control.selectOption(font.value)
+    await expect(page.locator('.preview-panel h1')).toHaveCSS('font-family', new RegExp(font.family.split(',')[0].replaceAll("'", '')))
+    await page.evaluate(() => document.fonts.ready.then(() => true))
+    await card.screenshot({ path: testInfo.outputPath(`font-${font.value}.png`) })
+  }
+  await control.selectOption('manrope')
+  await expect(page.locator('.preview-panel h1')).toHaveCSS('font-family', /Manrope/)
+  for (const theme of ['Полночь', 'Туман', 'Кобальт']) {
+    await page.getByRole('button', { name: theme, exact: true }).click()
+    await expect(card).toHaveClass(new RegExp(`theme-${({ 'Полночь': 'midnight', 'Туман': 'mist', 'Кобальт': 'cobalt' } as Record<string, string>)[theme]}`))
+    for (const preset of ['Стекло', 'Плотные', 'Контур']) {
+      await page.getByRole('button', { name: preset, exact: true }).click()
+      await expect(card.locator('.profile-link').first()).toHaveClass(new RegExp(`card-${({ 'Стекло': 'glass', 'Плотные': 'solid', 'Контур': 'outline' } as Record<string, string>)[preset]}`))
+      await card.screenshot({ path: testInfo.outputPath(`card-${theme}-${preset}.png`) })
+    }
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
 

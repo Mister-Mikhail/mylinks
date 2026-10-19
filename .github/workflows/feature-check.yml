@@ -13,6 +13,28 @@ env:
   IS_PR: 'true'
 
 jobs:
+  registration_db:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test registration and appearance migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          command -v psql || { sudo apt-get update -qq && sudo apt-get install -y postgresql-client; }
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f scripts/test-registration-migration.sql
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -24,3 +46,11 @@ jobs:
           cache: npm
       - name: Lint, build, PHP and desktop/mobile e2e
         run: bash scripts/ci.sh
+      - name: Preserve desktop and mobile appearance screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appearance-visual-matrix
+          path: test-results/**/*.png
+          if-no-files-found: ignore
+          retention-days: 7

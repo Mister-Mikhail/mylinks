@@ -9,7 +9,7 @@ export function appearanceStyle(profile: Profile): CSSProperties {
   const background = profile.background_style === 'solid' ? primary : profile.background_style === 'gradient' ? `linear-gradient(155deg, ${primary}, ${secondary})` : undefined
   const padding = Math.min(24, Math.max(8, Number(profile.card_padding) || 12))
   const border = Math.min(3, Math.max(0, Number(profile.card_border_width ?? 1)))
-  const opacity = Math.min(100, Math.max(20, Number(profile.card_opacity) || 100))
+  const opacity = Math.min(100, Math.max(60, Number(profile.card_opacity) || 100))
   return { '--card-radius': `${Math.min(28, Math.max(4, profile.card_radius ?? 13))}px`, '--card-padding': `${padding}px`, '--card-border-width': `${border}px`, '--card-alpha': opacity / 100, ...(background ? { background } : {}) } as CSSProperties
 }
 

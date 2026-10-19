@@ -1,0 +1,547 @@
+{
+  "schemaVersion": 1,
+  "verifiedOn": "2026-10-19",
+  "method": "Byte-for-byte comparison with the named files in the pinned npm tarballs; licenses compared with package/LICENSE. No font binaries modified.",
+  "packages": [
+    {
+      "package": "@fontsource/manrope",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/manrope/-/manrope-5.3.0.tgz",
+      "tarballSha256": "c783757a5bf3b7613ef19b24f54bab85dbdea1c2b2498daaa3655ee0711623de",
+      "files": [
+        {
+          "file": "manrope-cyrillic-700-normal.2ad647b9.woff2",
+          "source": "package/files/manrope-cyrillic-700-normal.woff2",
+          "sha256": "2ad647b9159d27d27f4999b30598f92e60449fb20d80803bc7b85afafbb446d5"
+        },
+        {
+          "file": "manrope-cyrillic-400-normal.5a987d14.woff2",
+          "source": "package/files/manrope-cyrillic-400-normal.woff2",
+          "sha256": "5a987d1484070f1ea54de7c10ebfa4057a18e379361dbe5fd5c4fa4c2d95ef39"
+        },
+        {
+          "file": "manrope-latin-700-normal.d2a12c85.woff2",
+          "source": "package/files/manrope-latin-700-normal.woff2",
+          "sha256": "d2a12c85a831e4b5db341767d0347fa3d1361d22a1fcb3e361a16b6c90080f71"
+        },
+        {
+          "file": "manrope-latin-400-normal.849290ef.woff2",
+          "source": "package/files/manrope-latin-400-normal.woff2",
+          "sha256": "849290ef12a2eeb9af5c11924120d11aa4ae8b435ed3347d7fc8bc240c293ca3"
+        }
+      ],
+      "license": {
+        "file": "manrope-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "d826ab6583b12c26807d8716a545bdbbb672df04f48608a364ba9efdbe501c30"
+      }
+    },
+    {
+      "package": "@fontsource/arimo",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/arimo/-/arimo-5.3.0.tgz",
+      "tarballSha256": "df44945077a74905969f15bba3b442f9fb6773818b2b59c970911deace01132f",
+      "files": [
+        {
+          "file": "arimo-cyrillic-700-normal.9bd0b404.woff2",
+          "source": "package/files/arimo-cyrillic-700-normal.woff2",
+          "sha256": "9bd0b4043023f2ac73538b93700efdc0c4e3a4b73a8a3e2af6cce5b6ee388425"
+        },
+        {
+          "file": "arimo-latin-700-normal.181215e0.woff2",
+          "source": "package/files/arimo-latin-700-normal.woff2",
+          "sha256": "181215e08de9ce411e8c9e628eea6ea8bfa45de2a955ee57fc970dd8a080a3f6"
+        },
+        {
+          "file": "arimo-latin-400-normal.c1f056f5.woff2",
+          "source": "package/files/arimo-latin-400-normal.woff2",
+          "sha256": "c1f056f51c99a65aca53a0a80e71e67916dd7a8ed2423cd11f52193241440b20"
+        },
+        {
+          "file": "arimo-cyrillic-400-normal.88f37d27.woff2",
+          "source": "package/files/arimo-cyrillic-400-normal.woff2",
+          "sha256": "88f37d27f1d9544d18ecd1439cbfce2fde3c47503dcb5c0937ed40245c69c018"
+        }
+      ],
+      "license": {
+        "file": "arimo-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "ee316340ba281306a746941edde09288dda2438879b2f30ed8ef914ec0b9079e"
+      }
+    },
+    {
+      "package": "@fontsource/pt-sans",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/pt-sans/-/pt-sans-5.3.0.tgz",
+      "tarballSha256": "cbec3ad81a400a5398612dc77dda7416b40135950931819b4eee1e2c133a360e",
+      "files": [
+        {
+          "file": "pt-sans-cyrillic-700-normal.05795f79.woff2",
+          "source": "package/files/pt-sans-cyrillic-700-normal.woff2",
+          "sha256": "05795f7954ba178292fce413dc9ac82838415d4d6f7e6afbce2eeefa34f461d1"
+        },
+        {
+          "file": "pt-sans-latin-700-normal.05ea99a4.woff2",
+          "source": "package/files/pt-sans-latin-700-normal.woff2",
+          "sha256": "05ea99a48ece3c624fd9df15f5cf4e1d94703bde9ed2b384495900f55e28befe"
+        },
+        {
+          "file": "pt-sans-latin-400-normal.2dea6190.woff2",
+          "source": "package/files/pt-sans-latin-400-normal.woff2",
+          "sha256": "2dea6190c113af617923c6b71f7f10ffbdf72074556f79963610254fe40e49be"
+        },
+        {
+          "file": "pt-sans-cyrillic-400-normal.f283e584.woff2",
+          "source": "package/files/pt-sans-cyrillic-400-normal.woff2",
+          "sha256": "f283e584f001db04b39f339e859454a205c431c576c6a33af9259e54415db1bd"
+        }
+      ],
+      "license": {
+        "file": "pt-sans-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "7891a86f2a41025e4ee327e3542e2499d9ac71f9adaf3411731480c03ef8ed58"
+      }
+    },
+    {
+      "package": "@fontsource/comfortaa",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/comfortaa/-/comfortaa-5.3.0.tgz",
+      "tarballSha256": "5c82d14fe6efc746213748a2835b7aa7b6e07409f1611eaee52eb25e0bdfcca6",
+      "files": [
+        {
+          "file": "comfortaa-latin-700-normal.ed9f328c.woff2",
+          "source": "package/files/comfortaa-latin-700-normal.woff2",
+          "sha256": "ed9f328cf6aaa4c14dfb464d215e8a0d8d56b675a72fb601b819e95a1cb4e45d"
+        },
+        {
+          "file": "comfortaa-latin-400-normal.4e86e54d.woff2",
+          "source": "package/files/comfortaa-latin-400-normal.woff2",
+          "sha256": "4e86e54d50483956c59a01b5b671b6807fa7235d94e5716cffc5cf390544b1bc"
+        },
+        {
+          "file": "comfortaa-cyrillic-700-normal.52a4b41d.woff2",
+          "source": "package/files/comfortaa-cyrillic-700-normal.woff2",
+          "sha256": "52a4b41d6e1704b770c77ecdd2b3890b7b3dc9da7fd32e731e8607b6f29b1539"
+        },
+        {
+          "file": "comfortaa-cyrillic-400-normal.7d09133b.woff2",
+          "source": "package/files/comfortaa-cyrillic-400-normal.woff2",
+          "sha256": "7d09133bbe5687a951c29ab1f4130e89c3041e63e39f9fa2fecbbc1bd4592aab"
+        }
+      ],
+      "license": {
+        "file": "comfortaa-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "c89ab37b152eaa07dc5e8d100d6ffb968226a0c4988bdff16a97e73174e9c77c"
+      }
+    },
+    {
+      "package": "@fontsource/lora",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/lora/-/lora-5.3.0.tgz",
+      "tarballSha256": "3f2e66b0934b8652bb1a37645a9fc3e77e83b5841a09e97174e7bb11e11063c9",
+      "files": [
+        {
+          "file": "lora-cyrillic-400-normal.d1f41090.woff2",
+          "source": "package/files/lora-cyrillic-400-normal.woff2",
+          "sha256": "d1f41090bba5100d2857cf974e2ae542d4be61556febbb2b5afd072c2e42fdea"
+        },
+        {
+          "file": "lora-latin-700-normal.c05fd528.woff2",
+          "source": "package/files/lora-latin-700-normal.woff2",
+          "sha256": "c05fd5289492ed310ed882259b944ca5287e76e572a65d92d3941f9f44f0342a"
+        },
+        {
+          "file": "lora-latin-400-normal.ac079950.woff2",
+          "source": "package/files/lora-latin-400-normal.woff2",
+          "sha256": "ac079950fd9885261c0f73d9e87233f31b5427333ce0eb20e26c119458493c40"
+        },
+        {
+          "file": "lora-cyrillic-700-normal.f0550b4d.woff2",
+          "source": "package/files/lora-cyrillic-700-normal.woff2",
+          "sha256": "f0550b4dae0b9c17427d61f42edd6b5f44b1b7b0aca53788505fe1dce5c3a022"
+        }
+      ],
+      "license": {
+        "file": "lora-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "948aed765160f7b974105606c21994715a171f89fca48e57bf1e0a23aca0bef1"
+      }
+    },
+    {
+      "package": "@fontsource/roboto-mono",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/roboto-mono/-/roboto-mono-5.3.0.tgz",
+      "tarballSha256": "9825f59e72dab7ef3f96e6af79407d97844ba50927ae57f2c9c60199daa9ef62",
+      "files": [
+        {
+          "file": "roboto-mono-cyrillic-400-normal.e3e9abf6.woff2",
+          "source": "package/files/roboto-mono-cyrillic-400-normal.woff2",
+          "sha256": "e3e9abf60b61dbf89160e8ad6cbc60ba0116a6d7297f5173c787aaeb6a6772dc"
+        },
+        {
+          "file": "roboto-mono-latin-400-normal.e03013e0.woff2",
+          "source": "package/files/roboto-mono-latin-400-normal.woff2",
+          "sha256": "e03013e0baa5690a803c188da2214d920c3245b25ad78421ecc8ae86cd842ae9"
+        },
+        {
+          "file": "roboto-mono-cyrillic-700-normal.cdc3adef.woff2",
+          "source": "package/files/roboto-mono-cyrillic-700-normal.woff2",
+          "sha256": "cdc3adef34f3d5d51ccbd1e93cee04e902412e5e70b4ed7bbe224f8eefe79594"
+        },
+        {
+          "file": "roboto-mono-latin-700-normal.283fbef7.woff2",
+          "source": "package/files/roboto-mono-latin-700-normal.woff2",
+          "sha256": "283fbef73f42c21722c5a3efc7a44b0c38aac1ada665602b2144c13ed58c0e99"
+        }
+      ],
+      "license": {
+        "file": "roboto-mono-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "b489132782690f2cc1ed23ab56d7057bbb08c42573603e8e704ae2e2ea9c8216"
+      }
+    },
+    {
+      "package": "@fontsource/oswald",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/oswald/-/oswald-5.3.0.tgz",
+      "tarballSha256": "27bf46420288bb65bd186638cde54686aa8f9d5dc975b1d597dfe81a7dd472cb",
+      "files": [
+        {
+          "file": "oswald-latin-700-normal.aae665c7.woff2",
+          "source": "package/files/oswald-latin-700-normal.woff2",
+          "sha256": "aae665c75af89ea7cb7d8ccc8b0911ea72267442ebcd84f6e3efa041ad3b3c16"
+        },
+        {
+          "file": "oswald-latin-ext-700-normal.ceb8c34b.woff2",
+          "source": "package/files/oswald-latin-ext-700-normal.woff2",
+          "sha256": "ceb8c34b47b9e706ebbb402ca2db8055adea563a417590090bd5ac42df3c8272"
+        },
+        {
+          "file": "oswald-latin-400-normal.e902b779.woff2",
+          "source": "package/files/oswald-latin-400-normal.woff2",
+          "sha256": "e902b779e43944c300cf8ae5e4a1affa68cb8a823fd263dd2f479c4cdfbd213c"
+        },
+        {
+          "file": "oswald-cyrillic-700-normal.92867238.woff2",
+          "source": "package/files/oswald-cyrillic-700-normal.woff2",
+          "sha256": "92867238f947d9b25b2d22c0ef38916e10824f5482f6ba078190738e392c1246"
+        },
+        {
+          "file": "oswald-cyrillic-400-normal.8969c189.woff2",
+          "source": "package/files/oswald-cyrillic-400-normal.woff2",
+          "sha256": "8969c189009d0e762aa38db38976c580610d20132e743403ce0b109c8b39781d"
+        },
+        {
+          "file": "oswald-latin-ext-400-normal.6d476422.woff2",
+          "source": "package/files/oswald-latin-ext-400-normal.woff2",
+          "sha256": "6d476422160d95b77d171000b7e8cc5cfd42f1dcb8f89b4d6350c8631a5fe0a3"
+        },
+        {
+          "file": "oswald-cyrillic-ext-700-normal.cb6d7f88.woff2",
+          "source": "package/files/oswald-cyrillic-ext-700-normal.woff2",
+          "sha256": "cb6d7f885adb04f3c7790676b7caaacd5b95b1ce5acb8bd381a390fd24ae7e95"
+        },
+        {
+          "file": "oswald-cyrillic-ext-400-normal.fac8c544.woff2",
+          "source": "package/files/oswald-cyrillic-ext-400-normal.woff2",
+          "sha256": "fac8c544a5f6e47e8ccd2329bc77a674effa60f9a37bab4ac6c8549ce18ab7ba"
+        }
+      ],
+      "license": {
+        "file": "oswald-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "23916cdee678823c3c517c699cb2e043088de0d46c959eeaa168b54bb84534df"
+      }
+    },
+    {
+      "package": "@fontsource/cormorant-garamond",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/cormorant-garamond/-/cormorant-garamond-5.3.0.tgz",
+      "tarballSha256": "7b6b3f770ae98dcef57acf5a24af08904cadd14f34beef58cf0248c06ae93cc7",
+      "files": [
+        {
+          "file": "cormorant-garamond-latin-400-normal.8048ac20.woff2",
+          "source": "package/files/cormorant-garamond-latin-400-normal.woff2",
+          "sha256": "8048ac209bec741e1c29cd0cfac5aac1c0c2ba8c3ddbd4a58fa9bd92ef5c63c2"
+        },
+        {
+          "file": "cormorant-garamond-cyrillic-ext-400-normal.02a3bbfd.woff2",
+          "source": "package/files/cormorant-garamond-cyrillic-ext-400-normal.woff2",
+          "sha256": "02a3bbfd23dfcfac40ad87d8954078cd96f8a85e661fc73617245fe06d2aa4ea"
+        },
+        {
+          "file": "cormorant-garamond-cyrillic-ext-700-normal.6d9b0d3a.woff2",
+          "source": "package/files/cormorant-garamond-cyrillic-ext-700-normal.woff2",
+          "sha256": "6d9b0d3a9279cbfc9618627fc2cbbbcfd2c61c42c857ff1c9c2e9b66dcc2285f"
+        },
+        {
+          "file": "cormorant-garamond-latin-ext-400-normal.375a0887.woff2",
+          "source": "package/files/cormorant-garamond-latin-ext-400-normal.woff2",
+          "sha256": "375a088756d1cb10eb91a9a7de18ad5e9858689abe76496dd78e560fef0bbebb"
+        },
+        {
+          "file": "cormorant-garamond-latin-ext-700-normal.f6cf9ae2.woff2",
+          "source": "package/files/cormorant-garamond-latin-ext-700-normal.woff2",
+          "sha256": "f6cf9ae2417875c056a91df3669b14099da0a004ed66460324208d3541e7fa86"
+        },
+        {
+          "file": "cormorant-garamond-latin-700-normal.21a0fc1c.woff2",
+          "source": "package/files/cormorant-garamond-latin-700-normal.woff2",
+          "sha256": "21a0fc1c5c22708cf4aa0c147fd32982e25bf9e21efec0ca31a4495ba41753eb"
+        },
+        {
+          "file": "cormorant-garamond-cyrillic-400-normal.0d23162e.woff2",
+          "source": "package/files/cormorant-garamond-cyrillic-400-normal.woff2",
+          "sha256": "0d23162e67528fdc5fe1b12bedc525a69bbdc86d5d9f3c2ee9e9ee459934ecd4"
+        },
+        {
+          "file": "cormorant-garamond-cyrillic-700-normal.a767c1a1.woff2",
+          "source": "package/files/cormorant-garamond-cyrillic-700-normal.woff2",
+          "sha256": "a767c1a110fa77514eda50ac2f962e92f99db4b8760c2bea2a6c04cbdf9b02aa"
+        }
+      ],
+      "license": {
+        "file": "cormorant-garamond-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "732f37009943e7f4378cf37113c9bcc4716af002a8583511aa91ed5d37683e73"
+      }
+    },
+    {
+      "package": "@fontsource/caveat",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/caveat/-/caveat-5.3.0.tgz",
+      "tarballSha256": "ebf746fc0667b9d10fcac7c8604e2ba40a264da85a1c9b48bd679c0af3221293",
+      "files": [
+        {
+          "file": "caveat-latin-700-normal.15f96380.woff2",
+          "source": "package/files/caveat-latin-700-normal.woff2",
+          "sha256": "15f9638095ad5ec9816f93d66805ca1a87e71dc5a76b596bfce1c78d4704c405"
+        },
+        {
+          "file": "caveat-latin-400-normal.d0b7b931.woff2",
+          "source": "package/files/caveat-latin-400-normal.woff2",
+          "sha256": "d0b7b931b8980049327e8f8f9ac264617c8200b8422d62e886473d3d9527bad3"
+        },
+        {
+          "file": "caveat-cyrillic-ext-400-normal.e7c8e365.woff2",
+          "source": "package/files/caveat-cyrillic-ext-400-normal.woff2",
+          "sha256": "e7c8e365f1a0a6007e73674d612e1b551fb5b5e10b94e35e4ef4e3c09dbffe15"
+        },
+        {
+          "file": "caveat-latin-ext-700-normal.f97b5578.woff2",
+          "source": "package/files/caveat-latin-ext-700-normal.woff2",
+          "sha256": "f97b55783e417e37fce40600ad946b11eb63741a1cfdb2cd3907febc3cd8927f"
+        },
+        {
+          "file": "caveat-cyrillic-ext-700-normal.86435748.woff2",
+          "source": "package/files/caveat-cyrillic-ext-700-normal.woff2",
+          "sha256": "864357482c9ec9755f8e017c02145e73cdfde7ace3b892ea87bc9a62052a66a6"
+        },
+        {
+          "file": "caveat-cyrillic-400-normal.33a1c801.woff2",
+          "source": "package/files/caveat-cyrillic-400-normal.woff2",
+          "sha256": "33a1c801a15c858423970f7039957bde1a1eaf481e6e2872eb327d3b1e68401b"
+        },
+        {
+          "file": "caveat-cyrillic-700-normal.55a5d86e.woff2",
+          "source": "package/files/caveat-cyrillic-700-normal.woff2",
+          "sha256": "55a5d86e697f210278f3a6eab12abf30c73d19e097e98738150562be0bfd58ab"
+        },
+        {
+          "file": "caveat-latin-ext-400-normal.b887f256.woff2",
+          "source": "package/files/caveat-latin-ext-400-normal.woff2",
+          "sha256": "b887f256176087e22d2374d634ba7d1e9def523bc02babe2eca3efa25b32ecd7"
+        }
+      ],
+      "license": {
+        "file": "caveat-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "163a2b400e16916ad3196296c946c526d0efce6baf22a2164269ffc62fb9f671"
+      }
+    },
+    {
+      "package": "@fontsource/marck-script",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/marck-script/-/marck-script-5.3.0.tgz",
+      "tarballSha256": "c4e6f14fd3736ec94a872db215192ea7dea04f1315df1385b451c153510575da",
+      "files": [
+        {
+          "file": "marck-script-latin-ext-400-normal.0b81e24d.woff2",
+          "source": "package/files/marck-script-latin-ext-400-normal.woff2",
+          "sha256": "0b81e24db3e626c58446fc2ea58dbeaa5d4edb219856afe36ad902c95248d18d"
+        },
+        {
+          "file": "marck-script-cyrillic-400-normal.457f5ae9.woff2",
+          "source": "package/files/marck-script-cyrillic-400-normal.woff2",
+          "sha256": "457f5ae9dd211fb276e605a4ce3ecb35cbe1aee8bb1a54698c81d7834873ed06"
+        },
+        {
+          "file": "marck-script-latin-400-normal.b32acf77.woff2",
+          "source": "package/files/marck-script-latin-400-normal.woff2",
+          "sha256": "b32acf77642711e18c14d57aabeefa02ee25664a7f40929ee5f72396557b6e76"
+        }
+      ],
+      "license": {
+        "file": "marck-script-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "bc79b2867a4357a57c3aaf112545723516083d022d2675d5af22b3e06090b07c"
+      }
+    },
+    {
+      "package": "@fontsource/lobster",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/lobster/-/lobster-5.3.0.tgz",
+      "tarballSha256": "4ac6f6ab805b684026cb719f55dd605c892ca5d1db3f32fca88ca554a63b86d7",
+      "files": [
+        {
+          "file": "lobster-latin-400-normal.aed68c73.woff2",
+          "source": "package/files/lobster-latin-400-normal.woff2",
+          "sha256": "aed68c73817364906ff95d97be87246d106bd38d5e4397e4866ec831ee22f7ba"
+        },
+        {
+          "file": "lobster-cyrillic-ext-400-normal.b306ff4a.woff2",
+          "source": "package/files/lobster-cyrillic-ext-400-normal.woff2",
+          "sha256": "b306ff4a03b57d52960c21b0e741620417368794b61e358713fc86cfca41a55d"
+        },
+        {
+          "file": "lobster-latin-ext-400-normal.51a1f5b2.woff2",
+          "source": "package/files/lobster-latin-ext-400-normal.woff2",
+          "sha256": "51a1f5b28cbdc742ecaeeabf5fed74d0446b0b1cebdd6bbf6cd93ecc36b16629"
+        },
+        {
+          "file": "lobster-cyrillic-400-normal.738fd39c.woff2",
+          "source": "package/files/lobster-cyrillic-400-normal.woff2",
+          "sha256": "738fd39c3bd07649e0bceb56a847ce07c736799e7212c6570c3644d68188012b"
+        }
+      ],
+      "license": {
+        "file": "lobster-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "73e006e6fc23df5f07e0976d78d49c94aece9ce90cdb2522279a6d79eaa7bbd3"
+      }
+    },
+    {
+      "package": "@fontsource/pacifico",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/pacifico/-/pacifico-5.3.0.tgz",
+      "tarballSha256": "397f4f0a8a4c44e929cafa4cfede7240f7ac81a922f6779d3fefe2192c67d619",
+      "files": [
+        {
+          "file": "pacifico-cyrillic-400-normal.22689c75.woff2",
+          "source": "package/files/pacifico-cyrillic-400-normal.woff2",
+          "sha256": "22689c7581814d097871b0aa7548c33bbde2fcbeccbf6b6709c6ce408c2fd500"
+        },
+        {
+          "file": "pacifico-latin-ext-400-normal.0e2fe23a.woff2",
+          "source": "package/files/pacifico-latin-ext-400-normal.woff2",
+          "sha256": "0e2fe23a0a87bf572e6463b29ea7782e1898d87d6399698ad9fb40b676e13758"
+        },
+        {
+          "file": "pacifico-latin-400-normal.99ec044a.woff2",
+          "source": "package/files/pacifico-latin-400-normal.woff2",
+          "sha256": "99ec044ad9040a708e38f90ebd5984ca03fc46afeee26d5c77c4769c66ed89e2"
+        },
+        {
+          "file": "pacifico-cyrillic-ext-400-normal.566fd760.woff2",
+          "source": "package/files/pacifico-cyrillic-ext-400-normal.woff2",
+          "sha256": "566fd7603618daf7f459e309910de11bb292ef73a775142358c55bfcde43358a"
+        }
+      ],
+      "license": {
+        "file": "pacifico-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "e1b964e3f56697598c46363a8864f0a7b883c86a0c01a9a6a4e90e6949d60ba2"
+      }
+    },
+    {
+      "package": "@fontsource/ruslan-display",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/ruslan-display/-/ruslan-display-5.3.0.tgz",
+      "tarballSha256": "03dc39276653826bed1063bf5eab5b67aff903f3a124f26b70115220f80be0d5",
+      "files": [
+        {
+          "file": "ruslan-display-latin-ext-400-normal.3d07c6d7.woff2",
+          "source": "package/files/ruslan-display-latin-ext-400-normal.woff2",
+          "sha256": "3d07c6d7948cf9ff821b9b07231f16bac8d6e987185329767a5b9af67e1e05a0"
+        },
+        {
+          "file": "ruslan-display-cyrillic-400-normal.70d5c7cb.woff2",
+          "source": "package/files/ruslan-display-cyrillic-400-normal.woff2",
+          "sha256": "70d5c7cbe04ffacfaa5215edbf04620ecfbdbfb0c4c8dc63ba9e8e63591e745c"
+        },
+        {
+          "file": "ruslan-display-latin-400-normal.7d8dc742.woff2",
+          "source": "package/files/ruslan-display-latin-400-normal.woff2",
+          "sha256": "7d8dc742e753a0680ee4aa8834e6ad4f93c027df2b27edfa71e2f98d1b9ee353"
+        }
+      ],
+      "license": {
+        "file": "ruslan-display-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "5469e89b2e43ede29abbea1609fd6fa67166cc24849e6aace0a897442fd1a843"
+      }
+    },
+    {
+      "package": "@fontsource/rubik-mono-one",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/rubik-mono-one/-/rubik-mono-one-5.3.0.tgz",
+      "tarballSha256": "3273f4eb9c0f24b4ecd178299ae257ba40a1a607c4a593a56eb4896f978fb3cc",
+      "files": [
+        {
+          "file": "rubik-mono-one-latin-ext-400-normal.87383730.woff2",
+          "source": "package/files/rubik-mono-one-latin-ext-400-normal.woff2",
+          "sha256": "8738373057ad7269afceb5af45ff7f632eeaaef03712a8122d5491716d379fa9"
+        },
+        {
+          "file": "rubik-mono-one-cyrillic-400-normal.84d22c91.woff2",
+          "source": "package/files/rubik-mono-one-cyrillic-400-normal.woff2",
+          "sha256": "84d22c91c134519324b93a76e646905df09bcee123163f06fe79ccd07bf44b23"
+        },
+        {
+          "file": "rubik-mono-one-latin-400-normal.4c1f9c2e.woff2",
+          "source": "package/files/rubik-mono-one-latin-400-normal.woff2",
+          "sha256": "4c1f9c2e5e3f867641f60becebfc11cd0e6ab02aa96bac88d750e37de8fce3c4"
+        }
+      ],
+      "license": {
+        "file": "rubik-mono-one-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "d6174970d2dcef4a915eecd034fdd027d1744e19a993b85ea9bd60bc047c6c87"
+      }
+    },
+    {
+      "package": "@fontsource/press-start-2p",
+      "version": "5.3.0",
+      "url": "https://registry.npmjs.org/@fontsource/press-start-2p/-/press-start-2p-5.3.0.tgz",
+      "tarballSha256": "7aa0c201772e5099e713f99ce4117c56ebdda85cb4d95b81f22922c13f655e37",
+      "files": [
+        {
+          "file": "press-start-2p-latin-400-normal.afec8699.woff2",
+          "source": "package/files/press-start-2p-latin-400-normal.woff2",
+          "sha256": "afec86997fdaf54af1f59358fa2c1e2a0f1d04146edad18e5cd141d0384a7548"
+        },
+        {
+          "file": "press-start-2p-latin-ext-400-normal.3c7df3a1.woff2",
+          "source": "package/files/press-start-2p-latin-ext-400-normal.woff2",
+          "sha256": "3c7df3a15e173b8fa04ec9191171e72c314ddbac1b395e2b2e2092bb4f47cc8c"
+        },
+        {
+          "file": "press-start-2p-cyrillic-400-normal.c2a20dcb.woff2",
+          "source": "package/files/press-start-2p-cyrillic-400-normal.woff2",
+          "sha256": "c2a20dcb95ec8f4d1e8db6bd01dfedb669913f5e691e7baa3981b2d88a3b9ae3"
+        },
+        {
+          "file": "press-start-2p-cyrillic-ext-400-normal.954380ff.woff2",
+          "source": "package/files/press-start-2p-cyrillic-ext-400-normal.woff2",
+          "sha256": "954380ff6f96dcb0cde857bb1cb906401908729cfbdd98140174bb1965f025c7"
+        }
+      ],
+      "license": {
+        "file": "press-start-2p-LICENSE.txt",
+        "source": "package/LICENSE",
+        "sha256": "98e451fe911e5ee4a1a45359535dc30ea7df28b8d9a9cd1f741778efab1387ee"
+      }
+    }
+  ]
+}

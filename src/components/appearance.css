@@ -66,7 +66,7 @@
   :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__body { display: block; min-width: 0; max-height: 120px; overflow-y: auto; scrollbar-width: thin; }
   :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__links, :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__contacts { gap: 5px; margin: 0; padding: 1px; }
   :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__contacts { margin-bottom: 5px; }
-  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card .profile-link { min-height: 38px; padding: 6px 8px; border-radius: var(--card-radius, 13px); font-size: 10px; gap: 7px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card .profile-link { min-height: 38px; padding: calc(var(--card-padding, 12px) * .5) var(--card-padding, 12px); border-radius: var(--card-radius, 13px); font-size: 10px; gap: 7px; }
   :is(.dashboard-shell--design, .dashboard-shell--links) .profile-link__icon { width: 23px; height: 23px; border-radius: 6px; }
   :is(.dashboard-shell--design, .dashboard-shell--links) .profile-link__icon svg { width: 13px; height: 13px; }
   :is(.dashboard-shell--design, .dashboard-shell--links) .profile-link__arrow { display: none; }

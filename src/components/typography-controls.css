@@ -1,4 +1,4 @@
-.typography-controls__sample { display:inline-flex; align-items:baseline; gap:6px; min-width:0; font-size:17px; color:#f2f7fa; white-space:nowrap; }
+.typography-controls__sample { display:inline-flex; align-items:baseline; gap:6px; min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; font-size:17px; color:#f2f7fa; white-space:nowrap; }
 .typography-controls__sample small { overflow:hidden; text-overflow:ellipsis; font:10px/1.2 Manrope,Arial,sans-serif; color:#aebdcb; }
 .typography-controls__reset { border:0; padding:4px 2px; background:transparent; color:#9ddceb; font:inherit; font-size:11px; cursor:pointer; }
 .typography-controls__reset:focus-visible { outline:2px solid #9ddceb; outline-offset:2px; }

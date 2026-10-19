@@ -11,12 +11,13 @@ async function setup(page:import('@playwright/test').Page){
  await page.getByRole('button',{name:'Изображение',exact:true}).click()
  return {state,getProcessing:()=>processing}
 }
-test('background image remains a private draft until Save, survives reload and can reset',async({page})=>{
+test('background image remains a private draft until Save, survives reload and can reset',async({page},info)=>{
  const {state}=await setup(page)
  await page.getByLabel('Загрузить фон',{exact:true}).setInputFiles('tests/fixtures/avatar.webp')
  await expect(page.getByAltText('Загрузить фон')).toBeVisible()
  expect(state.profile.background_image_path).toBeUndefined()
  await expect(page.locator('.preview-panel .profile-card')).toHaveCSS('background-image',/profile-assets/)
+ await page.locator('.preview-panel .profile-card').screenshot({path:info.outputPath('background-image.png')})
  await page.getByLabel('Затемнение фона').fill('65')
  await page.getByRole('button',{name:'Сохранить',exact:true}).click()
  await expect.poll(()=>state.profile.background_overlay).toBe(65)

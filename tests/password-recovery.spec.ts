@@ -72,6 +72,54 @@ test('recovery token verifies in JS, updates password and signs out other sessio
   expect({ verified, updates, signOuts }).toEqual({ verified: 1, updates: 1, signOuts: 1 })
 })
 
+test('same password keeps the recovery session usable for a different password', async ({ page }) => {
+  let verified = 0, updates = 0, signOuts = 0
+  await page.route('**/auth/v1/verify**', route => {
+    verified++
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(session) })
+  })
+  await page.route('**/auth/v1/user**', route => {
+    if (route.request().method() === 'PUT') {
+      updates++
+      if (updates === 1) return route.fulfill({ status: 422, headers: { 'x-supabase-api-version': '2024-01-01', 'access-control-expose-headers': 'x-supabase-api-version' }, contentType: 'application/json', body: JSON.stringify({ code: 'same_password', msg: 'New password should be different from the old password.' }) })
+    }
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(user) })
+  })
+  await page.route('**/auth/v1/logout**', route => { signOuts++; return route.fulfill({ status: 204 }) })
+  await page.goto('/auth/reset#token_hash=recovery-token&type=recovery')
+  await page.getByLabel('Новый пароль').fill('existing-password')
+  await page.getByLabel('Повторите пароль').fill('existing-password')
+  await page.getByRole('button', { name: 'Сохранить пароль' }).click()
+  await expect(page.getByRole('alert')).toHaveText('Новый пароль должен отличаться от текущего. Придумайте другой пароль.')
+  await expect(page.getByLabel('Новый пароль')).toHaveValue('existing-password')
+  expect({ verified, updates, signOuts }).toEqual({ verified: 1, updates: 1, signOuts: 0 })
+  await page.getByLabel('Новый пароль').fill('different-password')
+  await page.getByLabel('Повторите пароль').fill('different-password')
+  await page.getByRole('button', { name: 'Сохранить пароль' }).click()
+  await expect(page.getByRole('heading', { name: 'Пароль изменён' })).toBeVisible()
+  expect({ verified, updates, signOuts }).toEqual({ verified: 1, updates: 2, signOuts: 1 })
+})
+
+for (const failure of [
+  { code: 'weak_password', status: 422, message: 'Пароль не соответствует требованиям безопасности. Выберите более сложный пароль.' },
+  { code: 'over_request_rate_limit', status: 429, message: 'Слишком много попыток. Подождите минуту и повторите.' },
+  { code: 'session_not_found', status: 401, message: 'Сеанс восстановления истёк. Запросите новое письмо.' },
+  { code: 'unexpected_failure', status: 500, message: 'Не удалось изменить пароль. Повторите попытку чуть позже.' },
+]) {
+  test(`password update reports ${failure.code} accurately`, async ({ page }) => {
+    await page.route('**/auth/v1/verify**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify(session) }))
+    await page.route('**/auth/v1/user**', route => route.request().method() === 'PUT'
+      ? route.fulfill({ status: failure.status, headers: { 'x-supabase-api-version': '2024-01-01', 'access-control-expose-headers': 'x-supabase-api-version' }, contentType: 'application/json', body: JSON.stringify({ code: failure.code, msg: 'Password update rejected' }) })
+      : route.fulfill({ contentType: 'application/json', body: JSON.stringify(user) }))
+    await page.goto('/auth/reset#token_hash=recovery-token&type=recovery')
+    await page.getByLabel('Новый пароль').fill('new-password')
+    await page.getByLabel('Повторите пароль').fill('new-password')
+    await page.getByRole('button', { name: 'Сохранить пароль' }).click()
+    await expect(page.getByRole('alert')).toHaveText(failure.message)
+    await expect(page.getByRole('heading', { name: 'Пароль изменён' })).toHaveCount(0)
+  })
+}
+
 test('expired and absent tokens offer a new email', async ({ page }) => {
   await page.route('**/auth/v1/verify**', route => route.fulfill({ status: 400, contentType: 'application/json', body: '{"msg":"expired"}' }))
   await page.goto('/auth/reset#token_hash=expired&type=recovery')

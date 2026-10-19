@@ -81,7 +81,7 @@ test('same password keeps the recovery session usable for a different password',
   await page.route('**/auth/v1/user**', route => {
     if (route.request().method() === 'PUT') {
       updates++
-      if (updates === 1) return route.fulfill({ status: 422, headers: { 'x-supabase-api-version': '2024-01-01' }, contentType: 'application/json', body: JSON.stringify({ code: 'same_password', msg: 'New password should be different from the old password.' }) })
+      if (updates === 1) return route.fulfill({ status: 422, headers: { 'x-supabase-api-version': '2024-01-01', 'access-control-expose-headers': 'x-supabase-api-version' }, contentType: 'application/json', body: JSON.stringify({ code: 'same_password', msg: 'New password should be different from the old password.' }) })
     }
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify(user) })
   })
@@ -109,7 +109,7 @@ for (const failure of [
   test(`password update reports ${failure.code} accurately`, async ({ page }) => {
     await page.route('**/auth/v1/verify**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify(session) }))
     await page.route('**/auth/v1/user**', route => route.request().method() === 'PUT'
-      ? route.fulfill({ status: failure.status, headers: { 'x-supabase-api-version': '2024-01-01' }, contentType: 'application/json', body: JSON.stringify({ code: failure.code, msg: 'Password update rejected' }) })
+      ? route.fulfill({ status: failure.status, headers: { 'x-supabase-api-version': '2024-01-01', 'access-control-expose-headers': 'x-supabase-api-version' }, contentType: 'application/json', body: JSON.stringify({ code: failure.code, msg: 'Password update rejected' }) })
       : route.fulfill({ contentType: 'application/json', body: JSON.stringify(user) }))
     await page.goto('/auth/reset#token_hash=recovery-token&type=recovery')
     await page.getByLabel('Новый пароль').fill('new-password')

@@ -1,3 +1,4 @@
+import { ColorField } from './components/ColorField'
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import {
@@ -1000,6 +1001,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
 
           {section === 'links' ? (
             <ContentEditor
+              onOpenDesign={() => setSection('design')}
               profile={profile}
               setProfile={setProfile}
               links={links}
@@ -1038,6 +1040,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
 }
 
 interface ContentEditorProps {
+  onOpenDesign: () => void
   profile: Profile
   setProfile: (profile: Profile) => void
   links: EditableLink[]
@@ -1051,7 +1054,7 @@ interface ContentEditorProps {
   newLinkId?: string | null
 }
 
-function ContentEditor({
+function ContentEditor({ onOpenDesign,
   profile,
   setProfile,
   links,
@@ -1099,6 +1102,7 @@ function ContentEditor({
 
   return (
     <div className="editor-stack">
+      <button type="button" className="button button--secondary" onClick={onOpenDesign}><Palette size={18} />Шаблоны и оформление страницы</button>
       <section className="settings-card">
         <div className="settings-card__title"><UserRound size={18} /><div><h2>Профиль</h2><p>Имя, описание и адрес вашей страницы.</p></div></div>
         <div className="field-grid">
@@ -1278,8 +1282,8 @@ function DesignEditor({
             {([['preset', 'Готовый'], ['solid', 'Цвет'], ['gradient', 'Градиент']] as const).map(([mode, label]) => <button type="button" key={mode} aria-pressed={(profile.background_style ?? 'preset') === mode} className={(profile.background_style ?? 'preset') === mode ? 'selected' : ''} onClick={() => setProfile({ ...profile, background_style: mode })}>{label}</button>)}
           </div>
           {profile.background_style !== 'preset' && profile.background_style && <div className="appearance-custom-colors__pickers">
-            <label>Основной цвет<input aria-label="Основной цвет фона" type="color" value={profile.background_primary ?? '#162638'} onChange={event => setProfile({ ...profile, background_primary: event.target.value })} /></label>
-            {profile.background_style === 'gradient' && <label>Второй цвет<input aria-label="Второй цвет фона" type="color" value={profile.background_secondary ?? '#24435b'} onChange={event => setProfile({ ...profile, background_secondary: event.target.value })} /></label>}
+            <ColorField label="Основной цвет фона" value={profile.background_primary ?? '#162638'} onChange={color => setProfile({ ...profile, background_primary: color })} />
+            {profile.background_style === 'gradient' && <ColorField label="Второй цвет фона" value={profile.background_secondary ?? '#24435b'} onChange={color => setProfile({ ...profile, background_secondary: color })} />}
             <small>Проверьте читаемость текста в предпросмотре.</small>
           </div>}
         </div>

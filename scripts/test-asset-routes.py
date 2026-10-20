@@ -48,7 +48,7 @@ with tempfile.TemporaryDirectory(prefix='mylinks-apache-') as temp:
         assert 'no-store' in headers['Cache-Control'] and not headers.get('ETag') and not headers.get('Last-Modified'),dict(headers)
         validators={'If-None-Match':'"795-65e39242efa24"','If-Modified-Since':'Wed, 21 Oct 2099 07:28:00 GMT'}
         assert get('/',validators)[0]==200
-        for path in ['/link-icon/bad.png','/avatar/bad.png','/share-image/bad.png','/i/v2/bad.png','/profile-image.php/bad','/site-icon.php/bad','/icons/missing.png','/i/v2/fixture-user/'+ident+'/000000000000.png']:
+        for path in ['/link-icon/bad.png','/avatar/bad.png','/avatar/fixture-user/00000000-560.webp','/share-image/bad.png','/i/v2/bad.png','/profile-image.php/bad','/profile-image.php','/profile-image.php?handle=fixture-user&asset=11111111-1111-4111-8111-111111111111.webp','/site-icon.php/bad','/icons/missing.png','/i/v2/fixture-user/'+ident+'/000000000000.png']:
             status,h,b=get(path,validators)
             assert status==404 and 'html' not in h.get('Content-Type','') and 'no-store' in h.get('Cache-Control',''),(path,status,dict(h),b[:100])
         new='/i/v2/fixture-user/'+ident+'/'+digest+'.png'

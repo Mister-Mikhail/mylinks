@@ -92,6 +92,8 @@ function avatar_asset_poster($bytes) {
 
 if (!defined('MYLINKS_AVATAR_LIBRARY_ONLY')) {
     header('X-Content-Type-Options: nosniff');
+    header('Content-Type: text/plain; charset=UTF-8');
+    header('Cache-Control: no-store');
     $handle = preview_handle($_GET['handle'] ?? null);
     $hash = $_GET['hash'] ?? ''; $size = $_GET['size'] ?? ''; $poster = ($_GET['poster'] ?? '') === 'poster'; $extension = $_GET['extension'] ?? '';
     $bundle = $handle && preg_match('/^[a-f0-9]{8}$/D',$hash) && in_array($size,array('560','1000'),true) ? preview_bundle($handle) : null;

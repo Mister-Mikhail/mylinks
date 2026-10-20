@@ -224,6 +224,6 @@ test('brand icons require a matching hostname, not text embedded in another doma
   const links = page.locator('.profile-card__links .profile-link')
   await expect(links).toHaveCount(2)
   await expect(links.first().locator('img.link-icon__brand')).toHaveCount(0)
-  await expect(links.last().locator('img.link-icon__brand')).toHaveAttribute('src', '/icons/platforms/instagram.png')
+  await expect(links.last().locator('img.link-icon__brand')).toHaveAttribute('src', '/icons/platforms/instagram.png?v=2')
 })
 

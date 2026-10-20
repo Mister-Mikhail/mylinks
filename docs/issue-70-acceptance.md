@@ -1,7 +1,7 @@
 # Issue 70 — icon delivery
 
 ## Changes
-- Service assets return non-HTML errors and never enter the SPA fallback. HTML has no ETag/Last-Modified and is `no-store`. Icon paths use `/i/v2/`; handled legacy paths redirect with 301. Bare legacy IDs resolve only published, visible references before redirecting.
+- Service assets return non-HTML errors and never enter the SPA fallback. HTML has no ETag/Last-Modified and is `no-store`. Snapshot paths use `/i/v2/`, brand assets use a new `?v=2` cache key; handled legacy paths redirect with 301. Bare legacy IDs resolve only published, visible references before redirecting.
 - The brand library wins before all collection. The ten newly supplied owner assets are preserved byte-for-byte. Other artwork and original sources/checksums are recorded in `public/icons/platforms/brand-assets.json`; three brand assets use documented Wikimedia mirrors because their original hosts were unavailable. No runtime Simple Icons masks or external favicon image URLs.
 - PHP curl on Beget is primary (validated DNS, pinned addresses, TLS verification, compression, HTTP/2 when supported, six simultaneous candidates). EU is fallback; one 9.8-second domain budget includes DNS, collection and rasterization. ICO and sanitized SVG become PNG. All usable A/AAAA addresses are queued within bounded work (96 attempts); a first success stops collection.
 - Persistent private snapshots live outside public asset delivery, survive deploys, refresh after six hours, and retain the last good PNG on failures. Owner/draft previews use the same collector without requiring publication. First misses produce a globe.

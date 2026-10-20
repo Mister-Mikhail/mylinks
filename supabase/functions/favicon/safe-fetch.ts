@@ -28,9 +28,8 @@ export function limitedTransport(transport:Transport,parallel=6,maxQueue=96):Tra
   if(active>=parallel){
    if(queue.length>=maxQueue)return null
    const admitted=await new Promise<boolean>(resolve=>{
-    let timer:ReturnType<typeof setTimeout>
     const entry={grant:()=>{clearTimeout(timer);active++;resolve(true)}}
-    timer=setTimeout(()=>{const index=queue.indexOf(entry);if(index>=0)queue.splice(index,1);resolve(false)},Math.max(1,timeout))
+    const timer=setTimeout(()=>{const index=queue.indexOf(entry);if(index>=0)queue.splice(index,1);resolve(false)},Math.max(1,timeout))
     queue.push(entry)
    })
    if(!admitted)return null

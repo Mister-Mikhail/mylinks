@@ -31,10 +31,18 @@ php tests/share-preview.php
 php tests/share-image.php
 php tests/avatar-asset.php
 php tests/link-icon.php
+php -l dist/favicon-fetch.php
+php -l dist/site-icon.php
+php -l dist/legacy-icon.php
+php tests/favicon-fetch.php
 
 if [ "${IS_PR:-false}" = "true" ]; then
+  sudo apt-get update -qq
+  sudo apt-get install -y -qq apache2-bin php-cgi
+  python3 scripts/test-asset-routes.py
   npx playwright install --with-deps chromium > /dev/null
   npm run test:e2e -- --workers=2 --reporter=line
+  bash scripts/test-yandex.sh
   echo "== npm audit (production dependencies)"
   npm audit --omit=dev || true
   echo "== npm audit (all dependencies)"

@@ -39,9 +39,7 @@ if ($current) {
     if (is_array($links)) foreach ($links as $link) {
         $path=$link['icon_snapshot_path'] ?? '';
         if (!preg_match('#^/link-icon/([a-f0-9-]{36})/([a-f0-9]{12})\.png$#D',$path,$parts) || $parts[1]!==($link['id'] ?? null)) continue;
-        $cache=sys_get_temp_dir() . '/mylinks-link-icon-' . hash('sha256',$parts[1] . ':' . $parts[2]) . '.png';
-        if (is_file($cache)) continue;
         $host=icon_snapshot_details($link,$parts[2]);
-        if ($host) { $png=icon_snapshot_fetch($host); if ($png) { $temporary=tempnam(sys_get_temp_dir(),'mylinks-icon-write-'); if ($temporary) { file_put_contents($temporary,$png); if (@rename($temporary,$cache)) asset_cache_cleanup(); if (is_file($temporary)) @unlink($temporary); } } }
+        if($host)icon_cached($parts[1].':'.$parts[2],$host);
     }
 }

@@ -41,7 +41,7 @@ function preview_cache_path($handle) {
 
 function preview_public_icon_path($handle, $path) {
     if (!is_string($path) || !preg_match('#^/link-icon/([a-f0-9-]{36})/([a-f0-9]{12})\.png$#D', $path, $parts)) return null;
-    return '/link-icon/' . $handle . '/' . $parts[1] . '/' . $parts[2] . '.png';
+    return '/i/v2/' . $handle . '/' . $parts[1] . '/' . $parts[2] . '.png';
 }
 
 function preview_bundle($handle) {

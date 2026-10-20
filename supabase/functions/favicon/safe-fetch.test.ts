@@ -93,3 +93,14 @@ test('connection that arrives after timeout is closed without writing',async()=>
  assert.equal(await request,null);finish(s.conn);await new Promise(resolve=>setTimeout(resolve,0))
  assert.ok(s.closed>0);assert.equal(s.written,'')
 })
+
+test('tries every validated A and AAAA; a slow first address does not hide success',async()=>{
+ const seen:string[]=[]
+ const addresses=[{address:'8.8.8.8',family:4},{address:'2606:4700:4700::1111',family:6},{address:'1.1.1.1',family:4}]
+ const got=await safeFetch('https://example.com/icon',100,'image/*','test',100,async()=>addresses,async(url,ip)=>{
+  seen.push(ip.address)
+  if(ip.address==='8.8.8.8'){await new Promise(resolve=>setTimeout(resolve,30));return null}
+  return ip.family===6?{body:new Uint8Array([1]),type:'image/png',url:url.href,status:200}:null
+ })
+ assert.equal(got?.status,200);assert.deepEqual(seen,addresses.map(a=>a.address))
+})

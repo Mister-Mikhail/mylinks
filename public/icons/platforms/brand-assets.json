@@ -1,0 +1,410 @@
+[
+  {
+    "name": "facebook",
+    "source": "https://www.facebook.com/images/fb_icon_325x325.png",
+    "file": "facebook.png",
+    "sha256": "296ea54bbd1e91c2598e4f1677403b3dd3161eacb6c770c597a8b2cf2203dd02",
+    "domains": [
+      "facebook.com",
+      "fb.com"
+    ]
+  },
+  {
+    "name": "boosty",
+    "source": "https://boosty.to/favicon.ico",
+    "file": "boosty.png",
+    "sha256": "ab9aa0e478d1c58f6a9b5b11af9b7b96095c553e9b26548fadab5e7ce080284a",
+    "domains": [
+      "boosty.to"
+    ]
+  },
+  {
+    "name": "discord",
+    "source": "https://discord.com/assets/favicon.ico",
+    "file": "discord.png",
+    "sha256": "3cc9880e15be7106cc928fbfef0ddea01ec68129b630ffeedadbb84eb052ef09",
+    "domains": [
+      "discord.com",
+      "discord.gg"
+    ]
+  },
+  {
+    "name": "pinterest",
+    "source": "https://www.pinterest.com/favicon.ico",
+    "file": "pinterest.png",
+    "sha256": "14ceb7ac4f13384d6de410b00bc0a71914fd225ca72dcc715c1694d20c4225bc",
+    "domains": [
+      "pinterest.com",
+      "pin.it"
+    ]
+  },
+  {
+    "name": "reddit",
+    "source": "https://reddit.com/favicon.ico",
+    "file": "reddit.png",
+    "sha256": "68eb3070204ff7d60660feeff540d50d72832a29074f49dfbfa7caf58b1a84e9",
+    "domains": [
+      "reddit.com"
+    ]
+  },
+  {
+    "name": "github",
+    "source": "https://github.com/favicon.ico",
+    "file": "github.png",
+    "sha256": "9ed17b40dc7ac19c2cd2ff597987e6c387d8a92a123e30ee23ed515ffacab8c5",
+    "domains": [
+      "github.com"
+    ]
+  },
+  {
+    "name": "spotify",
+    "source": "https://www.scdn.co/i/_global/favicon.ico",
+    "file": "spotify.png",
+    "sha256": "5a70be08c3a3046ba8c31016ae10e9525ef979c611c991870d442b03b16f7723",
+    "domains": [
+      "spotify.com"
+    ]
+  },
+  {
+    "name": "soundcloud",
+    "source": "https://a-v2.sndcdn.com/assets/images/sc-icons/favicon-c93ce58b59.ico",
+    "file": "soundcloud.png",
+    "sha256": "a9d7887ff6814100918c298469f8558e42ca2578634c10d2a0dc39068ddbc717",
+    "domains": [
+      "soundcloud.com"
+    ]
+  },
+  {
+    "name": "applemusic",
+    "source": "https://music.apple.com/favicon.ico",
+    "file": "applemusic.png",
+    "sha256": "0fd76fb6f53e7cc8a74a69c8a74280d8bfb98e85887a10b7f8a0a4941fe37b94",
+    "domains": [
+      "music.apple.com"
+    ]
+  },
+  {
+    "name": "patreon",
+    "source": "https://c5.patreon.com/external/favicon/rebrand/favicon.ico?v=af5597c2ef",
+    "file": "patreon.png",
+    "sha256": "b7496a7095111bd3a93ee0e047145c87a221357c196fc2c4d5314e751c3ba040",
+    "domains": [
+      "patreon.com"
+    ]
+  },
+  {
+    "name": "behance",
+    "source": "https://www.behance.net/apple-touch-icon.png",
+    "file": "behance.png",
+    "sha256": "341e063aa28b36141d2586ab36ac1d1966fb3ae6ef8f0c42b0f4eb7801d4506b",
+    "domains": [
+      "behance.net"
+    ]
+  },
+  {
+    "name": "notion",
+    "source": "https://www.notion.com/front-static/favicon.ico",
+    "file": "notion.png",
+    "sha256": "2326207fd779977fd0b15e7603f4b9637b9deab9852ab1b1e3c253334935c7b3",
+    "domains": [
+      "notion.so",
+      "notion.site",
+      "notion.com"
+    ]
+  },
+  {
+    "name": "vimeo",
+    "source": "https://vimeo.com/favicon.ico",
+    "file": "vimeo.png",
+    "sha256": "06ce4e0c3acb50ca9eebecdc8e674809bc88a7b9ab7950ba085c4d2c7fe9c73a",
+    "domains": [
+      "vimeo.com"
+    ]
+  },
+  {
+    "name": "x",
+    "file": "x.png",
+    "source": "https://abs.twimg.com/favicons/twitter-pip.3.ico",
+    "sha256": "714e1a9985b4db1c4e973d755f6d246d5cf55205b86471d281979219133782c9",
+    "domains": [
+      "x.com",
+      "twitter.com"
+    ]
+  },
+  {
+    "name": "ok",
+    "source": "https://ok.ru/favicon.ico",
+    "file": "ok.png",
+    "sha256": "0659914c65164dad711425beb340c61265e4586a06c0e2b99bf99507b2715ba2",
+    "domains": [
+      "ok.ru"
+    ]
+  },
+  {
+    "name": "rutube",
+    "source": "https://static.rutube.ru/static/img/favicon-icons/v3/icon_180x180_square.png",
+    "file": "rutube.png",
+    "sha256": "9bcfd8f2db4bf1f27a6a0df9a5ea9c67fde3e0722b8a64fec86e33494d68fcf6",
+    "domains": [
+      "rutube.ru"
+    ]
+  },
+  {
+    "name": "yandexmusic",
+    "source": "https://music.yandex.ru/favicon.ico",
+    "file": "yandexmusic.png",
+    "sha256": "3f4e38fdf745da61b020e392d8a831c08eb8fc7e91cdb09c14a60806ba17718b",
+    "domains": [
+      "music.yandex.ru",
+      "music.yandex.com"
+    ]
+  },
+  {
+    "name": "wildberries",
+    "source": "https://www.wildberries.ru/favicon.ico",
+    "file": "wildberries.png",
+    "sha256": "cfcaa7e3cd7b3b94ec74350d17a5edcf72404b459849e4d0ab072933cdf4a512",
+    "domains": [
+      "wildberries.ru",
+      "wb.ru"
+    ]
+  },
+  {
+    "name": "twitch",
+    "source": "https://static.twitchcdn.net/assets/favicon-32-e29e246c157142c94346.png",
+    "file": "twitch.png",
+    "sha256": "f97ec4c1f002e81cb2caf82d9b37f28bea1f7e6b4171ca9c29b970135cc1b799",
+    "domains": [
+      "twitch.tv"
+    ]
+  },
+  {
+    "name": "linkedin",
+    "source": "https://static.licdn.com/sc/h/akt4ae504epesldzj74dzred8",
+    "file": "linkedin.svg",
+    "sha256": "b1f9ca49adf83cc0c5953d1067f56dc0ba8d46b3262b7078792f19b96cb11bcd",
+    "domains": [
+      "linkedin.com",
+      "lnkd.in"
+    ]
+  },
+  {
+    "name": "avito",
+    "file": "avito.png",
+    "source": "https://www.avito.st/favicon.ico",
+    "sha256": "d81676d2d3deab95d7a48c4772fcaf7ae97f6fcd2556d7f51c24961cc4e0e40d",
+    "domains": [
+      "avito.ru"
+    ]
+  },
+  {
+    "name": "dribbble",
+    "file": "dribbble.svg",
+    "source": "https://cdn.dribbble.com/assets/favicon-99944ff731bb44d3a947810ca8728f177f8deac035a3a4342120c385fd7acb9d.svg",
+    "sha256": "933bffea7b4fc555e97288959b1caabfb56791314b6226c177949decd47fe900",
+    "domains": [
+      "dribbble.com"
+    ]
+  },
+  {
+    "name": "figma",
+    "file": "figma.svg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/33/Figma-logo.svg",
+    "mirror": "Brand artwork mirrored by Wikimedia Commons; original brand sites inaccessible during acquisition",
+    "sha256": "9513b11ee2e238a1059af63d32cc4f795265578257225eadadb8d95a6614a787",
+    "domains": [
+      "figma.com"
+    ]
+  },
+  {
+    "name": "fansly",
+    "file": "fansly.svg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Fansly_logo.svg",
+    "mirror": "Brand artwork mirrored by Wikimedia Commons; original brand sites inaccessible during acquisition",
+    "sha256": "8ea884220968cc8b4b1ee504760ff0154137dd39025f1f976c9ae2456b01a812",
+    "domains": [
+      "fansly.com"
+    ]
+  },
+  {
+    "name": "ozon",
+    "file": "ozon.svg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/39/Ozon_logo_clear.svg",
+    "mirror": "Brand artwork mirrored by Wikimedia Commons; original brand sites inaccessible during acquisition",
+    "sha256": "7beaa1f61e4b0cac2c222540ddb43be6ca74f5897fcab7430a797a209e49b5da",
+    "domains": [
+      "ozon.ru",
+      "ozon.com"
+    ]
+  },
+  {
+    "name": "youtube",
+    "file": "youtube.svg",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "2d6e0c4320e43861f5bac0d82e668cde07fd42bec5c4bc942ed6fe7cf54fcbd5",
+    "domains": [
+      "youtube.com",
+      "youtu.be"
+    ]
+  },
+  {
+    "name": "tiktok",
+    "file": "tiktok.png",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "7b98cba3307cbe50cb5a1f87858bdeb309dc4e8e3cb6f54c461b70cb7aec6509",
+    "domains": [
+      "tiktok.com"
+    ]
+  },
+  {
+    "name": "threads",
+    "file": "threads.png",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "da3248c2edd8a2e621b6132feba5dc712b0da31dea342e4d7640bc8a9250cdd6",
+    "domains": [
+      "threads.net",
+      "threads.com"
+    ]
+  },
+  {
+    "name": "snapchat",
+    "file": "snapchat.png",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "f26b2e39b226223355cd83aa748e178db3df9d9df4a629b392dff6bc9cb4bc62",
+    "domains": [
+      "snapchat.com"
+    ]
+  },
+  {
+    "name": "whatsapp",
+    "file": "whatsapp.png",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "b60d716b0c5a4f81b54036af029f8fe04e89382a070598c97c494caa0f665a21",
+    "domains": [
+      "whatsapp.com",
+      "wa.me"
+    ]
+  },
+  {
+    "name": "vk",
+    "file": "vk.png",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "4df31254e1c2882147f632cdb3fe7f1edc81c8d61028a753008732200aada6ae",
+    "domains": [
+      "vk.com",
+      "vk.ru",
+      "vk.me",
+      "vkvideo.ru"
+    ]
+  },
+  {
+    "name": "capcut",
+    "file": "capcut.png",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "519b776db7c277111470816ced143e45bb0edacb248e9a7f62fe5863efe7f9b1",
+    "domains": [
+      "capcut.com",
+      "capcut.net",
+      "capcut.cn"
+    ]
+  },
+  {
+    "name": "dzen",
+    "file": "dzen.png",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "315635ad39374da698ef30e1452c41a9017aba65396fbb91bf01a3c126de1652",
+    "domains": [
+      "dzen.ru",
+      "zen.yandex.ru"
+    ]
+  },
+  {
+    "name": "mastercard",
+    "file": "mastercard.png",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "7641ddd291532b802125d7b2a10d3fd1eed509f493f854637f79b366164f208e",
+    "domains": [
+      "mastercard.com",
+      "mastercard.ru"
+    ]
+  },
+  {
+    "name": "tesla",
+    "file": "tesla.png",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "c0c68079a74e652f77385672494ffd3b8337b8c1e2e1b242ca548f43ed70276f",
+    "domains": [
+      "tesla.com"
+    ]
+  },
+  {
+    "name": "instagram",
+    "file": "instagram.png",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "04fd72ff27564ad52347567a34ba63285f6c12665f2400e4d08de5211b94644c",
+    "domains": [
+      "instagram.com"
+    ]
+  },
+  {
+    "name": "telegram",
+    "file": "telegram.png",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "81d41ee045a66fcc6202b3b4e25f1ea7d371924a3be7dfe90f8f2af2b971cc50",
+    "domains": [
+      "t.me",
+      "telegram.me"
+    ]
+  },
+  {
+    "name": "onlyfans",
+    "file": "onlyfans.png",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "d0318bf9f3b195d8ce54524b576a2123cd8d2a2071d4306c9553384d01921a16",
+    "domains": [
+      "onlyfans.com"
+    ]
+  },
+  {
+    "name": "alfabank",
+    "file": "alfabank.svg",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "bbae3a024898e60cbd77c767d3628794ce93bb6d48888887a3af9e8b46ad7cb2",
+    "domains": [
+      "alfabank.ru",
+      "alfa-bank.ru",
+      "alfabank.com"
+    ]
+  },
+  {
+    "name": "sovcombank",
+    "file": "sovcombank.svg",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "7457074e4953edecee649278db7ebddee468129969f8adea983213465009ce28",
+    "domains": [
+      "sovcombank.ru",
+      "halvacard.ru"
+    ]
+  },
+  {
+    "name": "sberbank",
+    "file": "sberbank.svg",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "23ca7ad42726a75e8da1fb6a1c1250edd2fe4efe727f985005cb4e8ab1ee40d3",
+    "domains": [
+      "sberbank.ru",
+      "sber.ru",
+      "sberbank.com"
+    ]
+  },
+  {
+    "name": "tbank",
+    "file": "tbank.svg",
+    "source": "Owner-provided artwork; kept byte-for-byte",
+    "sha256": "9491181890727afce7f3f52cf8984d5668d3707e703af8d81d9e36c66d3106d7",
+    "domains": [
+      "tbank.ru",
+      "tinkoff.ru"
+    ]
+  }
+]

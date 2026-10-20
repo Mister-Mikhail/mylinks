@@ -2817,3 +2817,5 @@ select:focus {
  .link-editor__actions .icon-button { width:40px;height:36px; }
  .link-editor__footer { grid-template-columns:36px minmax(0,1fr); }
 }
+
+.link-icon__plate { background: #fff; border-radius: 4px; padding: 2px; box-sizing: border-box; }

@@ -10,7 +10,7 @@ import { getDomain } from 'npm:tldts@7.0.22'
 const UA = 'Mozilla/5.0 (compatible; mylinks.bar-favicon/1.0; +https://mylinks.bar)'
 const MAX_HTML = 400 * 1024
 const MAX_ICON = 512 * 1024
-const TIMEOUT = 5000
+const TIMEOUT = 2400
 const misses = new Map<string, {at:number;count:number}>()
 const memory = new Map<string, { body: Uint8Array; type: string; at: number }>()
 
@@ -24,7 +24,7 @@ const headers = (type: string, maxAge: number) => ({
 })
 
 const mainDomain = (host: string) => getDomain(host, { allowPrivateDomains: true }) || host
-const fetchLimited = (url: string, limit: number, accept: string) => safeFetch(url, limit, accept, UA, TIMEOUT)
+const fetchLimited = (url: string, limit: number, accept: string, deadline: number) => safeFetch(url, limit, accept, UA, Math.max(1, Math.min(TIMEOUT, deadline - Date.now())))
 
 interface Candidate { href: string; score: number }
 
@@ -64,26 +64,30 @@ const imageType = (type: string, url: string, body: Uint8Array) => {
   return 'image/x-icon'
 }
 
-async function iconFor(host: string, rasterOnly = false) {
-  const candidates: Candidate[] = []
-  const page = await fetchLimited(`https://${host}/`, MAX_HTML, 'text/html,application/xhtml+xml')
-    ?? await fetchLimited(`https://www.${host}/`, MAX_HTML, 'text/html,application/xhtml+xml')
-  if (page && page.type.includes('html')) candidates.push(...declaredIcons(new TextDecoder().decode(page.body), page.url))
-  const origin = page ? new URL(page.url).origin : `https://${host}`
-  candidates.push({ href: `${origin}/apple-touch-icon.png`, score: 1 }, { href: `${origin}/favicon.ico`, score: 0 })
+async function iconFor(host: string, deadline: number, rasterOnly = false) {
   const seen = new Set<string>()
-  for (const { href } of candidates) {
-    if (seen.has(href) || seen.size >= 6) continue
+  type Icon = {body:Uint8Array;type:string}
+  const first = (jobs: Promise<Icon|null>[]) => new Promise<Icon|null>(resolve=>{
+    if(!jobs.length){resolve(null);return}
+    let pending=jobs.length
+    for(const job of jobs)void job.then(value=>{if(value)resolve(value);if(--pending===0)resolve(null)})
+  })
+  const candidate = async (href:string):Promise<Icon|null> => {
+    if(seen.has(href)||seen.size>=12||Date.now()>=deadline)return null
     seen.add(href)
-    if (!/^https?:/i.test(href)) continue
-    const icon = await fetchLimited(href, MAX_ICON, 'image/avif,image/webp,image/svg+xml,image/*,*/*;q=0.8')
-    if (icon && looksLikeImage(icon.type, icon.url, icon.body)) {
-      const type = imageType(icon.type, icon.url, icon.body)
-      if (rasterOnly && (type.includes('svg') || type.includes('icon'))) continue
-      return { body: icon.body, type }
-    }
+    const icon=await fetchLimited(href,MAX_ICON,'image/svg+xml,image/*,*/*;q=0.8',deadline)
+    if(!icon||!looksLikeImage(icon.type,icon.url,icon.body))return null
+    const type=imageType(icon.type,icon.url,icon.body)
+    if(rasterOnly&&(type.includes('svg')||type.includes('icon')))return null
+    return {body:icon.body,type}
   }
-  return null
+  const declared = async (origin:string) => {
+    const page=await fetchLimited(origin+'/',MAX_HTML,'text/html,application/xhtml+xml',deadline)
+    if(!page||!page.type.includes('html'))return null
+    return first(declaredIcons(new TextDecoder().decode(page.body),page.url).slice(0,8).map(({href})=>candidate(href)))
+  }
+  const origin='https://'+host
+  return first([candidate(origin+'/favicon.ico'),candidate(origin+'/apple-touch-icon.png'),declared(origin),declared('https://www.'+host)])
 }
 
 Deno.serve(async (request) => {
@@ -101,9 +105,13 @@ Deno.serve(async (request) => {
   const count = misses.get(host)
   if (count && now - count.at < 60000 && count.count >= 12) return new Response('try later', {status: 429, headers: {...headers('text/plain',0),'Retry-After':'60'}})
   misses.set(host, {at: count && now-count.at < 60000 ? count.at : now, count: count && now-count.at < 60000 ? count.count+1 : 1})
-  let icon = await iconFor(host, rasterOnly)
+  const budget = Math.min(9000, Math.max(100, Number(params.get('budget_ms')) || 9000))
+  const deadline = Date.now() + budget
   const parent = mainDomain(host)
-  if (!icon && parent !== host) icon = await iconFor(parent, rasterOnly)
+  const jobs = [iconFor(host, deadline, rasterOnly), ...(parent !== host ? [iconFor(parent, deadline, rasterOnly)] : [])]
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const found = new Promise<Awaited<ReturnType<typeof iconFor>>>(resolve=>{let pending=jobs.length;for(const job of jobs)void job.then(icon=>{if(icon)resolve(icon);if(--pending===0)resolve(null)})})
+  const icon = await Promise.race([found,new Promise<null>(resolve=>{timer=setTimeout(()=>resolve(null),budget)})]).finally(()=>clearTimeout(timer))
   if (!icon) return new Response('not found', { status: 404, headers: headers('text/plain', 86400) })
 
   if (memory.size > 500) memory.clear()

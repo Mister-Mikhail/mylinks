@@ -1,10 +1,16 @@
 name: Feature branch checks
 on:
-  push:
-    branches: ['feature/**']
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+# Only the newest version of a PR needs the full suite.
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   VITE_SUPABASE_URL: https://loykiawbqdkitndqkegk.supabase.co
@@ -14,6 +20,7 @@ env:
 
 jobs:
   registration_db:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -36,6 +43,7 @@ jobs:
           command -v psql || { sudo apt-get update -qq && sudo apt-get install -y postgresql-client; }
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f scripts/test-registration-migration.sql
   check:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -44,9 +52,16 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Cache Chromium matching the dependency lockfile
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - run: deno test --node-modules-dir=auto supabase/functions/_shared/
+      - run: deno check --node-modules-dir=auto supabase/functions/admin-profile/index.ts
       - run: deno check --node-modules-dir=auto supabase/functions/favicon/index.ts
       - name: Lint, build, PHP and desktop/mobile e2e
         run: bash scripts/ci.sh
@@ -57,4 +72,4 @@ jobs:
           name: appearance-visual-matrix
           path: test-results/**/*.png
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 2

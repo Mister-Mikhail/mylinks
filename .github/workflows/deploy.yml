@@ -4,8 +4,6 @@ name: Check & deploy to Beget
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,11 +20,12 @@ env:
   VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_GjGkSeQ5okx58Tphh7Hfrw_6psgCioE
   SITE_URL: https://mylinks.bar
   DEPLOY_LOG_ISSUE: 5
-  IS_PR: ${{ github.event_name == 'pull_request' }}
+  IS_PR: 'false'
   REQUIRE_AVATAR_SERVER: 'true'
 
 jobs:
   registration_db:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -50,6 +49,7 @@ jobs:
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f scripts/test-registration-migration.sql
 
   deletion_functions:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

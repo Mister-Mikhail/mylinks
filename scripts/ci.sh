@@ -14,6 +14,7 @@ exec > >(mask | tee -a ci.log) 2>&1
 echo "node $(node -v), npm $(npm -v), commit ${GITHUB_SHA:-local}"
 npm ci
 node --experimental-strip-types --test supabase/functions/favicon/safe-fetch.test.ts
+node --experimental-strip-types --test tests/image-crop-math.test.ts
 npm run lint
 npm run build
 if ! command -v ffmpeg >/dev/null; then sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg; fi

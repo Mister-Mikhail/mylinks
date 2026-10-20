@@ -1,3 +1,5 @@
+import { CroppedImage } from './CroppedImage'
+import { isFrameCrop } from '../lib/imageCrop'
 import { layoutFor, linkKey } from '../lib/linkLayout'
 import { useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
@@ -74,7 +76,7 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
           const cardClass = `profile-link card-${link.card_preset_override ?? profile.card_preset}${featured?' profile-link--featured':''}`
           const content = (
             <>
-              {featured && (link.image_url && !(interactive && (link.is_sensitive || isKnownSensitiveUrl(link.url))) ? <img className="profile-link__image" src={link.image_url} alt={link.image_alt || ''} loading="lazy" decoding="async" style={{objectPosition:`${link.image_position_x ?? 50}% ${link.image_position_y ?? 50}%`}} onError={event=>{event.currentTarget.style.visibility='hidden'}}/> : <span className="profile-link__image-placeholder">{link.is_sensitive || isKnownSensitiveUrl(link.url) ? <ShieldAlert size={28}/> : <LinkIcon name={link.icon_key} url={link.url} snapshotPath={link.icon_snapshot_path} publicView={interactive && profile.is_published}/>}</span>)}
+              {featured && (link.image_url && !(interactive && (link.is_sensitive || isKnownSensitiveUrl(link.url))) ? isFrameCrop(link.image_crop)?<CroppedImage className="profile-link__image" src={link.image_url} crop={link.image_crop} alt={link.image_alt || ''}/>:<img className="profile-link__image" src={link.image_url} alt={link.image_alt || ''} loading="lazy" decoding="async" style={{objectPosition:`${link.image_crop?.mode==='legacy'?link.image_crop.x*100:link.image_position_x ?? 50}% ${link.image_crop?.mode==='legacy'?link.image_crop.y*100:link.image_position_y ?? 50}%`}} onError={event=>{event.currentTarget.style.visibility='hidden'}}/> : <span className="profile-link__image-placeholder">{link.is_sensitive || isKnownSensitiveUrl(link.url) ? <ShieldAlert size={28}/> : <LinkIcon name={link.icon_key} url={link.url} snapshotPath={link.icon_snapshot_path} publicView={interactive && profile.is_published}/>}</span>)}
               <span className="profile-link__icon"><LinkIcon name={link.icon_key} url={link.url} snapshotPath={link.icon_snapshot_path} publicView={interactive && profile.is_published} /></span>
               <span className="profile-link__label" style={textStyle(link.label_font ?? profile.link_font, link.label_font_size ?? profile.link_font_size, 'link', link.label_color ?? profile.link_color)}><span className="profile-link__text">{link.label}</span>{(link.is_sensitive || isKnownSensitiveUrl(link.url)) && <small>18+</small>}</span>
             </>
@@ -92,7 +94,8 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
   const blocks=layoutFor(links,profile.link_layout)
 
   return (
-    <section className={`profile-card theme-${appearanceTheme(profile)}${profile.background_style === 'image' && profile.background_image_url ? ' profile-card--image' : ''}`} style={appearanceStyle(profile)} aria-label={`Профиль ${profile.display_name}`}>
+    <section className={`profile-card theme-${appearanceTheme(profile)}${profile.background_style === 'image' && profile.background_image_url ? ` profile-card--image ${isFrameCrop(profile.background_crop)?'profile-card--frame':''}` : ''}`} style={appearanceStyle(profile)} aria-label={`Профиль ${profile.display_name}`}>
+      {profile.background_style==='image'&&profile.background_image_url&&isFrameCrop(profile.background_crop)&&<span className="profile-card__photo" aria-hidden><img className="profile-card__photo-extension" src={profile.background_image_url} alt=""/><CroppedImage src={profile.background_image_url} crop={profile.background_crop} overlay={profile.background_overlay??45}/></span>}
       <div className="profile-card__noise" />
       <div className="profile-card__topline">
         {showPrivacy ? (

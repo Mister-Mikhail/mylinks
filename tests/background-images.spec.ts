@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { mockWizard } from './helpers/wizard'
-const backgroundStyle = (page:import('@playwright/test').Page, property:string) => page.locator('.preview-panel .profile-card').evaluate((node,prop)=>getComputedStyle(node,'::before').getPropertyValue(prop),property)
 async function setup(page:import('@playwright/test').Page){
  const state=await mockWizard(page);state.profile={...state.profile,onboarding_completed:true,handle:'anna.page',display_name:'Анна'}
  const image=readFileSync('tests/fixtures/background-grid.webp')
@@ -12,41 +11,34 @@ async function setup(page:import('@playwright/test').Page){
  await page.getByRole('button',{name:'Изображение',exact:true}).click()
  return {state,getProcessing:()=>processing}
 }
-test('background image remains a private draft until Save, survives reload and can reset',async({page},info)=>{
+test('background photo applies only after confirming, preserves crop on reload, and can reset',async({page},info)=>{
  const {state}=await setup(page)
  await page.getByLabel('Загрузить фон',{exact:true}).setInputFiles('tests/fixtures/background-grid.webp')
- await expect(page.getByAltText('Загрузить фон')).toBeVisible()
+ await expect(page.getByRole('dialog')).toBeVisible()
+ await page.getByRole('button',{name:'Отмена',exact:true}).click()
+ await expect(page.getByAltText('Загрузить фон')).toHaveCount(0)
+ await page.getByLabel('Загрузить фон',{exact:true}).setInputFiles('tests/fixtures/background-grid.webp')
+ await expect(page.getByRole('dialog')).toBeVisible()
  expect(state.profile.background_image_path).toBeUndefined()
- await expect.poll(()=>backgroundStyle(page,'background-image')).toMatch(/profile-assets/)
- await expect.poll(()=>backgroundStyle(page,'transform')).toBe('matrix(1, 0, 0, 1, 0, 0)')
- await page.getByLabel('Положение фона по горизонтали',{exact:true}).fill('25')
- await page.getByLabel('Положение фона по вертикали',{exact:true}).fill('75')
- await page.getByLabel('Увеличение фонового фото',{exact:true}).fill('180')
- await expect.poll(async()=>(await backgroundStyle(page,'background-position')).split(',').at(-1)?.trim()).toBe('25% 75%')
- await expect.poll(()=>backgroundStyle(page,'transform')).toBe('matrix(1.8, 0, 0, 1.8, 0, 0)')
- await page.locator('.preview-panel .profile-card').screenshot({path:info.outputPath('background-image.png')})
+ await page.getByRole('button',{name:'Применить',exact:true}).click()
+ await expect(page.getByAltText('Загрузить фон')).toBeVisible()
+ await expect(page.getByLabel('Положение фона по горизонтали',{exact:true})).toHaveCount(0)
+ await expect(page.getByLabel('Увеличение фонового фото',{exact:true})).toHaveCount(0)
  await page.getByLabel('Затемнение фона').fill('65')
  await page.getByRole('button',{name:'Сохранить',exact:true}).click()
  await expect.poll(()=>state.profile.background_overlay).toBe(65)
- expect(state.profile).toMatchObject({background_position_x:25,background_position_y:75,background_zoom:180})
- expect(state.profile.background_image_path).toMatch(/^00000000-0000-4000-8000-000000000091\/[a-f0-9-]{36}\.webp$/)
- const path=state.profile.background_image_path
+ expect(state.profile.background_crop).toMatchObject({version:1,mode:'frame',zoom:1,x:0,y:0,fill:'blur'})
+ const path=state.profile.background_image_path,crop=state.profile.background_crop
  await page.reload();await page.getByRole('button',{name:'Оформление',exact:true}).click()
  await expect(page.getByAltText('Загрузить фон')).toBeVisible()
- await expect(page.getByLabel('Положение фона по горизонтали',{exact:true})).toHaveValue('25')
- await expect(page.getByLabel('Положение фона по вертикали',{exact:true})).toHaveValue('75')
- await expect(page.getByLabel('Увеличение фонового фото',{exact:true})).toHaveValue('180')
- await expect.poll(()=>backgroundStyle(page,'transform')).toBe('matrix(1.8, 0, 0, 1.8, 0, 0)')
  expect(state.profile.background_image_path).toBe(path)
- await page.getByRole('button',{name:'Сбросить область фото',exact:true}).click()
- await expect.poll(()=>backgroundStyle(page,'transform')).toBe('matrix(1, 0, 0, 1, 0, 0)')
- await expect(page.getByLabel('Положение фона по горизонтали',{exact:true})).toHaveValue('50')
- expect(state.profile.background_zoom).toBe(180)
+ await expect(page.locator('.preview-panel .profile-card__photo>.cropped-image')).toHaveAttribute('data-crop',JSON.stringify(crop))
+ await page.locator('.preview-panel .profile-card').screenshot({path:info.outputPath('background-crop.png')})
  await page.getByRole('button',{name:'Вернуть исходный фон'}).click()
  await expect(page.locator('.preview-panel .profile-card')).not.toHaveClass(/profile-card--image/)
  await page.getByRole('button',{name:'Сохранить',exact:true}).click()
  await expect.poll(()=>state.profile.background_image_path).toBe(null)
- expect(state.profile).toMatchObject({background_position_x:50,background_position_y:50,background_zoom:100})
+ expect(state.profile.background_crop).toBe(null)
 })
 test('invalid background files fail without network upload',async({page})=>{
  const {getProcessing}=await setup(page)

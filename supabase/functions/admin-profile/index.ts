@@ -25,6 +25,17 @@ const url = (value: unknown) => {
   if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname) throw new Error('Проверьте адрес ссылки.')
   return result
 }
+const crop = (value:unknown) => {
+ if(value==null)return null
+ if(typeof value!=='object'||Array.isArray(value)||JSON.stringify(value).length>2048)throw Error('Проверьте кадр изображения.')
+ const c=value as Record<string,unknown>
+ if(c.version!==1||!['legacy','frame'].includes(String(c.mode)))throw Error('Проверьте версию кадра.')
+ const legacy=c.mode==='legacy'
+ const result={version:1,mode:c.mode,x:number(c.x,0,legacy?0:-2,legacy?1:2),y:number(c.y,0,legacy?0:-2,legacy?1:2),zoom:number(c.zoom,1,legacy?1:.25,3)}
+ if(legacy)return result
+ if(!['blur','color'].includes(String(c.fill))||!/^#[0-9a-f]{6}$/i.test(String(c.color)))throw Error('Проверьте заполнение кадра.')
+ return {...result,aspect:number(c.aspect,1,.1,10),sourceAspect:number(c.sourceAspect,1,.0001,10000),fill:c.fill,color:c.color}
+}
 const formatProfile = (raw: Record<string, unknown>, currentHandle: string, owner:string) => {
   const handle = text(raw.handle, 30)
   const displayName = text(raw.display_name, 30)
@@ -39,6 +50,7 @@ const formatProfile = (raw: Record<string, unknown>, currentHandle: string, owne
     name_font_size: number(raw.name_font_size,21,5,60), bio_font_size: number(raw.bio_font_size,10,5,60), handle_font_size: number(raw.handle_font_size,10,5,60),
     background_preset: raw.background_preset, background_style: raw.background_style ?? 'preset',
     background_image_path: raw.background_image_path==null ? null : new RegExp('^'+owner+'/[a-f0-9-]{36}\\.webp$').test(String(raw.background_image_path)) ? String(raw.background_image_path) : (()=>{throw Error('Файл принадлежит другому профилю.')})(),
+    ...(Object.hasOwn(raw,'background_crop')?{background_crop:crop(raw.background_crop)}:{}),
     background_overlay: number(raw.background_overlay,45,0,80),
     ...(Object.hasOwn(raw,'background_position_x') ? {background_position_x:number(raw.background_position_x,50,0,100)} : {}),
     ...(Object.hasOwn(raw,'background_position_y') ? {background_position_y:number(raw.background_position_y,50,0,100)} : {}),
@@ -60,6 +72,7 @@ const formatLink = (raw: Record<string, unknown>, owner: string, position: numbe
   card_style: raw.card_style ?? null,
   presentation:['normal','featured'].includes(String(raw.presentation ?? 'normal'))?String(raw.presentation ?? 'normal'):(()=>{throw Error('Некорректный вид карточки.')})(),
   image_path:raw.image_path==null?null:new RegExp('^'+owner+'/[a-f0-9-]{36}\\.webp$').test(String(raw.image_path))?String(raw.image_path):(()=>{throw Error('Изображение принадлежит другому профилю.')})(),
+  ...(Object.hasOwn(raw,'image_crop')?{image_crop:crop(raw.image_crop)}:{}),
   image_alt:text(String(raw.image_alt ?? ''),160),image_position_x:number(raw.image_position_x,50,0,100),image_position_y:number(raw.image_position_y,50,0,100),
   label_color: color(raw.label_color),
   card_preset_override: raw.card_preset_override == null ? null : ['glass','solid','outline'].includes(String(raw.card_preset_override)) ? raw.card_preset_override : (() => { throw new Error('Проверьте оформление ссылки.') })(),

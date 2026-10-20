@@ -18,3 +18,5 @@
 QR-код всегда содержит canonical URL сохранённого user name, PNG 1024/2048 px или SVG. После смены user name старые печатные QR-коды потребуется заменить. Приватная страница не публикуется при скачивании кода.
 
 Обновления пакета 19.10.2026: оформление включает `background_image_path`, `background_overlay`, `link_layout` (JSON v1 с заголовками, разделителями и группами ссылок); записи links — `presentation`, `image_path`, `image_alt`, `image_position_x/y`. Манифест assets перечисляет фон и изображения карточек из частного bucket `profile-assets`. Ссылки на скачивание по-прежнему выдаются только по явному выбору на 300 секунд. ID в структуре групп требуется переназначить через ту же карту ID, что и ссылки, при будущем импорте.
+
+Photo frames are included as `appearance.background_crop` and `links[].image_crop`: version 1 fractional x/y, zoom, frame/source aspect and blur/color fill. `legacy` mode preserves old cover positioning. Source image paths remain the original optimized pictures; adjusting a frame does not replace them.

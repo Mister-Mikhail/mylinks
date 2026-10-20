@@ -41,6 +41,7 @@ verify(strpos($initial,'\\u003Cscript\\u003E')!==false,'JSON_HEX_TAG missing');
 verify(strpos($initial,'Private')===false && strpos($initial,'Secret')===false,'Hidden records leaked in HTML');
 verify(preview_public_icon_path('mister','/link-icon/' . $uuid . '/abcdef123456.png')==='/i/v2/mister/' . $uuid . '/abcdef123456.png','Icon URL missing handle');
 verify(strpos($initial,'mister\\/' . $uuid . '\\/abcdef123456.png')!==false,'Initial JSON icon URL missing handle');
+verify(strpos(implode(' ',$requests),'background_crop')!==false,'Background crop missing from preview_bundle');
 $count=count($requests); preview_bundle('mister');
 verify(count($requests)===$count,'Warm cache made Supabase requests');
 @unlink(preview_cache_path('mister'));

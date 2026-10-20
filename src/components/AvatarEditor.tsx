@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties } from 'react'
+import { useCropGestures } from '../hooks/useCropGestures'
+import type { Point } from '../lib/imageCrop'
 import { Camera, Check, Crop, LoaderCircle, Move, RotateCcw, X, ZoomIn } from 'lucide-react'
 import type { AvatarDraft, AvatarUploadOptions, Profile } from '../types'
 import { createPortal } from 'react-dom'
@@ -12,11 +14,6 @@ interface AvatarEditorProps {
   onDraftChange: (draft: AvatarDraft | null) => void
   uploading: boolean
   onUpload: (blob: Blob, options?: AvatarUploadOptions) => Promise<boolean>
-}
-
-interface Point {
-  x: number
-  y: number
 }
 
 interface ImageSize {
@@ -37,9 +34,6 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
   const [selectedFile, setSelectedFile] = useState<Blob | null>(null)
   const [kind, setKind] = useState<'image' | 'gif' | 'video'>('image')
   const viewportRef = useRef<HTMLDivElement>(null)
-  const dragRef = useRef<{ pointerX: number; pointerY: number; offset: Point } | null>(null)
-  const pointers = useRef(new Map<number, Point>())
-  const pinch = useRef<{ distance: number; center: Point; offset: Point; zoom: number } | null>(null)
   const [source, setSource] = useState<string | null>(null)
   const [imageSize, setImageSize] = useState<ImageSize>({ width: 0, height: 0 })
   const [viewportSize, setViewportSize] = useState(320)
@@ -48,6 +42,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
   const [offset, setOffset] = useState<Point>(DEFAULT_OFFSET)
   const [error, setError] = useState('')
   const [preparing, setPreparing] = useState(false)
+  const {startDrag,drag,stopDrag,moveWithKeyboard,resetPointers}=useCropGestures({viewportRef,enabled:!!source&&!uploading&&!preparing,zoom,setZoom,offset,setOffset})
 
   useEffect(() => {
     if (!modal || !source) return
@@ -90,7 +85,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
     processingRef.current = null
     setPreparing(false)
     void discardAvatar(preparedToken)
-    pointers.current.clear(); pinch.current = null; dragRef.current = null
+    resetPointers()
     if (source) URL.revokeObjectURL(source)
     setSource(null)
     setSelectedFile(null)
@@ -164,57 +159,6 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
 
   const updateZoom = (nextZoom: number) => {
     setZoom(nextZoom)
-  }
-
-  const startDrag = (event: PointerEvent<HTMLDivElement>) => {
-    if (!source || uploading || preparing) return
-    event.preventDefault()
-    event.currentTarget.setPointerCapture(event.pointerId)
-    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
-    if (pointers.current.size === 2) {
-      const [a, b] = [...pointers.current.values()]
-      const rect = event.currentTarget.getBoundingClientRect()
-      pinch.current = { distance: Math.hypot(b.x - a.x, b.y - a.y), center: { x: (a.x + b.x) / 2 - rect.left - rect.width / 2, y: (a.y + b.y) / 2 - rect.top - rect.height / 2 }, zoom, offset }
-      dragRef.current = null
-      return
-    }
-    dragRef.current = { pointerX: event.clientX, pointerY: event.clientY, offset }
-  }
-
-  const drag = (event: PointerEvent<HTMLDivElement>) => {
-    if (uploading || preparing || !pointers.current.has(event.pointerId)) return
-    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
-    if (pinch.current && pointers.current.size >= 2) {
-      const [a, b] = [...pointers.current.values()]
-      const rect = event.currentTarget.getBoundingClientRect()
-      const initial = pinch.current
-      const nextZoom = Math.min(3, Math.max(.25, initial.zoom * Math.hypot(b.x - a.x, b.y - a.y) / Math.max(1, initial.distance)))
-      const ratio = nextZoom / initial.zoom
-      const center = { x: (a.x + b.x) / 2 - rect.left - rect.width / 2, y: (a.y + b.y) / 2 - rect.top - rect.height / 2 }
-      setZoom(nextZoom)
-      setOffset({ x: center.x - (initial.center.x - initial.offset.x) * ratio, y: center.y - (initial.center.y - initial.offset.y) * ratio })
-      return
-    }
-    if (!dragRef.current) return
-    const nextOffset = {
-      x: dragRef.current.offset.x + event.clientX - dragRef.current.pointerX,
-      y: dragRef.current.offset.y + event.clientY - dragRef.current.pointerY,
-    }
-    setOffset(nextOffset)
-  }
-
-  const moveWithKeyboard = (event: KeyboardEvent<HTMLDivElement>) => {
-    const delta = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10] }[event.key]
-    if (!delta || uploading || preparing) return
-    event.preventDefault()
-    setOffset(current => ({ x: current.x + delta[0], y: current.y + delta[1] }))
-  }
-
-  const stopDrag = (event: PointerEvent<HTMLDivElement>) => {
-    pointers.current.delete(event.pointerId)
-    pinch.current = null
-    const remaining = [...pointers.current.values()][0]
-    dragRef.current = remaining ? { pointerX: remaining.x, pointerY: remaining.y, offset } : null
   }
 
   const saveCrop = async () => {

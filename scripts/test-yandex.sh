@@ -8,4 +8,4 @@ curl -fsSL --retry 2 --max-time 120 "https://repo.yandex.ru/yandex-browser/deb/p
 dpkg-deb -x "$work/yandex.deb" "$work/app"
 export PLAYWRIGHT_EXECUTABLE_PATH="$work/app/opt/yandex/browser/yandex-browser"
 "$PLAYWRIGHT_EXECUTABLE_PATH" --version
-npm run test:e2e -- tests/icon-library.spec.ts tests/icon-delivery.spec.ts tests/public-profile.spec.ts --workers=2
+npm run test:e2e -- tests/icon-library.spec.ts tests/icon-delivery.spec.ts tests/public-profile.spec.ts tests/crop-font-gestures.spec.ts tests/background-images.spec.ts tests/featured-images.spec.ts tests/wizard-layout.spec.ts --workers=2

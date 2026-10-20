@@ -1,3 +1,4 @@
+import { chooseFont, chooseFromSelect } from './helpers/fonts'
 import { expect, test, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { FONT_OPTIONS } from '../src/lib/typography'
@@ -166,7 +167,7 @@ test('a link can override its card style while keeping the same link id', async 
 
 test('font changed in Appearance survives reload and appears on the profile page', async ({ page }) => {
   const { patches } = await mockAppearance(page)
-  await page.getByLabel('Шрифт: Имя', { exact: true }).selectOption('georgia')
+  await chooseFont(page, 'Имя', 'georgia')
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
   await expect(page.getByText('Изменения сохранены')).toBeVisible()
   expect(patches.at(-1)).toMatchObject({ name_font: 'georgia' })
@@ -182,7 +183,7 @@ test('all 15 font choices persist after reload for Cyrillic and Latin text', asy
   await mockAppearance(page, false, 'Кириллица Latin')
   const font = page.getByLabel('Шрифт: Имя', { exact: true })
   for (const option of FONT_OPTIONS) {
-    await font.selectOption(option.value)
+    await chooseFromSelect(font,option.value)
     await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
     await expect(page.getByText('Изменения сохранены')).toBeVisible()
     await page.reload()
@@ -372,12 +373,12 @@ test('capture typography and card preset visual matrix for desktop and mobile re
   const control = page.getByLabel('Шрифт: Имя', { exact: true })
   const card = page.locator('.preview-panel .profile-card')
   for (const font of FONT_OPTIONS) {
-    await control.selectOption(font.value)
+    await chooseFromSelect(control,font.value)
     await expect(page.locator('.preview-panel h1')).toHaveCSS('font-family', new RegExp(font.family.split(',')[0].replaceAll("'", '')))
     await page.evaluate(() => document.fonts.ready.then(() => true))
     await card.screenshot({ path: testInfo.outputPath(`font-${font.value}.png`) })
   }
-  await control.selectOption('manrope')
+  await chooseFromSelect(control,'manrope')
   await expect(page.locator('.preview-panel h1')).toHaveCSS('font-family', /Manrope/)
   for (const theme of ['Полночь', 'Туман', 'Кобальт']) {
     await page.getByRole('button', { name: theme, exact: true }).click()
@@ -402,8 +403,8 @@ test('global link font preserves overrides and new links inherit it', async ({ p
     }
   })
   await page.locator('.preview-panel .profile-link').first().click()
-  await page.getByLabel('Шрифт: Название ссылки').selectOption('georgia')
-  await page.getByLabel('Шрифт: Текст ссылок').selectOption('oswald')
+  await chooseFont(page, 'Название ссылки', 'georgia')
+  await chooseFont(page, 'Текст ссылок', 'oswald')
   await expect(page.locator('.preview-panel .profile-link__label').first()).toHaveCSS('font-family', /Georgia/)
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
   await expect(page.getByText('Изменения сохранены')).toBeVisible()

@@ -9,9 +9,10 @@ export function appearanceStyle(profile: Profile): CSSProperties {
   const secondary = validColor(profile.background_secondary, '#24435b')
   const image = profile.background_image_url && !/[\\"<>]/.test(profile.background_image_url) ? profile.background_image_url : null
   const overlay = Math.min(80,Math.max(0,profile.background_overlay ?? 45))/100
-  const x = bounded(profile.background_position_x, 50, 0, 100)
-  const y = bounded(profile.background_position_y, 50, 0, 100)
-  const zoom = bounded(profile.background_zoom, 100, 100, 300) / 100
+  const legacy=profile.background_crop?.mode==='legacy'?profile.background_crop:null
+  const x = bounded(legacy?legacy.x*100:profile.background_position_x, 50, 0, 100)
+  const y = bounded(legacy?legacy.y*100:profile.background_position_y, 50, 0, 100)
+  const zoom = bounded(legacy?legacy.zoom*100:profile.background_zoom, 100, 100, 300) / 100
   const imageBackground = profile.background_style === 'image' && image ? `linear-gradient(rgb(0 0 0 / ${overlay}),rgb(0 0 0 / ${overlay})), url("${image}") ${x}% ${y}% / cover no-repeat` : undefined
   const background = profile.background_style === 'solid' ? primary : profile.background_style === 'gradient' ? `linear-gradient(155deg, ${primary}, ${secondary})` : undefined
   const padding = Math.min(24, Math.max(8, Number(profile.card_padding) || 12))

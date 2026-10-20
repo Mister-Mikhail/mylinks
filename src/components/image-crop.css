@@ -1,0 +1,29 @@
+/* Reuse the avatar editor's dialog, heading, grid, buttons and action row. */
+.image-crop-dialog { padding:0; border:0; background:transparent; width:min(460px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); }
+.image-crop-dialog .avatar-cropper { width:100%; max-height:calc(100dvh - 24px); overflow:auto; }
+.image-crop-editor__viewport { position:relative; width:min(100%,240px); margin:0 auto; overflow:hidden; touch-action:none; user-select:none; cursor:grab; border:1px solid var(--line-strong); border-radius:10px; }
+.image-crop-editor__viewport:active { cursor:grabbing; }
+.image-crop-editor__viewport:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.image-crop-editor__viewport>.cropped-image { position:absolute; inset:0; width:100%; height:100%; }
+.image-crop-editor__viewport[style*="1.777"] { width:100%; }
+.image-crop-editor__viewport .avatar-cropper__grid { pointer-events:none; }
+.image-crop-editor__hint { color:var(--muted); font-size:12px; line-height:1.5; }
+.image-crop-editor__tools { display:flex; align-items:center; flex-wrap:wrap; justify-content:center; gap:8px; }
+.image-crop-editor__tools output { min-width:42px; text-align:center; font-size:12px; font-variant-numeric:tabular-nums; }
+.image-crop-editor__tools .icon-button { width:40px; height:40px; }
+.image-crop-editor__fill,.image-crop-editor__color { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; font-size:12px; }
+.image-crop-editor__fill select { max-width:180px; }
+.image-crop-editor__color input { width:50px; }
+.cropped-image { display:block; position:relative; overflow:hidden; width:100%; isolation:isolate; }
+.cropped-image__fill { position:absolute; inset:-5%; width:110%; height:110%; max-width:none; object-fit:cover; filter:blur(16px); pointer-events:none; }
+.cropped-image__photo { display:block; pointer-events:none; }
+.cropped-image__overlay { position:absolute; inset:0; pointer-events:none; }
+.image-asset-field__preview { display:block; padding:0; border:0; background:transparent; width:100%; overflow:hidden; border-radius:10px; cursor:pointer; }
+.image-asset-field__preview>img { width:100%; max-height:180px; object-fit:cover; }
+.image-asset-field__preview>.cropped-image { width:100%; }
+.profile-card--frame { aspect-ratio:9/19.5; }
+.profile-card--frame::before { display:none; }
+.profile-card__photo { position:absolute; inset:0; pointer-events:none; z-index:-2; }
+.profile-card__photo>.cropped-image { position:absolute; top:0; left:0; width:100%; }
+.profile-card__photo-extension { width:100%; height:100%; object-fit:cover; filter:blur(22px) brightness(.55); }
+@media(max-width:650px){ .image-crop-dialog .avatar-cropper { padding:18px; } .image-crop-editor__viewport { width:min(100%,200px); } .image-crop-editor__viewport[style*="1.777"] { width:100%; } }

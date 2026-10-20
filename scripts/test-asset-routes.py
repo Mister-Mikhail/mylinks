@@ -28,7 +28,7 @@ with tempfile.TemporaryDirectory(prefix='mylinks-apache-') as temp:
     modules = ['mpm_prefork','authz_core','authz_host','access_compat','dir','mime','rewrite','headers','env','setenvif','alias','actions','cgi']
     conf = root / 'httpd.conf'
     conf.write_text('\n'.join(['ServerRoot /etc/apache2','ServerName localhost','Listen 127.0.0.1:4180',f'PidFile {root}/httpd.pid',f'ErrorLog {root}/error.log','LogLevel warn',f'User #{uid}',f'Group #{gid}', 'TypesConfig /etc/mime.types',*[f'LoadModule {m}_module /usr/lib/apache2/modules/mod_{m}.so' for m in modules],f'DocumentRoot "{doc}"',f'<Directory "{doc}">','AllowOverride All','Require all granted','Options +ExecCGI','AddHandler mylinks-php .php','Action mylinks-php /test-php-cgi','</Directory>',f'ScriptAlias /test-php-cgi "{wrapper}"',f'<Directory "{root}">','Require all granted','Options +ExecCGI','</Directory>']))
-    proc = subprocess.Popen(['apache2','-f',str(conf),'-DFOREGROUND'])
+    proc = subprocess.Popen(['apache2','-f',str(conf),'-DFOREGROUND'],start_new_session=True)
     def get(path, headers=None, redirects=True):
         class NoRedirect(urllib.request.HTTPRedirectHandler):
             def redirect_request(self,*args): return None

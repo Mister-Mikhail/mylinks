@@ -6,5 +6,5 @@ export async function chooseFont(scope:Page|Locator,label:string,value:string){
 }
 export async function chooseFromSelect(control:Locator,value:string){
  if(await control.isVisible())await control.selectOption(value)
- else await control.locator('xpath=ancestor::*[contains(@class,"typography-controls")][1]').locator(`[data-font="${value}"]`).click()
+ else await control.locator('xpath=ancestor::div[@class="typography-controls"][1]').locator(`[data-font="${value}"]`).click()
 }

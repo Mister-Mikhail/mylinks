@@ -19,7 +19,7 @@ test('wizard dark name, avatar scale and final layout follow the chosen order',a
  await page.getByRole('button',{name:'Пропустить',exact:true}).click()
  const preview=page.locator('.onboarding-live-preview')
  const selectors=page.locator('.onboarding-theme')
- expect(await selectors.count()).toBe(2)
+ await expect(selectors).toHaveCount(2)
  for(const selector of await selectors.all()){const tops=await selector.locator('button').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().top));expect(Math.max(...tops)-Math.min(...tops)).toBeLessThan(2)}
  const box=(await preview.boundingBox())!
  expect((await selectors.last().boundingBox())!.y).toBeLessThan(box.y)
@@ -28,7 +28,7 @@ test('wizard dark name, avatar scale and final layout follow the chosen order',a
  await expect(preview).toHaveCSS('background-color','rgba(0, 0, 0, 0)')
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBeTruthy()
  await page.getByRole('button',{name:'Готово'}).click()
- expect(state.submitted?.avatar_scale).toBe(100)
+ await expect.poll(()=>state.submitted?.avatar_scale).toBe(100)
 })
 
 test('mobile two-finger gesture zooms avatar without scrolling the page',async({page,context,isMobile})=>{

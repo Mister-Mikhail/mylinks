@@ -8,6 +8,7 @@
 @media(max-width:650px){
  .typography-controls__desktop-font { display:none!important; }
  .font-tape { display:flex; position:relative; width:100%; min-width:0; grid-column:1/-1; overflow-x:auto; overscroll-behavior-x:contain; touch-action:pan-x; scroll-snap-type:x mandatory; scrollbar-width:thin; padding:4px 0 10px; gap:10px; }
+ .font-tape::before,.font-tape::after { content:""; flex:0 0 50%; }
  .font-tape__group { display:contents; }
  .font-tape__separator { display:flex; align-items:center; flex:0 0 32px; writing-mode:vertical-rl; font-size:10px; color:var(--muted); padding:8px; }
  .font-tape button { flex:0 0 164px; width:164px; display:grid; gap:10px; padding:12px; border:1px solid var(--line-strong); border-radius:10px; background:rgba(12,27,43,.33); color:inherit; text-align:left; scroll-snap-align:center; }

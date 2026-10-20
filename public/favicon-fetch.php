@@ -35,7 +35,7 @@ function icon_resolve($host,$deadline){
   if(is_resource($p)){fclose($pipes[0]);stream_set_blocking($pipes[1],false);stream_set_blocking($pipes[2],false);$processes[]=array($p,$pipes,'');}
  }
  do{$running=false;foreach($processes as &$item){$item[2].=stream_get_contents($item[1][1]);stream_get_contents($item[1][2]);if(proc_get_status($item[0])['running'])$running=true;}unset($item);if($running)usleep(5000);}while($running&&microtime(true)<$until);
- foreach($processes as $item){if(proc_get_status($item[0])['running'])proc_terminate($item[0]);$text=$item[2].stream_get_contents($item[1][1]);fclose($item[1][1]);fclose($item[1][2]);proc_close($item[0]);foreach(preg_split('/\R/',$text) as $line){$ip=strtok(trim($line),' ');if(filter_var($ip,FILTER_VALIDATE_IP))$addresses[$ip]=true;}}
+ foreach($processes as $item){if(proc_get_status($item[0])['running'])proc_terminate($item[0]);$text=$item[2].stream_get_contents($item[1][1]);fclose($item[1][1]);fclose($item[1][2]);proc_close($item[0]);foreach(preg_split('/\R/',$text) as $line){$ip=strtok(trim($line),' ');if(filter_var($ip,FILTER_VALIDATE_IP)){$packed=inet_pton($ip);if(strlen($packed)===16&&substr($packed,0,12)===str_repeat("\0",10)."\xff\xff")$ip=inet_ntop(substr($packed,12));$addresses[$ip]=true;}}}
  $ips=array_keys($addresses);foreach($ips as $ip)if(!icon_public_ip($ip))return $cache[$host]=array();
  return $cache[$host]=$ips;
 }
@@ -71,7 +71,7 @@ function icon_to_png($bytes,$deadline){
  $ffmpeg=is_executable('/usr/bin/ffmpeg')?'/usr/bin/ffmpeg':(is_executable('/usr/local/bin/ffmpeg')?'/usr/local/bin/ffmpeg':null);
  if(!$ffmpeg||!is_executable('/usr/bin/timeout'))return null;
  $src=tempnam(sys_get_temp_dir(),'ml-icon-');$out=tempnam(sys_get_temp_dir(),'ml-png-');if(!$src||!$out)return null;
- file_put_contents($src,$bytes);$args=array('/usr/bin/timeout',max(.1,min(1.5,$remaining)).'s',$ffmpeg,'-nostdin','-v','error','-y','-protocol_whitelist','file,pipe');if($svg)$args=array_merge($args,array('-f','svg_pipe'));$args=array_merge($args,array('-i',$src,'-frames:v','1','-vf','scale=64:64:force_original_aspect_ratio=decrease,pad=64:64:(ow-iw)/2:(oh-ih)/2:color=black@0','-f','image2','-vcodec','png',$out));
+ file_put_contents($src,$bytes);$args=array('/usr/bin/timeout',max(.1,min(1.5,$remaining)).'s',$ffmpeg,'-nostdin','-v','error','-y','-max_alloc','16777216','-max_pixels','4194304','-threads','1','-filter_threads','1','-protocol_whitelist','file,pipe');if($svg)$args=array_merge($args,array('-f','svg_pipe'));$args=array_merge($args,array('-i',$src,'-frames:v','1','-vf','scale=64:64:force_original_aspect_ratio=decrease,pad=64:64:(ow-iw)/2:(oh-ih)/2:color=black@0','-f','image2','-vcodec','png',$out));
  $p=proc_open($args,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes);$png=null;
  if(is_resource($p)){fclose($pipes[0]);stream_get_contents($pipes[1]);fclose($pipes[1]);stream_get_contents($pipes[2]);fclose($pipes[2]);if(proc_close($p)===0&&filesize($out)<262144)$png=file_get_contents($out);}
  @unlink($src);@unlink($out);return $png&&substr($png,0,8)==="\x89PNG\r\n\x1a\n"?$png:null;
@@ -85,7 +85,8 @@ function icon_collect_ru($host,$deadline,$resolver=null){
  if(!icon_valid_host($host)||!function_exists('curl_multi_init'))return null;
  $resolver=$resolver??'icon_resolve';$multi=curl_multi_init();$active=array();$queue=array();$seen=array();$scheduled=0;
  $enqueue=function($url,$kind,$redirect=0)use(&$queue,&$seen,$resolver,$deadline,&$scheduled){
-  $key=$kind.':'.$url.':'.$redirect;if(isset($seen[$key])||$scheduled>=96)return;$seen[$key]=true;$p=icon_url($url);if(!$p||$redirect>3||microtime(true)>$deadline)return;$ips=$resolver(strtolower($p['host']),$deadline);foreach($ips as $ip)if(!icon_public_ip($ip))return;foreach($ips as $ip){if($scheduled>=96)break;$queue[]=array('url'=>$url,'host'=>strtolower($p['host']),'ip'=>$ip,'kind'=>$kind,'redirect'=>$redirect);$scheduled++;}
+  $key=$kind.':'.$url.':'.$redirect;if(isset($seen[$key])||$scheduled>=96)return;$seen[$key]=true;$p=icon_url($url);if(!$p||$redirect>3||microtime(true)>$deadline)return;$ips=$resolver(strtolower($p['host']),$deadline);foreach($ips as $ip)if(!icon_public_ip($ip))return;foreach($ips as $rank=>$ip){if($scheduled>=96)break;$queue[]=array('url'=>$url,'host'=>strtolower($p['host']),'ip'=>$ip,'kind'=>$kind,'redirect'=>$redirect,'rank'=>$rank);$scheduled++;}
+  usort($queue,function($a,$b){return $a['rank']<=>$b['rank'];});
  };
  $enqueue('https://'.$host.'/favicon.ico','icon');$enqueue('https://'.$host.'/apple-touch-icon.png','icon');$enqueue('https://'.$host.'/','page');
  $result=null;

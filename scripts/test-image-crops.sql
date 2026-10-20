@@ -37,13 +37,13 @@ do $$ declare detail jsonb; payload jsonb; c jsonb:='{"version":1,"mode":"frame"
  perform public.staff_save_profile('00000000-0000-4000-8000-000000000017',payload);
  saved:=moderation.detail('00000000-0000-4000-8000-000000000017')->'profile';
  if saved->'background_crop' is distinct from c then raise exception 'Staff crop missing';end if;
- if (select count(*) from public.profile_links where profile_id='00000000-0000-4000-8000-000000000017' and image_crop=c)<2 then raise exception 'Staff link update/insert lost crop';end if;
- payload:=jsonb_set(payload,'{links}',(select jsonb_agg(to_jsonb(l)-'image_crop') from public.profile_links l where profile_id='00000000-0000-4000-8000-000000000017'));
+ if (select count(*) from jsonb_array_elements(moderation.detail('00000000-0000-4000-8000-000000000017')->'links') l where l->'image_crop'=c)<2 then raise exception 'Staff link update/insert lost crop';end if;
+ payload:=jsonb_set(payload,'{links}',(select jsonb_agg(l-'image_crop') from jsonb_array_elements(moderation.detail('00000000-0000-4000-8000-000000000017')->'links') l));
  payload:=jsonb_set(payload,'{profile}',(payload->'profile')-'background_crop');
  perform public.staff_save_profile('00000000-0000-4000-8000-000000000017',payload);
  saved:=moderation.detail('00000000-0000-4000-8000-000000000017')->'profile';
  if saved->'background_crop' is distinct from c then raise exception 'Legacy staff client erased crop';end if;
- if (select count(*) from public.profile_links where profile_id='00000000-0000-4000-8000-000000000017' and image_crop=c)<2 then raise exception 'Legacy staff client erased link crops';end if;
+ if (select count(*) from jsonb_array_elements(moderation.detail('00000000-0000-4000-8000-000000000017')->'links') l where l->'image_crop'=c)<2 then raise exception 'Legacy staff client erased link crops';end if;
 end $$;
 reset role;
 rollback;

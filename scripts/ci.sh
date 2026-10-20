@@ -16,6 +16,7 @@ npm ci
 node --experimental-strip-types --test supabase/functions/favicon/safe-fetch.test.ts
 npm run lint
 npm run build
+if ! command -v ffmpeg >/dev/null; then sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg; fi
 php -l dist/share-profile.php
 php -l dist/share-avatar.php
 php -l dist/share-image.php

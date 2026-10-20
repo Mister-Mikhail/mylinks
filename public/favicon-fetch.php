@@ -132,7 +132,13 @@ function icon_cached($key,$host,$collect=null){
  if($old&&filemtime($file)>time()-21600)return $old;
  if(is_file($retry)&&filemtime($retry)>time()-300)return $old;
  $lock=@fopen($file.'.lock','c');if(!$lock)return $old;
- if(!flock($lock,LOCK_EX|LOCK_NB)){fclose($lock);return $old;}
+ if(!flock($lock,LOCK_EX|LOCK_NB)){
+  // Editor and public cards share one domain snapshot. A concurrent cold read
+  // waits for the first writer instead of caching a transient miss in the UI.
+  fclose($lock);if($old)return $old;$until=microtime(true)+9.8;
+  do{usleep(30000);clearstatcache(true,$file);if(is_file($file)){$ready=file_get_contents($file);if(substr($ready,0,8)==="\x89PNG\r\n\x1a\n")return $ready;}clearstatcache(true,$retry);if(is_file($retry)&&filemtime($retry)>time()-300)return null;}while(microtime(true)<$until);
+  return null;
+ }
  try{clearstatcache(true,$file);if(is_file($file)&&filemtime($file)>time()-21600)return file_get_contents($file);
   $collect=$collect??'icon_collect';$png=$collect($host);if($png){$temp=tempnam(dirname($file),'icon-');if($temp){file_put_contents($temp,$png);chmod($temp,0600);if(!rename($temp,$file))@unlink($temp);}return $png;}
   @touch($retry);return $old;

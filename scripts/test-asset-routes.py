@@ -24,7 +24,7 @@ with tempfile.TemporaryDirectory(prefix='mylinks-apache-') as temp:
     private = doc / '.private-assets/link-icons'
     private.mkdir(parents=True)
     png = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==')
-    (private / (hashlib.sha256((ident+':'+digest).encode()).hexdigest()+'.png')).write_bytes(png)
+    (private / (hashlib.sha256(b'domain:example.com').hexdigest()+'.png')).write_bytes(png)
     modules = ['mpm_prefork','authz_core','authz_host','access_compat','dir','mime','rewrite','headers','env','setenvif','alias','actions','cgi']
     conf = root / 'httpd.conf'
     conf.write_text('\n'.join(['ServerRoot /etc/apache2','ServerName localhost','Listen 127.0.0.1:4180',f'PidFile {root}/httpd.pid',f'ErrorLog {root}/error.log','LogLevel warn',f'User #{uid}',f'Group #{gid}', 'TypesConfig /etc/mime.types',*[f'LoadModule {m}_module /usr/lib/apache2/modules/mod_{m}.so' for m in modules],f'DocumentRoot "{doc}"',f'<Directory "{doc}">','AllowOverride All','Require all granted','Options +ExecCGI','AddHandler mylinks-php .php','Action mylinks-php /test-php-cgi','</Directory>',f'ScriptAlias /test-php-cgi "{wrapper}"',f'<Directory "{root}">','Require all granted','Options +ExecCGI','</Directory>']))

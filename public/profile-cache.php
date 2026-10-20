@@ -40,6 +40,6 @@ if ($current) {
         $path=$link['icon_snapshot_path'] ?? '';
         if (!preg_match('#^/link-icon/([a-f0-9-]{36})/([a-f0-9]{12})\.png$#D',$path,$parts) || $parts[1]!==($link['id'] ?? null)) continue;
         $host=icon_snapshot_details($link,$parts[2]);
-        if($host)icon_cached($parts[1].':'.$parts[2],$host);
+        if($host)icon_cached('domain:'.$host,$host);
     }
 }

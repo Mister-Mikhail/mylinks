@@ -19,7 +19,27 @@ type Address = {address:string;family:number}
 export type Resolver = (host:string)=>Promise<Address[]>
 export type Transport = (url:URL,address:Address,limit:number,accept:string,ua:string,timeout:number)=>Promise<Fetched|null>
 
-export const pinnedRequest:Transport = createPinnedRequest()
+// Bound aggregate sockets and queued work across candidates and requests in an isolate.
+export function limitedTransport(transport:Transport,parallel=6,maxQueue=96):Transport {
+ let active=0
+ const queue:{grant:()=>void}[]=[]
+ return async(url,address,limit,accept,ua,timeout)=>{
+  const deadline=Date.now()+timeout
+  if(active>=parallel){
+   if(queue.length>=maxQueue)return null
+   const admitted=await new Promise<boolean>(resolve=>{
+    let timer:ReturnType<typeof setTimeout>
+    const entry={grant:()=>{clearTimeout(timer);active++;resolve(true)}}
+    timer=setTimeout(()=>{const index=queue.indexOf(entry);if(index>=0)queue.splice(index,1);resolve(false)},Math.max(1,timeout))
+    queue.push(entry)
+   })
+   if(!admitted)return null
+  }else active++
+  try{const remaining=deadline-Date.now();return remaining>0?await transport(url,address,limit,accept,ua,remaining):null}
+  finally{active--;queue.shift()?.grant()}
+ }
+}
+export const pinnedRequest:Transport = limitedTransport(createPinnedRequest())
 
 export async function safeFetch(input:string,limit:number,accept:string,ua:string,timeout=5000,resolve:Resolver=host=>lookup(host,{all:true}),transport:Transport=pinnedRequest):Promise<Fetched|null> {
   const deadline=Date.now()+timeout

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import { strict as assert } from 'node:assert'
-import { publicAddress, safeFetch, type Resolver, type Transport } from './safe-fetch.ts'
+import { publicAddress, safeFetch, limitedTransport, type Resolver, type Transport } from './safe-fetch.ts'
 import { createPinnedRequest, type Connection } from './pinned-transport.ts'
 const publicDns:Resolver=async()=>[{address:'93.184.215.14',family:4}]
 for(const ip of ['127.0.0.1','10.0.0.1','169.254.169.254','172.16.0.1','192.168.0.1','100.64.0.1','198.18.1.1','192.0.2.1','203.0.113.1','::1','::ffff:127.0.0.1','fc00::1','fe80::1','2002:7f00::1','2001:db8::1'])test(`deny non-public ${ip}`,()=>assert.equal(publicAddress(ip),false))
@@ -103,4 +103,13 @@ test('tries every validated A and AAAA; a slow first address does not hide succe
   return ip.family===6?{body:new Uint8Array([1]),type:'image/png',url:url.href,status:200}:null
  })
  assert.equal(got?.status,200);assert.deepEqual(seen,addresses.map(a=>a.address))
+})
+
+test('EU transport limits aggregate sockets, rejects excess queue and expires waiting work',async()=>{
+ let active=0,peak=0,calls=0
+ const pool=limitedTransport(async(url)=>{calls++;active++;peak=Math.max(peak,active);await new Promise(resolve=>setTimeout(resolve,25));active--;return {body:new Uint8Array([1]),type:'image/png',url:url.href,status:200}},2,2)
+ const request=(budget:number)=>pool(new URL('https://example.com'),{address:'8.8.8.8',family:4},100,'image/*','test',budget)
+ const results=await Promise.all([request(100),request(100),request(5),request(100),request(100)])
+ assert.equal(peak,2);assert.equal(calls,3);assert.equal(results[2],null);assert.equal(results[4],null)
+ assert.equal(results[0]?.status,200);assert.equal(results[3]?.status,200)
 })

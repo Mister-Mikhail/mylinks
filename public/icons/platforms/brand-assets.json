@@ -124,8 +124,8 @@
   {
     "name": "x",
     "file": "x.png",
-    "source": "https://abs.twimg.com/favicons/twitter-pip.3.ico",
-    "sha256": "714e1a9985b4db1c4e973d755f6d246d5cf55205b86471d281979219133782c9",
+    "source": "https://abs.twimg.com/favicons/twitter.3.ico",
+    "sha256": "e1ff94aaca262329356ac93174da7897c7da06a9330e9f5cbb61592466b4a93c",
     "domains": [
       "x.com",
       "twitter.com"

@@ -39,8 +39,9 @@ if (!defined('MYLINKS_ICON_LIBRARY_ONLY')) {
     $host=icon_snapshot_from_bundle(preview_bundle($handle),$id,$hash);
     if (!$host) { http_response_code(404); header('Cache-Control: no-store'); exit; }
     // Reuse a last good pre-v2 snapshot without making the visitor wait.
-    $key=$id.':'.$hash;$file=icon_cache_file($key);
-    $legacy=sys_get_temp_dir().'/mylinks-link-icon-'.hash('sha256',$key).'.png';
-    if(!is_file($file)&&is_file($legacy)&&substr(file_get_contents($legacy,false,null,0,8),0,8)==="\x89PNG\r\n\x1a\n"){@copy($legacy,$file);@chmod($file,0600);@touch($file,filemtime($legacy));}
+    $snapshotKey=$id.':'.$hash;$key='domain:'.$host;$file=icon_cache_file($key);
+    $previous=icon_cache_file($snapshotKey);
+    $legacy=is_file($previous)?$previous:sys_get_temp_dir().'/mylinks-link-icon-'.hash('sha256',$snapshotKey).'.png';
+    if(!is_file($file)&&is_file($legacy)&&substr(file_get_contents($legacy,false,null,0,8),0,8)==="\x89PNG\r\n\x1a\n"){$temporary=@tempnam(dirname($file),'icon-import-');if($temporary){@copy($legacy,$temporary);@chmod($temporary,0600);@touch($temporary,filemtime($legacy));@rename($temporary,$file);if(is_file($temporary))@unlink($temporary);}}
     icon_send_png($key,$host);
 }

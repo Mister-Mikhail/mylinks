@@ -21,8 +21,17 @@ $called=array();check_icon(icon_collect('example.com',1,function()use($png){retu
 $key='test:'.bin2hex(random_bytes(8));$file=icon_cache_file($key);
 try{
  check_icon(icon_cached($key,'example.com',function()use($png){return $png;})===$png,'Snapshot not stored');
+ check_icon(icon_cached($key,'example.com',function(){throw new Exception('Fresh domain snapshot must be shared without another collection');})===$png,'Fresh snapshot not reused');
  check_icon(is_file($file),'Persistent snapshot missing');touch($file,time()-25000);clearstatcache(true,$file);
  check_icon(icon_cached($key,'example.com',function(){return null;})===$png,'Refresh discarded last good snapshot');
  check_icon(file_get_contents($file)===$png,'Failed refresh overwrote snapshot');
 }finally{foreach(array($file,$file.'.retry',$file.'.lock') as $f)@unlink($f);}
+$key='test:concurrent:'.bin2hex(random_bytes(8));$file=icon_cache_file($key);$temporary=tempnam(dirname($file),'test-write-');file_put_contents($temporary,$png);
+$busy=fopen($file.'.lock','c');flock($busy,LOCK_EX);
+$child=proc_open(array(PHP_BINARY,'-r','usleep(150000);rename($argv[1],$argv[2]);',$temporary,$file),array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes);
+try{
+ check_icon(is_resource($child),'Cannot start concurrent cache writer');fclose($pipes[0]);
+ check_icon(icon_cached($key,'example.com',function(){throw new Exception('Concurrent read must reuse first collection');})===$png,'Cold concurrent request became a permanent UI miss');
+ stream_get_contents($pipes[1]);fclose($pipes[1]);stream_get_contents($pipes[2]);fclose($pipes[2]);check_icon(proc_close($child)===0,'Writer failed');
+}finally{flock($busy,LOCK_UN);fclose($busy);foreach(array($file,$file.'.lock',$temporary) as $f)@unlink($f);}
 echo "Favicon security, ICO/SVG, RU/EU and persistent last-good cache passed\n";

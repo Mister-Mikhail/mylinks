@@ -38,7 +38,9 @@ for(const target of ['background','card'])test(`${target} crop uses real drag/zo
  const b=(await frame.boundingBox())!,x=b.x+b.width/2,y=b.y+b.height/2
  if(isMobile){const cdp=await page.context().newCDPSession(page);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:1}]});for(let n=1;n<=5;n++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+n*5,y:y+n*3,id:1}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach()}
  else {await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+30,y+20,{steps:5});await page.mouse.up()}
+ if(target==='card'){await page.getByLabel('Заполнение свободного поля').selectOption('color');await page.getByLabel('Цвет: Цвет свободного поля',{exact:true}).fill('255 255 255')}
  await frame.focus();await page.keyboard.press('ArrowRight')
+ await dialog.screenshot({path:info.outputPath(`${target}-editor.png`)})
  const draft=JSON.parse(await frame.locator('.cropped-image').getAttribute('data-crop')||'{}')
  expect(draft.x).toBeGreaterThan(0);expect(draft.zoom).toBeLessThan(1)
  expect(await page.evaluate(()=>scrollY)).toBe(scroll);expect(await page.evaluate(()=>visualViewport?.scale)).toBe(viewportScale)
@@ -89,5 +91,6 @@ test('mobile font tape uses real text, swipe selects on stop, tap selects and Sa
  await expect.poll(()=>tape.locator('[aria-selected=true]').getAttribute('data-font')).not.toBe('manrope')
  await tape.locator('[data-font=caveat]').click();await expect(tape.locator('[data-font=caveat]')).toHaveAttribute('aria-selected','true')
  await expect(page.locator('.preview-panel h1')).toHaveCSS('font-family',/Caveat/)
+ await tape.screenshot({path:test.info().outputPath('font-tape.png')})
  await page.getByRole('button',{name:'Сохранить',exact:true}).click();await expect.poll(()=>state.profile.name_font).toBe('caveat')
 })

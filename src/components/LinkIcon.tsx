@@ -86,7 +86,7 @@ export function LinkIcon({ name, url = '', size = 19, snapshotPath, publicView =
   const props = { className: 'link-icon__glyph', size: size + 2, strokeWidth: 1.8, 'aria-hidden': true }
 
   if (localIcon && !state.localFailed) {
-    return <img className={`link-icon__brand${localIcon.plate ? ' link-icon__plate' : ''}`} src={localIcon.src} width={size} height={size} alt="" aria-hidden onError={() => setAttempt({ ...state, localFailed: true })} />
+    return <img className={`link-icon__brand${localIcon.plate ? ' link-icon__plate' : ''}`} src={`${localIcon.src}?v=2`} width={size} height={size} alt="" aria-hidden onError={() => setAttempt({ ...state, localFailed: true })} />
   }
   if (name === 'email') return <AtSign {...props} />
 

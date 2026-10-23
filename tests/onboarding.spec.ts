@@ -97,7 +97,7 @@ test('wizard avatar crop and shape persist into final preview @smoke @mobile', a
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
   await page.getByRole('button', { name: 'Готово' }).click()
   expect(state.uploads).toBe(2)
-  expect(state.submitted).toMatchObject({ avatar_shape: 'square', avatar_scale: 65, background_preset: 'mist' })
+  await expect.poll(()=>state.submitted).toMatchObject({ avatar_shape: 'square', avatar_scale: 65, background_preset: 'mist' })
 })
 
 test('address selection saves coordinates and email rejects invalid formats', async ({ page }) => {
@@ -114,7 +114,7 @@ test('address selection saves coordinates and email rejects invalid formats', as
   await page.getByRole('button', { name: 'Тестовый адрес, Москва' }).click()
   await expect(page.getByText('Точка выбрана:', { exact: false })).toBeVisible()
   await page.getByRole('button', { name: 'Продолжить' }).click(); await page.getByRole('button', { name: 'Готово' }).click()
-  expect(state.submitted).toMatchObject({ contact: { value: 'Тестовый адрес, Москва', latitude: 55.75, longitude: 37.61 } })
+  await expect.poll(()=>state.submitted).toMatchObject({ contact: { value: 'Тестовый адрес, Москва', latitude: 55.75, longitude: 37.61 } })
 })
 
 test('self deletion requires exact confirmation and can retry a server failure', async ({ page }) => {

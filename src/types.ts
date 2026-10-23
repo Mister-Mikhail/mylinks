@@ -1,3 +1,4 @@
+import type { ImageCrop } from './lib/imageCrop'
 import type { FontKey } from './lib/typography'
 
 export type BackgroundPreset = 'midnight' | 'mist' | 'cobalt'
@@ -46,6 +47,7 @@ export interface Profile {
   background_overlay?: number
   background_position_x?: number
   background_position_y?: number
+  background_crop?: ImageCrop | null
   background_zoom?: number
   background_primary?: string | null
   background_secondary?: string | null
@@ -80,6 +82,7 @@ export interface ProfileLink {
   image_url?: string | null
   image_alt?: string
   image_position_x?: number
+  image_crop?: ImageCrop | null
   image_position_y?: number
   icon_snapshot_path?: string | null
   position: number

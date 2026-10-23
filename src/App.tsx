@@ -42,6 +42,7 @@ import { AvatarMedia } from './components/AvatarMedia'
 import { AvatarEditor } from './components/AvatarEditor'
 import { ProfilePreview } from './components/ProfilePreview'
 import { TemplateGallery } from './components/TemplateGallery'
+import { BACKGROUND_ASPECT, CARD_ASPECT } from './lib/imageCrop'
 import { TypographyControls } from './components/TypographyControls'
 import { LinkIcon } from './components/LinkIcon'
 import { ProfileTools } from './components/ProfileTools'
@@ -812,6 +813,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         background_position_x: profile.background_position_x ?? 50,
         background_position_y: profile.background_position_y ?? 50,
         background_zoom: profile.background_zoom ?? 100,
+        background_crop: profile.background_crop ?? null,
         background_primary: profile.background_primary ?? null,
         background_secondary: profile.background_secondary ?? null,
         card_preset: profile.card_preset,
@@ -849,6 +851,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         image_alt: link.image_alt ?? '',
         image_position_x: link.image_position_x ?? 50,
         image_position_y: link.image_position_y ?? 50,
+        image_crop: link.image_crop ?? null,
         icon_key: link.icon_key,
         position,
         is_visible: link.is_visible,
@@ -875,6 +878,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         image_alt: link.image_alt ?? '',
         image_position_x: link.image_position_x ?? 50,
         image_position_y: link.image_position_y ?? 50,
+        image_crop: link.image_crop ?? null,
         icon_key: link.icon_key,
         position,
         is_visible: link.is_visible,
@@ -1197,9 +1201,9 @@ function ContentEditor({ onOpenDesign,
                 <small className="link-editor__hint">{getLinkPlatform(link.icon_key).baseUrl ? 'Введите только имя после адреса площадки' : 'Можно без https:// · логотип подтянется автоматически'}</small>
                 <label>Вид карточки<select aria-label={`Вид карточки: ${link.label || 'Новая ссылка'}`} value={link.presentation ?? 'normal'} onChange={event=>updateLink(link.localId,{presentation:event.target.value as 'normal'|'featured'})}><option value="normal">Обычная</option><option value="featured">Большая с изображением</option></select></label>
                 {link.presentation === 'featured' && <div className="featured-image-controls">
-                  <ImageAssetField label={`Изображение карточки: ${link.label || 'Новая ссылка'}`} owner={profile.id} url={link.image_url} onChange={(path,url)=>updateLink(link.localId,{image_path:path,image_url:url})}/>
+                  <small>Фото и кадр: Оформление → Отдельная карточка.</small>
                   <label>Описание изображения<input aria-label={`Описание изображения: ${link.label}`} maxLength={160} value={link.image_alt ?? ''} onChange={event=>updateLink(link.localId,{image_alt:event.target.value})}/></label>
-                  {link.image_path && <>{(['x','y'] as const).map(axis=><label className="avatar-size-control" key={axis}>Кадрирование {axis==='x'?'по горизонтали':'по вертикали'}<input type="range" aria-label={`Кадрирование ${axis}: ${link.label}`} min="0" max="100" value={link[axis==='x'?'image_position_x':'image_position_y'] ?? 50} onChange={event=>updateLink(link.localId,{[axis==='x'?'image_position_x':'image_position_y']:Number(event.target.value)})}/></label>)}</>}
+
                 </div>}
                 <div className="link-editor__footer">
                   <span className="link-editor__site-icon" role="img" aria-label="Иконка сайта"><LinkIcon name={link.icon_key} url={link.url} size={28} /></span>
@@ -1327,16 +1331,9 @@ function DesignEditor({
           </div>}
         </div>
         {profile.background_style === 'image' && <div className="appearance-image-controls">
-          <ImageAssetField label="Загрузить фон" owner={profile.id} url={profile.background_image_url} onChange={(path,url) => setProfile({...profile,background_image_path:path,background_image_url:url,background_position_x:50,background_position_y:50,background_zoom:100})} />
-          {profile.background_image_url && <>
-            <p>Область фото · сдвиньте и увеличьте снимок. Результат сразу виден в предпросмотре.</p>
-            <label className="avatar-size-control"><span>По горизонтали · {profile.background_position_x ?? 50}%</span><input type="range" aria-label="Положение фона по горизонтали" min="0" max="100" value={profile.background_position_x ?? 50} onChange={event=>setProfile({...profile,background_position_x:Number(event.target.value)})}/></label>
-            <label className="avatar-size-control"><span>По вертикали · {profile.background_position_y ?? 50}%</span><input type="range" aria-label="Положение фона по вертикали" min="0" max="100" value={profile.background_position_y ?? 50} onChange={event=>setProfile({...profile,background_position_y:Number(event.target.value)})}/></label>
-            <label className="avatar-size-control"><span>Увеличение фото · {profile.background_zoom ?? 100}%</span><input type="range" aria-label="Увеличение фонового фото" min="100" max="300" value={profile.background_zoom ?? 100} onChange={event=>setProfile({...profile,background_zoom:Number(event.target.value)})}/></label>
-            <button type="button" className="button button--ghost button--small" onClick={()=>setProfile({...profile,background_position_x:50,background_position_y:50,background_zoom:100})}>Сбросить область фото</button>
-          </>}
+          <ImageAssetField label="Загрузить фон" aspect={BACKGROUND_ASPECT} crop={profile.background_crop??(profile.background_image_path?{version:1,mode:'legacy',x:(profile.background_position_x??50)/100,y:(profile.background_position_y??50)/100,zoom:(profile.background_zoom??100)/100}:null)} onCropChange={crop=>setProfile({...profile,background_crop:crop})} owner={profile.id} url={profile.background_image_url} onChange={(path,url,crop) => setProfile({...profile,background_image_path:path,background_image_url:url,background_crop:crop??null,background_position_x:50,background_position_y:50,background_zoom:100})} />
           <label className="avatar-size-control"><span>Затемнение фона · {profile.background_overlay ?? 45}%</span><input type="range" aria-label="Затемнение фона" min="0" max="80" value={profile.background_overlay ?? 45} onChange={event=>setProfile({...profile,background_overlay:Number(event.target.value)})}/></label>
-          <button type="button" className="button button--ghost button--small" onClick={()=>setProfile({...profile,background_style:'preset',background_image_path:null,background_image_url:null,background_overlay:45,background_position_x:50,background_position_y:50,background_zoom:100})}>Вернуть исходный фон</button>
+          <button type="button" className="button button--ghost button--small" onClick={()=>setProfile({...profile,background_style:'preset',background_image_path:null,background_image_url:null,background_crop:null,background_overlay:45,background_position_x:50,background_position_y:50,background_zoom:100})}>Вернуть исходный фон</button>
           <p>Проверьте читаемость текста поверх изображения.</p>
         </div>}
       </section>
@@ -1360,7 +1357,7 @@ function DesignEditor({
 
       <section className="settings-card">
         <div className="settings-card__title"><LayoutGrid size={18} /><div><h2>Карточки</h2><p>Общий стиль текста, рамок и подложки.</p></div></div>
-        <TypographyControls label="Текст ссылок" slot="link" font={profile.link_font} size={profile.link_font_size} color={profile.link_color} onChange={(font, size) => setProfile({ ...profile, link_font: font, link_font_size: size })} onColorChange={color => setProfile({ ...profile, link_color: color })} />
+        <TypographyControls sample={links.find(link=>link.label.trim())?.label} label="Текст ссылок" slot="link" font={profile.link_font} size={profile.link_font_size} color={profile.link_color} onChange={(font, size) => setProfile({ ...profile, link_font: font, link_font_size: size })} onColorChange={color => setProfile({ ...profile, link_color: color })} />
         <div className="segmented-picker">
           {([
             ['glass', 'Стекло'],
@@ -1386,6 +1383,8 @@ function DesignEditor({
         <div className="appearance-item-list">{links.map((link, index) => <article className={`appearance-item ${selectedLinkId === link.localId ? 'appearance-item--selected' : ''}`} key={link.localId}>
           <div className="appearance-item__heading"><span className="appearance-item__number">{index + 1}</span><button type="button" className="appearance-item__select" aria-pressed={selectedLinkId === link.localId} onClick={() => onSelectLink(link.localId)}>{link.label || link.url || 'Новая ссылка'}</button><div className="appearance-item__arrows"><button type="button" className="icon-button" disabled={index === 0} onClick={() => moveLink(index, -1)} aria-label={`Переместить ссылку выше: ${link.label || index + 1}`}><ArrowUp size={16} /></button><button type="button" className="icon-button" disabled={index === links.length - 1} onClick={() => moveLink(index, 1)} aria-label={`Переместить ссылку ниже: ${link.label || index + 1}`}><ArrowDown size={16} /></button></div></div>
           {selectedLinkId === link.localId && <div className="appearance-item__controls">
+            {link.presentation==='featured'&&<ImageAssetField label={`Изображение карточки: ${link.label}`} owner={profile.id} url={link.image_url} crop={link.image_crop??(link.image_path?{version:1,mode:'legacy',x:(link.image_position_x??50)/100,y:(link.image_position_y??50)/100,zoom:1}:null)} aspect={CARD_ASPECT} onChange={(path,url,crop)=>updateLink(link.localId,{image_path:path,image_url:url,image_crop:crop??null})} onCropChange={crop=>updateLink(link.localId,{image_crop:crop})}/>}
+
             <TypographyControls sample={link.label} label="Название ссылки" slot="link" font={link.label_font ?? profile.link_font} size={link.label_font_size ?? profile.link_font_size} color={link.label_color ?? profile.link_color} onChange={(font, size) => updateLink(link.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateLink(link.localId, { label_color: color })} />
             <div className="link-card-style__controls"><label>Стиль<select aria-label={`Стиль этой карточки: ${link.label}`} value={link.card_preset_override ?? ''} onChange={event => updateLink(link.localId, { card_preset_override: event.target.value ? event.target.value as Profile['card_preset'] : null })}><option value="">Как у остальных</option><option value="glass">Стекло</option><option value="solid">Сплошная</option><option value="outline">Контур</option></select></label><label>Скругление<select aria-label={`Скругление этой карточки: ${link.label}`} value={link.card_radius_override ?? ''} onChange={event => updateLink(link.localId, { card_radius_override: event.target.value ? Number(event.target.value) : null })}><option value="">Как у остальных</option><option value="4">4 px</option><option value="13">13 px</option><option value="21">21 px</option><option value="28">28 px</option></select></label></div>
             <details className="card-style-more"><summary>Дополнительные настройки</summary>

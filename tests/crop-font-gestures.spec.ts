@@ -67,8 +67,13 @@ for(const target of ['background','card'])test(`${target} crop uses real drag/zo
   const media=page.locator(publicSelector);await expect(media).toHaveAttribute('data-crop',JSON.stringify(draft))
   const rect=(await media.boundingBox())!;if(target==='background'){expect(rect.x).toBe(0);expect(rect.y).toBe(0);expect(rect.width).toBe(width);expect(rect.height).toBe(900)}else expect(rect.width/rect.height).toBeCloseTo(draft.aspect,1)
   if(target==='background'&&width===1280)expect((await page.locator('.profile-card').boundingBox())!.height).toBeLessThan(900)
-  const photo=media.locator('.cropped-image__photo');const geom=await photo.evaluate(el=>{const p=el.parentElement!.getBoundingClientRect(),b=el.getBoundingClientRect();return {x:(b.x+b.width/2-p.x)/p.width-.5,y:(b.y+b.height/2-p.y)/p.height-.5,width:b.width/p.width}})
-  expect(geom.x).toBeCloseTo(draft.x,2);expect(geom.y).toBeCloseTo(draft.y,2);expect(geom.width).toBeCloseTo(Math.max(1,draft.sourceAspect/(target==='background'?width/900:draft.aspect))*draft.zoom,2)
+  const photo=media.locator('.cropped-image__photo')
+  const measure=()=>photo.evaluate(el=>{const p=el.parentElement!.getBoundingClientRect(),b=el.getBoundingClientRect();return {x:(b.x+b.width/2-p.x)/p.width-.5,y:(b.y+b.height/2-p.y)/p.height-.5,width:b.width/p.width}})
+  const expectedWidth=Math.max(1,draft.sourceAspect/(target==='background'?width/900:draft.aspect))*draft.zoom
+  // The background frame follows its container through ResizeObserver, one frame after the viewport change.
+  await expect.poll(async()=>Math.abs((await measure()).width-expectedWidth)).toBeLessThan(.005)
+  const geom=await measure()
+  expect(geom.x).toBeCloseTo(draft.x,2);expect(geom.y).toBeCloseTo(draft.y,2);expect(geom.width).toBeCloseTo(expectedWidth,2)
   await page.screenshot({path:info.outputPath(`${target}-${width}.png`),fullPage:true})
  }
  if(target==='background'){

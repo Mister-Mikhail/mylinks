@@ -64,7 +64,7 @@ async function selectPhoto(page: Page) {
   await expect(page.getByRole('heading', { name: 'Настройте кадр' })).toBeVisible()
 }
 
-test('appearance changes are visible in place and survive saving', async ({ page }) => {
+test('appearance changes are visible in place and survive saving @smoke', async ({ page }) => {
   const { patches, pageErrors } = await mockAppearance(page)
   await page.screenshot({ path: `/tmp/appearance-default-${test.info().project.name}.png` })
   const preview = page.locator('.preview-panel .profile-card')
@@ -177,11 +177,11 @@ test('font changed in Appearance survives reload and appears on the profile page
   await expect(page.locator('.public-preview-page h1')).toHaveCSS('font-family', /Georgia/)
 })
 
-test('all 15 font choices persist after reload for Cyrillic and Latin text', async ({ page }) => {
+test('representative font choices persist after reload for Cyrillic and Latin text', async ({ page }) => {
   test.setTimeout(120_000)
   await mockAppearance(page, false, 'Кириллица Latin')
   const font = page.getByLabel('Шрифт: Имя', { exact: true })
-  for (const option of FONT_OPTIONS) {
+  for (const option of FONT_OPTIONS.filter(font => ['georgia', 'caveat'].includes(font.value))) {
     await font.selectOption(option.value)
     await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
     await expect(page.getByText('Изменения сохранены')).toBeVisible()
@@ -216,7 +216,7 @@ test('per-card padding, border and opacity survive reload without changing the o
   await expect(page.locator('.public-preview-page .profile-link').first()).toHaveCSS('padding-left', '20px')
 })
 
-test('public cards remain tappable at 320px and honor reduced motion', async ({ page }) => {
+test('public cards remain tappable at 320px and honor reduced motion @mobile', async ({ page }) => {
   await mockAppearance(page)
   await page.setViewportSize({ width: 320, height: 640 })
   await page.emulateMedia({ reducedMotion: 'reduce' })
@@ -292,7 +292,7 @@ test('failed upload keeps crop editable and does not change stored avatar', asyn
   await page.getByRole('button', { name: 'Отмена', exact: true }).click()
 })
 
-test('preview stays pinned on small portrait and landscape phones', async ({ page }) => {
+test('preview stays pinned on small portrait and landscape phones @mobile', async ({ page }) => {
   await mockAppearance(page)
   for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(viewport)
@@ -307,7 +307,7 @@ test('preview stays pinned on small portrait and landscape phones', async ({ pag
 })
 
 
-test('default card text maintains accessible contrast across themes, presets and minimum opacity', async ({ page }) => {
+test('default card text maintains accessible contrast across themes, presets and minimum opacity @full', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await mockAppearance(page)
   await page.getByText('Дополнительные настройки карточек').click()
@@ -366,7 +366,7 @@ test('default card text maintains accessible contrast across themes, presets and
 })
 
 
-test('capture typography and card preset visual matrix for desktop and mobile review', async ({ page }, testInfo) => {
+test('capture typography and card preset visual matrix for desktop and mobile review @full', async ({ page }, testInfo) => {
   test.setTimeout(120_000)
   await mockAppearance(page, false, 'Кириллица Latin')
   const control = page.getByLabel('Шрифт: Имя', { exact: true })

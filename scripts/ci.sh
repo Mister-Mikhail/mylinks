@@ -1,46 +1,29 @@
 #!/usr/bin/env bash
-# Everything CI does lives here, so it can change without touching .github/workflows.
-# Pull request: lint, build, e2e, dependency audit.  Push to main: lint, build, deploy to Beget.
+# Local and CI entry point. Deploy is a separate build-only mode.
 set -euo pipefail
-
-# ci.log is posted as a comment, so credentials are masked before anything is written.
 mask() {
   perl -pe 'BEGIN { $| = 1; $p = $ENV{BEGET_FTP_PASSWORD} // "" }
             s/\Q$p\E/***/g if length $p;
             s#(\w+://[^:/\s]+:)[^@\s]+@#$1***@#g;'
 }
 exec > >(mask | tee -a ci.log) 2>&1
-
-echo "node $(node -v), npm $(npm -v), commit ${GITHUB_SHA:-local}"
-npm ci
-node --experimental-strip-types --test supabase/functions/favicon/safe-fetch.test.ts
-npm run lint
-npm run build
-php -l dist/share-profile.php
-php -l dist/share-avatar.php
-php -l dist/share-image.php
-php -l dist/profile-image-process.php
-php -l dist/profile-image.php
-php tests/profile-image.php
-php -l dist/avatar-process.php
-php -l dist/preview-config.php
-php -l dist/avatar-asset.php
-php -l dist/link-icon.php
-php -l dist/profile-cache.php
-php tests/share-preview.php
-php tests/share-image.php
-php tests/avatar-asset.php
-php tests/link-icon.php
-
-if [ "${IS_PR:-false}" = "true" ]; then
-  npx playwright install --with-deps chromium > /dev/null
-  npm run test:e2e -- --workers=2 --reporter=line
-  echo "== npm audit (production dependencies)"
-  npm audit --omit=dev || true
-  echo "== npm audit (all dependencies)"
-  npm audit || true
+suite="${CI_SUITE:-quick}"
+if [ "${CI_DEPS_INSTALLED:-false}" != true ]; then npm ci; fi
+if [ "$suite" = build ]; then
+  npm run build
+  bash scripts/deploy.sh
   exit 0
 fi
-
-bash scripts/deploy.sh
-
+npm run lint
+npm run build
+npm run test:unit
+npm run test:php
+case "$suite" in
+  quick) npm run test:quick ;;
+  full)
+    if [ -f scripts/test-asset-routes.py ]; then python3 scripts/test-asset-routes.py; fi
+    npm run test:full
+    bash scripts/test-yandex.sh
+    ;;
+  *) echo "Unknown CI_SUITE: $suite" >&2; exit 1 ;;
+esac

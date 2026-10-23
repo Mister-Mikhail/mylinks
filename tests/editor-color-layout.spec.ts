@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { mockWizard } from './helpers/wizard'
 async function setup(page:import('@playwright/test').Page){const state=await mockWizard(page);state.profile={...state.profile,onboarding_completed:true,display_name:'Анна',handle:'anna.page'};state.links=[{id:'link',profile_id:state.profile.id,label:'Мой сайт',url:'https://example.com',position:0,is_visible:true,icon_key:'link'}];await page.reload();return state}
-test('link editor fields and actions occupy separate areas on desktop and narrow screens',async({page},info)=>{
+test('link editor fields and actions occupy separate areas on desktop and narrow screens @mobile',async({page},info)=>{
  await setup(page)
  for(const width of [320,390,1280]){
   await page.setViewportSize({width,height:900})

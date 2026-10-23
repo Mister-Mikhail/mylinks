@@ -48,7 +48,7 @@ async function mock(page: Page, options: { owner?: boolean; published?: boolean;
   return { state, errors }
 }
 
-test('public profile renders without waiting for a slow session refresh', async ({ page }) => {
+test('public profile renders without waiting for a slow session refresh @smoke', async ({ page }) => {
   const { state, errors } = await mock(page, { owner: true, expired: true })
   await page.goto(`/${handle}`)
   await expect(page.getByRole('heading', { name: profile.display_name })).toBeVisible({ timeout: 2000 })
@@ -67,7 +67,7 @@ test('copying the address under the name gives a clean canonical URL', async ({ 
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(`https://mylinks.bar/${handle}`)
 })
 
-test('anonymous visitors never see a cached unpublished profile', async ({ page }) => {
+test('anonymous visitors never see a cached unpublished profile @smoke', async ({ page }) => {
   await mock(page, { published: false, cachedPrivate: true })
   await page.goto(`/${handle}`)
   await expect(page.getByText('Секрет из кэша')).toHaveCount(0)
@@ -75,7 +75,7 @@ test('anonymous visitors never see a cached unpublished profile', async ({ page 
   expect(await page.evaluate(key => localStorage.getItem(key), cacheKey)).toBeNull()
 })
 
-test('owner can see a private page, which disappears immediately on sign-out', async ({ page }) => {
+test('owner can see a private page, which disappears immediately on sign-out @smoke', async ({ page }) => {
   const { state } = await mock(page, { owner: true, published: false })
   await page.goto(`/${handle}`)
   await expect(page.getByRole('heading', { name: profile.display_name })).toBeVisible()
@@ -90,7 +90,7 @@ test('owner can see a private page, which disappears immediately on sign-out', a
   await expect(page.getByRole('heading', { name: profile.display_name })).toHaveCount(0)
 })
 
-test('published profile uses stable avatar URLs without signing on repeat visits', async ({ page }) => {
+test('published profile uses stable avatar URLs without signing on repeat visits @smoke', async ({ page }) => {
   const { state } = await mock(page, { avatar: true })
   await page.goto(`/${handle}`)
   await expect(page.getByRole('heading', { name: profile.display_name })).toBeVisible()
@@ -108,7 +108,7 @@ test('published profile uses stable avatar URLs without signing on repeat visits
   expect(state.signs).toHaveLength(0)
 })
 
-test('initial HTML renders immediately and never calls favicon or signed storage URLs', async ({ page }) => {
+test('initial HTML renders immediately and never calls favicon or signed storage URLs @smoke', async ({ page }) => {
   const { state, errors } = await mock(page, { avatar: true })
   state.profile.avatar_master_path = `${id}/master.webp`
   let forbidden = 0
@@ -164,7 +164,7 @@ test('session refresh does not reload the public page or replace it with a spinn
   expect(state.profileRequests).toHaveLength(requests)
 })
 
-test('editor and public profile buttons preserve navigation', async ({ page }) => {
+test('editor and public profile buttons preserve navigation @smoke', async ({ page }) => {
   await mock(page, { owner: true })
   await page.goto('/')
   await page.getByRole('button', { name: 'Открыть страницу', exact: true }).click()
@@ -213,7 +213,7 @@ test('published QR and share tools appear below contacts without leaking hidden 
   await expect(page.getByRole('status')).toContainText('Ссылка скопирована')
 })
 
-test('brand icons require a matching hostname, not text embedded in another domain', async ({ page }) => {
+test('brand icons require a matching hostname, not text embedded in another domain @smoke', async ({ page }) => {
   await mock(page)
   await page.route('**/functions/v1/favicon**', route => route.fulfill({ status: 404, body: '' }))
   await page.route('**/rest/v1/profile_links*', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify([

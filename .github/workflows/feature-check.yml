@@ -72,10 +72,20 @@ jobs:
         with:
           path: ~/.cache/mylinks-yandex
           key: yandex-${{ runner.os }}-${{ hashFiles('scripts/test-yandex.sh') }}
-      - run: npx playwright install --with-deps chromium
+      # Runner images already ship Chromium's system libraries; skipping apt keeps
+      # this step under a minute. A bounded install-deps runs only if launch fails.
+      - name: Install Chromium for Playwright
+        timeout-minutes: 8
+        run: |
+          npx playwright install chromium
+          node -e "require('@playwright/test').chromium.launch().then(b=>b.close())" \
+            || timeout 300 npx playwright install-deps chromium
       - name: Install full-suite server tools
         if: env.CI_SUITE == 'full'
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq apache2-bin php-cgi ffmpeg
+        timeout-minutes: 10
+        run: |
+          sudo timeout 240 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 update -qq
+          sudo timeout 300 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 install -y -qq --no-install-recommends apache2-bin php-cgi ffmpeg
       - uses: denoland/setup-deno@v2
         if: env.CI_SUITE == 'full'
         with:
@@ -84,6 +94,15 @@ jobs:
         run: bash scripts/test-edge.sh
       - name: Lint, build, PHP, unit and selected browser suite
         run: bash scripts/ci.sh
+      # Raw job logs live in blob storage that reviewers' tools often cannot reach;
+      # annotations are readable through the regular checks API and the PR page.
+      - name: Publish the end of the log as an annotation
+        if: failure()
+        run: |
+          test -f ci.log || exit 0
+          tail -n 120 ci.log | sed -e 's/\x1b\[[0-9;]*m//g' > ci-tail.txt
+          body=$(sed -e 's/%/%25/g' -e 's/\r/%0D/g' ci-tail.txt | awk 'BEGIN{ORS="%0A"}{print}')
+          echo "::error title=ci.sh failed (last 120 lines)::${body}"
       - name: Preserve desktop and mobile appearance screenshots
         if: always()
         uses: actions/upload-artifact@v4

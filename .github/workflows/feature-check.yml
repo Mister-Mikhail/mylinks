@@ -80,15 +80,16 @@ jobs:
           npx playwright install chromium
           node -e "require('@playwright/test').chromium.launch().then(b=>b.close())" \
             || timeout 300 npx playwright install-deps chromium
-      - name: Cache full-suite server packages
+      - name: Restore full-suite server packages
         if: env.CI_SUITE == 'full'
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/mylinks-apt
           key: apt-${{ runner.os }}-apache2-bin-php-cgi-ffmpeg-librsvg-v1
       - name: Install full-suite server tools
+        id: server_tools
         if: env.CI_SUITE == 'full'
-        timeout-minutes: 15
+        timeout-minutes: 20
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
@@ -99,9 +100,16 @@ jobs:
           # and man-db reindexes after every package. Neither is needed here.
           sudo systemctl stop unattended-upgrades.service apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
           sudo rm -f /var/lib/man-db/auto-update
+          # The Azure mirror sometimes trickles at a few kB/s; list the main archive
+          # first so a stalled mirror no longer decides the outcome.
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            printf 'http://archive.ubuntu.com/ubuntu/\tpriority:1\n' | sudo tee /etc/apt/apt-mirrors.txt.new >/dev/null
+            grep -v '^http://archive.ubuntu.com' /etc/apt/apt-mirrors.txt | sudo tee -a /etc/apt/apt-mirrors.txt.new >/dev/null
+            sudo mv /etc/apt/apt-mirrors.txt.new /etc/apt/apt-mirrors.txt
+          fi
           pkgs="apache2-bin php-cgi ffmpeg librsvg2-2"
           cache=~/.cache/mylinks-apt; mkdir -p "$cache"
-          opts="-o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o DPkg::Lock::Timeout=120 -o Dpkg::Use-Pty=0"
+          opts="-o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::http::Low-Speed-Limit=20000 -o Acquire::http::Low-Speed-Time=15 -o DPkg::Lock::Timeout=120 -o Dpkg::Use-Pty=0"
           if ls "$cache"/*.deb >/dev/null 2>&1; then
             log "installing from cached packages"
             sudo cp "$cache"/*.deb /var/cache/apt/archives/
@@ -110,13 +118,19 @@ jobs:
             log "apt update (attempt $attempt)"
             sudo timeout 180 apt-get $opts update -qq || { log "update failed"; continue; }
             log "apt install (attempt $attempt)"
-            if sudo timeout 300 apt-get $opts install -y --no-install-recommends $pkgs | grep -E '^(Get|Unpacking|Setting up|E:|W:)' || false; then
+            if sudo timeout 420 apt-get $opts install -y --no-install-recommends $pkgs | grep -E '^(Get|Unpacking|Setting up|E:|W:)' || false; then
               cp /var/cache/apt/archives/*.deb "$cache"/ 2>/dev/null || true
               log "installed"; exit 0
             fi
             log "install attempt $attempt failed"
           done
           exit 1
+      - name: Save full-suite server packages
+        if: always() && steps.server_tools.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/mylinks-apt
+          key: apt-${{ runner.os }}-apache2-bin-php-cgi-ffmpeg-librsvg-v1
       - uses: denoland/setup-deno@v2
         if: env.CI_SUITE == 'full'
         with:

@@ -131,9 +131,14 @@ jobs:
         if: failure()
         run: |
           test -f ci.log || exit 0
-          tail -n 120 ci.log | sed -e 's/\x1b\[[0-9;]*m//g' > ci-tail.txt
-          body=$(sed -e 's/%/%25/g' -e 's/\r/%0D/g' ci-tail.txt | awk 'BEGIN{ORS="%0A"}{print}')
-          echo "::error title=ci.sh failed (last 120 lines)::${body}"
+          # Strip colours and progress bars, keep the last 200 lines in 50-line annotations
+          # (one long annotation is truncated on the checks page and in the API).
+          sed -e 's/\x1b\[[0-9;]*m//g' -e 's/\r/\n/g' ci.log | grep -v -E '^ *[0-9]+ +[0-9.]+[kMG]? +[0-9]+ ' | cut -c1-400 | tail -n 200 > ci-tail.txt
+          split -l 50 -d ci-tail.txt ci-tail-part-
+          for part in ci-tail-part-*; do
+            body=$(sed -e 's/%/%25/g' "$part" | awk 'BEGIN{ORS="%0A"}{print}')
+            echo "::error title=ci.sh log ($part)::${body}"
+          done
       - name: Preserve desktop and mobile appearance screenshots
         if: always()
         uses: actions/upload-artifact@v4

@@ -82,10 +82,15 @@ jobs:
             || timeout 300 npx playwright install-deps chromium
       - name: Install full-suite server tools
         if: env.CI_SUITE == 'full'
-        timeout-minutes: 10
+        timeout-minutes: 15
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
+          # man-db rebuilds its index after every package on these images, which
+          # is what turned a one-minute install into a 20-minute hang.
+          sudo rm -f /var/lib/man-db/auto-update
           sudo timeout 240 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 update -qq
-          sudo timeout 300 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 install -y -qq --no-install-recommends apache2-bin php-cgi ffmpeg
+          sudo timeout 600 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Dpkg::Use-Pty=0 install -y -qq --no-install-recommends apache2-bin php-cgi ffmpeg librsvg2-2
       - uses: denoland/setup-deno@v2
         if: env.CI_SUITE == 'full'
         with:

@@ -22,6 +22,9 @@ async function pinch(page:Page,ratio:number){
  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach()
 }
 for(const target of ['background','card'])test(`${target} crop uses real drag/zoom, Apply/Cancel and persists fractions at every width @mobile`,async({page,isMobile},info)=>{
+ // Gestures, save/reload and nine screenshots across three widths: well over the 30 s default
+ // in slower engines (Yandex mobile), although every assertion passes.
+ test.setTimeout(90_000)
  const {state,writes}=await setup(page)
  let field:string
  if(target==='background'){await page.getByRole('button',{name:'Изображение',exact:true}).click();field='Загрузить фон'}

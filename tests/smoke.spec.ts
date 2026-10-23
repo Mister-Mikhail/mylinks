@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('landing presents the registration flow', async ({ page }) => {
+test('landing presents the registration flow @smoke', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByRole('heading', { name: /Одна ссылка/i })).toBeVisible()
@@ -18,7 +18,7 @@ test('landing presents the registration flow', async ({ page }) => {
   await expect(passwordInput).toHaveAttribute('type', 'text')
 })
 
-test('landing stays usable at narrow viewport', async ({ page }, testInfo) => {
+test('landing stays usable at narrow viewport @mobile', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Mobile-only assertion')
   await page.goto('/')
 
@@ -26,7 +26,7 @@ test('landing stays usable at narrow viewport', async ({ page }, testInfo) => {
   await expect(page.locator('.hero__phone')).toBeVisible()
 })
 
-test('registration asks only for email and password and then awaits confirmation', async ({ page }) => {
+test('registration asks only for email and password and then awaits confirmation @smoke', async ({ page }) => {
   let submitted: Record<string, unknown> | undefined
   await page.route('**/auth/v1/signup**', route => {
     submitted = route.request().postDataJSON()

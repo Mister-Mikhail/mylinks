@@ -54,7 +54,7 @@ with tempfile.TemporaryDirectory(prefix='mylinks-apache-') as temp:
         new='/i/v2/fixture-user/'+ident+'/'+digest+'.png'
         for _ in range(2):
             status,h,b=get(new,validators)
-            assert status==200 and h['Content-Type']=='image/png' and b==png and not h.get('ETag'),(status,dict(h),b[:200])
+            assert status==200 and h['Content-Type']=='image/png' and b==png and h.get('ETag') and 'immutable' in h.get('Cache-Control',''),(status,dict(h),b[:200])
         status,h,b=get(new.replace('/i/v2/','/link-icon/'),redirects=False)
         assert status==301 and h['Location'].endswith(new),(status,dict(h))
         # Expired bundle revalidates publication, while the stored bitmap survives.

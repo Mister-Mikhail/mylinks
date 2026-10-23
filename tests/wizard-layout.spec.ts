@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { mockWizard } from './helpers/wizard'
 import { gif } from './helpers/media'
 
-test('wizard dark name, avatar scale and final layout follow the chosen order',async({page})=>{
+test('wizard dark name, avatar scale and final layout follow the chosen order @mobile',async({page})=>{
  const state=await mockWizard(page)
  const name=page.getByLabel('Укажите свое имя',{exact:true})
  await expect(name).toHaveCSS('background-color','rgb(17, 23, 32)')
@@ -19,7 +19,7 @@ test('wizard dark name, avatar scale and final layout follow the chosen order',a
  await page.getByRole('button',{name:'Пропустить',exact:true}).click()
  const preview=page.locator('.onboarding-live-preview')
  const selectors=page.locator('.onboarding-theme')
- expect(await selectors.count()).toBe(2)
+ await expect(selectors).toHaveCount(2)
  for(const selector of await selectors.all()){const tops=await selector.locator('button').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().top));expect(Math.max(...tops)-Math.min(...tops)).toBeLessThan(2)}
  const box=(await preview.boundingBox())!
  expect((await selectors.last().boundingBox())!.y).toBeLessThan(box.y)
@@ -28,10 +28,10 @@ test('wizard dark name, avatar scale and final layout follow the chosen order',a
  await expect(preview).toHaveCSS('background-color','rgba(0, 0, 0, 0)')
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBeTruthy()
  await page.getByRole('button',{name:'Готово'}).click()
- expect(state.submitted?.avatar_scale).toBe(100)
+ await expect.poll(()=>state.submitted?.avatar_scale).toBe(100)
 })
 
-test('mobile two-finger gesture zooms avatar without scrolling the page',async({page,context,isMobile})=>{
+test('mobile two-finger gesture zooms avatar without scrolling the page @mobile',async({page,context,isMobile})=>{
  test.skip(!isMobile,'touch gesture is mobile-only')
  await mockWizard(page)
  await page.getByLabel('Укажите свое имя',{exact:true}).fill('Анна');await page.getByLabel('Придумайте user name',{exact:true}).fill('anna.page')

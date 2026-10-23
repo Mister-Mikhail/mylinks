@@ -5,10 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/prepare-preview.mjs",
+    "build": "node scripts/generate-platform-icons.mjs && tsc -b && vite build && node scripts/prepare-preview.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:unit": "node --experimental-strip-types --test tests/unit/*.test.ts supabase/functions/favicon/safe-fetch.test.ts",
+    "test:php": "bash scripts/test-php.sh",
+    "test:quick": "node scripts/run-e2e.mjs quick",
+    "test:full": "node scripts/run-e2e.mjs full",
+    "predev": "node scripts/generate-platform-icons.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

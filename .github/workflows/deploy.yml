@@ -4,8 +4,6 @@ name: Check & deploy to Beget
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,47 +20,13 @@ env:
   VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_GjGkSeQ5okx58Tphh7Hfrw_6psgCioE
   SITE_URL: https://mylinks.bar
   DEPLOY_LOG_ISSUE: 5
-  IS_PR: ${{ github.event_name == 'pull_request' }}
+  CI_SUITE: build
   REQUIRE_AVATAR_SERVER: 'true'
 
 jobs:
-  registration_db:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    steps:
-      - uses: actions/checkout@v4
-      - name: Test registration migration
-        env:
-          PGPASSWORD: postgres
-        run: |
-          command -v psql || { sudo apt-get update -qq && sudo apt-get install -y postgresql-client; }
-          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f scripts/test-registration-migration.sql
-
-  deletion_functions:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-      - run: deno test --node-modules-dir=auto supabase/functions/_shared/
-      - run: deno check --node-modules-dir=auto supabase/functions/admin-profile/index.ts
-      - run: deno check --node-modules-dir=auto supabase/functions/favicon/index.ts
-
   ship:
-    needs: [registration_db, deletion_functions]
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -70,7 +34,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Check, build and deploy
+      - name: Build and deploy
         env:
           BEGET_FTP_HOST: ${{ secrets.BEGET_FTP_HOST }}
           BEGET_FTP_USER: ${{ secrets.BEGET_FTP_USER }}

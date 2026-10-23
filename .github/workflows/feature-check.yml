@@ -80,17 +80,42 @@ jobs:
           npx playwright install chromium
           node -e "require('@playwright/test').chromium.launch().then(b=>b.close())" \
             || timeout 300 npx playwright install-deps chromium
+      - name: Cache full-suite server packages
+        if: env.CI_SUITE == 'full'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mylinks-apt
+          key: apt-${{ runner.os }}-apache2-bin-php-cgi-ffmpeg-librsvg-v1
       - name: Install full-suite server tools
         if: env.CI_SUITE == 'full'
         timeout-minutes: 15
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          # man-db rebuilds its index after every package on these images, which
-          # is what turned a one-minute install into a 20-minute hang.
+          set -euo pipefail
+          log() { echo "[$(date -u +%H:%M:%S)] $*"; }
+          # Background apt jobs on fresh runners hold the dpkg lock for minutes,
+          # and man-db reindexes after every package. Neither is needed here.
+          sudo systemctl stop unattended-upgrades.service apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
           sudo rm -f /var/lib/man-db/auto-update
-          sudo timeout 240 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 update -qq
-          sudo timeout 600 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Dpkg::Use-Pty=0 install -y -qq --no-install-recommends apache2-bin php-cgi ffmpeg librsvg2-2
+          pkgs="apache2-bin php-cgi ffmpeg librsvg2-2"
+          cache=~/.cache/mylinks-apt; mkdir -p "$cache"
+          opts="-o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o DPkg::Lock::Timeout=120 -o Dpkg::Use-Pty=0"
+          if ls "$cache"/*.deb >/dev/null 2>&1; then
+            log "installing from cached packages"
+            sudo cp "$cache"/*.deb /var/cache/apt/archives/
+          fi
+          for attempt in 1 2; do
+            log "apt update (attempt $attempt)"
+            sudo timeout 180 apt-get $opts update -qq || { log "update failed"; continue; }
+            log "apt install (attempt $attempt)"
+            if sudo timeout 300 apt-get $opts install -y -qq --no-install-recommends $pkgs; then
+              cp /var/cache/apt/archives/*.deb "$cache"/ 2>/dev/null || true
+              log "installed"; exit 0
+            fi
+            log "install attempt $attempt failed"
+          done
+          exit 1
       - uses: denoland/setup-deno@v2
         if: env.CI_SUITE == 'full'
         with:

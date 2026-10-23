@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { mockWizard } from './helpers/wizard'
 const sites=['instagram.com','t.me','wa.me','onlyfans.com','vk.com','capcut.com','dzen.ru','alfabank.ru','sovcombank.ru','sberbank.ru','tbank.ru','youtube.com','tiktok.com','x.com','facebook.com','boosty.to','discord.com','twitch.tv','pinterest.com','reddit.com','github.com','spotify.com','soundcloud.com','music.apple.com','patreon.com','behance.net','dribbble.com','figma.com','notion.so','vimeo.com']
-test('thirty platforms use local square artwork without favicon requests',async({page},info)=>{
+test('thirty platforms use local square artwork without favicon requests @smoke',async({page},info)=>{
  const state=await mockWizard(page)
  state.profile={...state.profile,onboarding_completed:true,handle:'anna.page',display_name:'Анна'}
  state.links=sites.map((host,index)=>({id:`link-${index}`,profile_id:state.profile.id,label:host,url:`https://${host}/anna`,icon_key:'link',position:index,is_visible:true,is_sensitive:false}))

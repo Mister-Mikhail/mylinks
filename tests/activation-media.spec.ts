@@ -38,7 +38,7 @@ test('confirming in another tab automatically opens the wizard in both tabs', as
   expect(requests).toBe(1)
 })
 
-test('original form resumes after confirmation on another device and password login still works', async ({ page }) => {
+test('original form resumes after confirmation on another device and password login still works @smoke', async ({ page }) => {
   await mockWizard(page, false)
   let confirmedElsewhere = false, attempts = 0
   await page.route('**/auth/v1/token**', route => {

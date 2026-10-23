@@ -1,7 +1,8 @@
-import { test, expect } from '@playwright/test'
+import { test } from 'node:test'
+import { expect } from '@playwright/test'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { createHash } from 'node:crypto'
-import { FONT_OPTIONS } from '../src/lib/typography'
+import { FONT_OPTIONS } from '../../src/lib/typography.ts'
 
 test('all fifteen font families use self-hosted nonempty WOFF2 files', async () => {
   const css = readFileSync('src/fonts.css', 'utf8')

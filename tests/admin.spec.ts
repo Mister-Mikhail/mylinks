@@ -56,7 +56,7 @@ test('administrator searches users and confirms moderation with a reason', async
   await expect.poll(() => calls.some(call => call.name === 'staff_change' && call.body.target === targetId && call.body.action === 'restrict_profile' && call.body.reason === 'Нарушение правил')).toBeTruthy()
 })
 
-test('moderator has no role-assignment control and mobile does not overflow', async ({ page }) => {
+test('moderator has no role-assignment control and mobile does not overflow @mobile', async ({ page }) => {
   await mockStaff(page, 'moderator')
   await page.goto('/admin/users/' + targetId)
   await expect(page.getByRole('heading', { name: 'Василий' })).toBeVisible()

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 import { mockWizard } from './helpers/wizard'
-test('featured card preserves saved ID, crop and image when switching display modes',async({page},info)=>{
+test('featured card preserves saved ID, crop and image when switching display modes @mobile',async({page},info)=>{
  const state=await mockWizard(page),id='00000000-0000-4000-8000-000000000081',path=`${state.profile.id}/11111111-1111-4111-8111-111111111111.webp`
  state.profile={...state.profile,onboarding_completed:true,handle:'anna.page',display_name:'Анна'}
  state.links=[{id,profile_id:state.profile.id,label:'Мой сайт',url:'https://example.com',position:0,is_visible:true,icon_key:'link',presentation:'normal',image_path:path,image_alt:'Проект',image_position_x:30,image_position_y:60}]
@@ -27,7 +27,7 @@ test('featured card preserves saved ID, crop and image when switching display mo
  expect(writes[1][0]).toMatchObject({id,presentation:'normal',image_path:path})
 })
 
-test('public featured image loads and records a click against the existing link ID',async({page,context})=>{
+test('public featured image loads and records a click against the existing link ID @smoke',async({page,context})=>{
  const state=await mockWizard(page,false),id='00000000-0000-4000-8000-000000000081'
  state.profile={...state.profile,onboarding_completed:true,handle:'anna.page',display_name:'Анна',is_published:true}
  state.links=[{id,profile_id:state.profile.id,label:'Открыть проект',url:'https://example.com/project',position:0,is_visible:true,icon_key:'link',presentation:'featured',image_path:`${state.profile.id}/11111111-1111-4111-8111-111111111111.webp`,image_alt:'Проект'}]

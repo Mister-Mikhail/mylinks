@@ -81,11 +81,7 @@ jobs:
         with:
           deno-version: v2.x
       - if: env.CI_SUITE == 'full'
-        run: deno test --node-modules-dir=auto supabase/functions/_shared/
-      - if: env.CI_SUITE == 'full'
-        run: deno check --node-modules-dir=auto supabase/functions/admin-profile/index.ts
-      - if: env.CI_SUITE == 'full'
-        run: deno check --node-modules-dir=auto supabase/functions/favicon/index.ts
+        run: bash scripts/test-edge.sh
       - name: Lint, build, PHP, unit and selected browser suite
         run: bash scripts/ci.sh
       - name: Preserve desktop and mobile appearance screenshots

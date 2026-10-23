@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import { strict as assert } from 'node:assert'
-import { cropImageStyle, frameCrop, legacyToFrame } from '../src/lib/imageCrop.ts'
+import { cropImageStyle, frameCrop, legacyToFrame } from '../../src/lib/imageCrop.ts'
 test('fractional frame geometry survives 1280/390/320 widths, zoom below cover and noncentral offsets',()=>{
  const crop={...frameCrop(16/9,2),zoom:.5,x:.125,y:-.2}
  const style=cropImageStyle(crop)
@@ -17,4 +17,15 @@ test('legacy object-position maps to the same rectangle before Apply',()=>{
  const renderedWidth=2/(16/9),renderedHeight=1
  assert.ok(Math.abs((.5+c.x-renderedWidth/2)-(1-renderedWidth)*.3)<1e-10)
  assert.ok(Math.abs((.5+c.y-renderedHeight/2)-(1-renderedHeight)*.6)<1e-10)
+})
+
+test('viewport aspect changes the cover without stretching the source or changing saved offsets',()=>{
+ const crop={...frameCrop(9/19.5,2),zoom:.6,x:.2,y:-.1}
+ for(const width of [1280,390,320]){
+  const height=900,style=cropImageStyle(crop,width/height)
+  const iw=parseFloat(String(style.width))/100*width,ih=parseFloat(String(style.height))/100*height
+  assert.ok(Math.abs(iw/ih-crop.sourceAspect)<1e-10)
+  assert.equal(style.left,'70%');assert.equal(style.top,'40%')
+ }
+ assert.equal(crop.aspect,9/19.5)
 })

@@ -21,7 +21,7 @@ async function pinch(page:Page,ratio:number){
  for(let n=1;n<=5;n++){const d=22*(1+(ratio-1)*n/5);await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-d,y,id:1},{x:x+d,y,id:2}]})}
  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach()
 }
-for(const target of ['background','card'])test(`${target} crop uses real drag/zoom, Apply/Cancel and persists fractions at every width`,async({page,isMobile},info)=>{
+for(const target of ['background','card'])test(`${target} crop uses real drag/zoom, Apply/Cancel and persists fractions at every width @mobile`,async({page,isMobile},info)=>{
  const {state,writes}=await setup(page)
  let field:string
  if(target==='background'){await page.getByRole('button',{name:'Изображение',exact:true}).click();field='Загрузить фон'}
@@ -58,14 +58,30 @@ for(const target of ['background','card'])test(`${target} crop uses real drag/zo
  await expect(page.locator(selector)).toHaveAttribute('data-crop',JSON.stringify(draft))
  state.profile.is_published=true
  await page.goto('/anna.page')
- const publicSelector=target==='background'?'.profile-card__photo>.cropped-image':'.profile-link__image.cropped-image'
+ const publicSelector=target==='background'?'.public-preview-page__background>.cropped-image':'.profile-link__image.cropped-image'
  for(const width of [1280,390,320]){
   await page.setViewportSize({width,height:900})
   const media=page.locator(publicSelector);await expect(media).toHaveAttribute('data-crop',JSON.stringify(draft))
-  const rect=(await media.boundingBox())!;expect(rect.width/rect.height).toBeCloseTo(draft.aspect,1)
+  const rect=(await media.boundingBox())!;if(target==='background'){expect(rect.x).toBe(0);expect(rect.y).toBe(0);expect(rect.width).toBe(width);expect(rect.height).toBe(900)}else expect(rect.width/rect.height).toBeCloseTo(draft.aspect,1)
+  if(target==='background'&&width===1280)expect((await page.locator('.profile-card').boundingBox())!.height).toBeLessThan(900)
   const photo=media.locator('.cropped-image__photo');const geom=await photo.evaluate(el=>{const p=el.parentElement!.getBoundingClientRect(),b=el.getBoundingClientRect();return {x:(b.x+b.width/2-p.x)/p.width-.5,y:(b.y+b.height/2-p.y)/p.height-.5,width:b.width/p.width}})
-  expect(geom.x).toBeCloseTo(draft.x,2);expect(geom.y).toBeCloseTo(draft.y,2);expect(geom.width).toBeCloseTo(Math.max(1,draft.sourceAspect/draft.aspect)*draft.zoom,2)
+  expect(geom.x).toBeCloseTo(draft.x,2);expect(geom.y).toBeCloseTo(draft.y,2);expect(geom.width).toBeCloseTo(Math.max(1,draft.sourceAspect/(target==='background'?width/900:draft.aspect))*draft.zoom,2)
   await page.screenshot({path:info.outputPath(`${target}-${width}.png`),fullPage:true})
+ }
+ if(target==='background'){
+  const first=state.links[0] as Record<string,unknown>
+  state.links=Array.from({length:24},(_,i)=>({...first,id:`00000000-0000-4000-8000-${String(i+100).padStart(12,'0')}`,label:`Ссылка ${i+1}`,presentation:'normal',position:i}))
+  await page.reload()
+  for(const width of [1280,390,320]){
+   await page.setViewportSize({width,height:900})
+   const background=page.locator('.public-preview-page__background')
+   await expect(background).toHaveCSS('position','fixed')
+   await expect.poll(()=>page.locator('.profile-card').evaluate(el=>el.getBoundingClientRect().height)).toBeGreaterThan(900)
+   await page.evaluate(()=>scrollTo(0,500))
+   const fixed=(await background.boundingBox())!;expect(fixed).toEqual({x:0,y:0,width,height:900})
+   expect(await page.evaluate(()=>scrollY)).toBeGreaterThan(0)
+   await page.screenshot({path:info.outputPath(`background-long-${width}.png`)})
+  }
  }
  expect(target==='background'?state.profile.background_image_path:(state.links[0] as Record<string,unknown>).image_path).toBe(original)
 })
@@ -73,13 +89,14 @@ test('desktop font wheel and keyboard update live text without page scrolling',a
  test.skip(isMobile,'desktop control')
  await setup(page)
  const control=page.getByLabel('Шрифт: Имя',{exact:true})
- await control.hover();const before=await page.evaluate(()=>({page:scrollY,panel:document.querySelector('.editor-panel')?.scrollTop}))
+ await control.hover();await page.mouse.wheel(0,110);await expect(control).toHaveValue('manrope')
+ await control.click();await page.keyboard.press('Escape');await expect(control).toBeFocused();const before=await page.evaluate(()=>({page:scrollY,panel:document.querySelector('.editor-panel')?.scrollTop}))
  await page.mouse.wheel(0,110);await expect(control).toHaveValue('arial')
  await expect(page.locator('.preview-panel h1')).toHaveCSS('font-family',/Arimo/)
  expect(await page.evaluate(()=>({page:scrollY,panel:document.querySelector('.editor-panel')?.scrollTop}))).toEqual(before)
- await control.focus();await page.keyboard.press('ArrowDown');await expect(control).toHaveValue('verdana');await page.keyboard.press('ArrowUp');await expect(control).toHaveValue('arial')
+ await page.keyboard.press('ArrowDown');await expect(control).toHaveValue('verdana');await page.keyboard.press('ArrowUp');await expect(control).toHaveValue('arial')
 })
-test('mobile font tape uses real text, swipe selects on stop, tap selects and Save persists',async({page,isMobile})=>{
+test('mobile font tape uses real text, swipe selects on stop, tap selects and Save persists @mobile',async({page,isMobile})=>{
  test.skip(!isMobile,'mobile tape')
  const {state}=await setup(page)
  const tape=page.getByRole('listbox',{name:'Образцы шрифтов: Имя',exact:true})
@@ -91,6 +108,8 @@ test('mobile font tape uses real text, swipe selects on stop, tap selects and Sa
  await expect.poll(()=>tape.locator('[aria-selected=true]').getAttribute('data-font')).not.toBe('manrope')
  await tape.locator('[data-font=caveat]').click();await expect(tape.locator('[data-font=caveat]')).toHaveAttribute('aria-selected','true')
  await expect(page.locator('.preview-panel h1')).toHaveCSS('font-family',/Caveat/)
+ // Wait past the 180ms scroll-selection debounce to catch a centering feedback loop.
+ await page.waitForTimeout(250);await expect(tape.locator('[data-font=caveat]')).toHaveAttribute('aria-selected','true')
  await tape.screenshot({path:test.info().outputPath('font-tape.png')})
  await page.getByRole('button',{name:'Сохранить',exact:true}).click();await expect.poll(()=>state.profile.name_font).toBe('caveat')
 })

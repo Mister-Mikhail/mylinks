@@ -1,4 +1,6 @@
 <?php
+define('MYLINKS_ICON_CACHE_DIR',sys_get_temp_dir().'/mylinks-icon-test-'.bin2hex(random_bytes(8)));
+register_shutdown_function(function(){foreach(glob(MYLINKS_ICON_CACHE_DIR.'/*')?:array() as $p)@unlink($p);@rmdir(MYLINKS_ICON_CACHE_DIR);});
 require __DIR__.'/../public/favicon-fetch.php';
 function check_icon($ok,$message){if(!$ok)throw new Exception($message);}
 foreach(array('127.0.0.1','10.0.0.1','100.64.0.1','192.168.1.1','198.18.0.1','203.0.113.1','::1','::ffff:127.0.0.1','2001:db8::1','2002:7f00::1') as $ip)check_icon(!icon_public_ip($ip),'Unsafe IP '.$ip);
@@ -8,8 +10,8 @@ $svg='<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><defs><line
 check_icon(icon_safe_svg($svg),'Local gradient rejected');
 foreach(array('<!DOCTYPE svg [<!ENTITY x SYSTEM "file:///etc/passwd">]><svg/>','<svg><script>alert(1)</script></svg>','<svg><use href="https://example.com/a.svg#x"/></svg>','<svg><style>@import "https://example.com/a";</style></svg>','<svg onload="alert(1)"/>','<svg><image href="file:///tmp/x"/></svg>','<svg><style>rect {fill:url(https://example.com/a)}</style></svg>','<svg width="99999" height="99999"/>') as $bad)check_icon(!icon_safe_svg($bad),'Unsafe SVG accepted');
 check_icon(icon_to_png('<html>no image</html>',microtime(true)+2)===null,'HTML became image');
-$png=icon_to_png($svg,microtime(true)+2);check_icon($png&&getimagesizefromstring($png)[0]===64,'SVG conversion failed (ffmpeg with librsvg is required)');
-$original=file_get_contents(__DIR__.'/fixtures/avatar.webp');$raster=icon_to_png($original,microtime(true)+2);check_icon($raster&&getimagesizefromstring($raster)[0]===64,'Raster conversion failed');
+$png=icon_to_png($svg,microtime(true)+2);check_icon($png&&getimagesizefromstring($png)[0]===128,'SVG conversion failed (ffmpeg with librsvg is required)');
+$original=file_get_contents(__DIR__.'/fixtures/avatar.webp');$raster=icon_to_png($original,microtime(true)+2);check_icon($raster&&getimagesizefromstring($raster)[0]===128,'Raster conversion failed');
 // A valid ICO carrying a PNG frame, as served by many small sites.
 $ico=pack('vvv',0,1,1).pack('CCCCvvVV',64,64,0,0,1,32,strlen($png),22).$png;
 check_icon(icon_to_png($ico,microtime(true)+2)!==null,'ICO conversion failed');

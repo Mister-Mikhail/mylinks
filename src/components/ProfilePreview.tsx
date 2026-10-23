@@ -23,6 +23,7 @@ interface ProfilePreviewProps {
   links: EditableLink[]
   contacts?: EditableContact[]
   interactive?: boolean
+  viewportBackground?: boolean
   avatarDraft?: AvatarDraft | null
   showPrivacy?: boolean
   onLinkActivate?: (link: EditableLink) => void
@@ -31,7 +32,7 @@ interface ProfilePreviewProps {
 }
 
 
-export function ProfilePreview({ profile, links, contacts = [], interactive = false, showPrivacy = true, avatarDraft = null, onLinkActivate, selectedLinkId, onSelectLink }: ProfilePreviewProps) {
+export function ProfilePreview({ profile, links, contacts = [], interactive = false, viewportBackground = false, showPrivacy = true, avatarDraft = null, onLinkActivate, selectedLinkId, onSelectLink }: ProfilePreviewProps) {
   const visibleLinks = links.filter((link) => link.is_visible && link.label && link.url)
   const [sensitiveLink, setSensitiveLink] = useState<EditableLink | null>(null)
   const [profileLinkCopied, setProfileLinkCopied] = useState(false)
@@ -94,8 +95,8 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
   const blocks=layoutFor(links,profile.link_layout)
 
   return (
-    <section className={`profile-card theme-${appearanceTheme(profile)}${profile.background_style === 'image' && profile.background_image_url ? ` profile-card--image ${isFrameCrop(profile.background_crop)?'profile-card--frame':''}` : ''}`} style={appearanceStyle(profile)} aria-label={`Профиль ${profile.display_name}`}>
-      {profile.background_style==='image'&&profile.background_image_url&&isFrameCrop(profile.background_crop)&&<span className="profile-card__photo" aria-hidden><img className="profile-card__photo-extension" src={profile.background_image_url} alt=""/><CroppedImage src={profile.background_image_url} crop={profile.background_crop} overlay={profile.background_overlay??45}/></span>}
+    <section className={`profile-card theme-${appearanceTheme(profile)}${profile.background_style === 'image' && profile.background_image_url ? ` profile-card--image ${isFrameCrop(profile.background_crop)?`profile-card--frame${viewportBackground?' profile-card--viewport':''}`:''}` : ''}`} style={appearanceStyle(profile)} aria-label={`Профиль ${profile.display_name}`}>
+      {!viewportBackground&&profile.background_style==='image'&&profile.background_image_url&&isFrameCrop(profile.background_crop)&&<span className="profile-card__photo" aria-hidden><CroppedImage fitContainer src={profile.background_image_url} crop={profile.background_crop} overlay={profile.background_overlay??45}/></span>}
       <div className="profile-card__noise" />
       <div className="profile-card__topline">
         {showPrivacy ? (

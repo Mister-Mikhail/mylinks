@@ -11,7 +11,7 @@ async function setup(page:import('@playwright/test').Page){
  await page.getByRole('button',{name:'Изображение',exact:true}).click()
  return {state,getProcessing:()=>processing}
 }
-test('background photo applies only after confirming, preserves crop on reload, and can reset',async({page},info)=>{
+test('background photo applies only after confirming, preserves crop on reload, and can reset @mobile',async({page},info)=>{
  const {state}=await setup(page)
  await page.getByLabel('Загрузить фон',{exact:true}).setInputFiles('tests/fixtures/background-grid.webp')
  await expect(page.getByRole('dialog')).toBeVisible()
@@ -47,7 +47,7 @@ test('invalid background files fail without network upload',async({page})=>{
  expect(getProcessing()).toBe(0)
 })
 
-test('public profile renders the saved background area and zoom',async({page},info)=>{
+test('public profile renders the saved background area and zoom @mobile',async({page},info)=>{
  const state=await mockWizard(page,false)
  state.profile={...state.profile,onboarding_completed:true,is_published:true,handle:'anna.page',display_name:'Анна',background_style:'image',background_image_path:`${state.profile.id}/11111111-1111-4111-8111-111111111111.webp`,background_position_x:20,background_position_y:80,background_zoom:175,background_overlay:35}
  await page.route('**/profile-image.php?**',route=>route.fulfill({contentType:'image/webp',body:readFileSync('tests/fixtures/background-grid.webp')}))

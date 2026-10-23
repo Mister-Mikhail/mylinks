@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { mockWizard } from './helpers/wizard'
 import { gif } from './helpers/media'
 
-test('wizard dark name, avatar scale and final layout follow the chosen order',async({page})=>{
+test('wizard dark name, avatar scale and final layout follow the chosen order @mobile',async({page})=>{
  const state=await mockWizard(page)
  const name=page.getByLabel('Укажите свое имя',{exact:true})
  await expect(name).toHaveCSS('background-color','rgb(17, 23, 32)')
@@ -31,7 +31,7 @@ test('wizard dark name, avatar scale and final layout follow the chosen order',a
  await expect.poll(()=>state.submitted?.avatar_scale).toBe(100)
 })
 
-test('mobile two-finger gesture zooms avatar without scrolling the page',async({page,context,isMobile})=>{
+test('mobile two-finger gesture zooms avatar without scrolling the page @mobile',async({page,context,isMobile})=>{
  test.skip(!isMobile,'touch gesture is mobile-only')
  await mockWizard(page)
  await page.getByLabel('Укажите свое имя',{exact:true}).fill('Анна');await page.getByLabel('Придумайте user name',{exact:true}).fill('anna.page')

@@ -23,16 +23,20 @@ const FONT_GROUPS = [
 
 export function TypographyControls({ label, slot, font = 'manrope', size = DEFAULT_SIZES[slot], color, onChange, onColorChange, sample }: Props) {
   const select=useRef<HTMLSelectElement>(null),tape=useRef<HTMLDivElement>(null),timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined)
+  const tapeTarget=useRef<number|null>(null)
   const cycle=(direction:number)=>{const current=FONT_OPTIONS.findIndex(option=>option.value===font);onChange(FONT_OPTIONS[(current+direction+FONT_OPTIONS.length)%FONT_OPTIONS.length].value,size)}
   useEffect(()=>{
     const element=select.current;if(!element)return
-    const wheel=(event:WheelEvent)=>{if(!event.deltaY||event.ctrlKey)return;event.preventDefault();const current=FONT_OPTIONS.findIndex(option=>option.value===font);onChange(FONT_OPTIONS[(current+(event.deltaY>0?1:-1)+FONT_OPTIONS.length)%FONT_OPTIONS.length].value,size)}
+    const wheel=(event:WheelEvent)=>{if(document.activeElement!==element||!event.deltaY||event.ctrlKey)return;event.preventDefault();const current=FONT_OPTIONS.findIndex(option=>option.value===font);onChange(FONT_OPTIONS[(current+(event.deltaY>0?1:-1)+FONT_OPTIONS.length)%FONT_OPTIONS.length].value,size)}
     element.addEventListener('wheel',wheel,{passive:false});return ()=>element.removeEventListener('wheel',wheel)
   },[font,size,onChange])
   useEffect(()=>()=>clearTimeout(timer.current),[font,size,onChange])
   useEffect(()=>{
     const container=tape.current,option=container?.querySelector<HTMLElement>(`[data-font="${font}"]`)
-    if(container&&option&&container.clientWidth)container.scrollTo({left:option.offsetLeft-(container.clientWidth-option.offsetWidth)/2,behavior:'instant'})
+    if(container&&option&&container.clientWidth){
+      const left=Math.max(0,Math.min(container.scrollWidth-container.clientWidth,option.offsetLeft-(container.clientWidth-option.offsetWidth)/2))
+      tapeTarget.current=left;container.scrollTo({left,behavior:'instant'})
+    }
   },[font])
   const chooseCentered=()=>{
     const container=tape.current;if(!container)return
@@ -45,8 +49,8 @@ export function TypographyControls({ label, slot, font = 'manrope', size = DEFAU
   return <div className="typography-controls" role="group" aria-label={`Оформление: ${label}`}>
     <label className="typography-controls__desktop-font">Шрифт<select ref={select} onKeyDown={event=>{if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();cycle(event.key==='ArrowDown'?1:-1)}}} aria-label={`Шрифт: ${label}`} value={font} onChange={event => onChange(event.target.value as FontKey, size)}>
       {FONT_GROUPS.map(([group, options]) => <optgroup key={group} label={group}>{options.map(option => <option key={option.value} value={option.value} style={{ fontFamily: option.family }}>{option.label}</option>)}</optgroup>)}
-    </select></label>
-    <div className="font-tape" ref={tape} role="listbox" aria-label={`Образцы шрифтов: ${label}`} onScroll={()=>{clearTimeout(timer.current);timer.current=setTimeout(chooseCentered,180)}}>
+    </select><small className="typography-controls__wheel-hint">Колесо меняет шрифт, пока поле выбрано</small></label>
+    <div className="font-tape" ref={tape} role="listbox" aria-label={`Образцы шрифтов: ${label}`} onScroll={()=>{clearTimeout(timer.current);const container=tape.current;if(container&&tapeTarget.current!==null){const target=tapeTarget.current;tapeTarget.current=null;if(Math.abs(container.scrollLeft-target)<1)return}timer.current=setTimeout(chooseCentered,180)}}>
       {FONT_GROUPS.map(([group,options])=><div className="font-tape__group" key={group} role="group" aria-label={group}><span className="font-tape__separator">{group}</span>{options.map(option=><button type="button" role="option" key={option.value} data-font={option.value} aria-selected={font===option.value} className={font===option.value?'selected':''} onClick={()=>{clearTimeout(timer.current);onChange(option.value,size)}}><span style={{fontFamily:option.family}}>{sample?.trim()||label}</span><small>{option.label}</small></button>)}</div>)}
     </div>
     <label>Размер<select aria-label={`Размер: ${label}`} value={size} onChange={event => onChange(font, Number(event.target.value))}>

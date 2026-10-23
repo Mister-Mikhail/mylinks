@@ -24,7 +24,7 @@ async function mock(page: Page, owner = true, contacts: Record<string, unknown>[
   return { writes, events }
 }
 
-test('card arrows follow selection and update the preview and saved order', async ({ page }) => {
+test('card arrows follow selection and update the preview and saved order @smoke', async ({ page }) => {
   const { writes } = await mock(page)
   await page.goto('/')
   const cards = page.locator('.link-editor:not(.contact-editor)')
@@ -49,7 +49,7 @@ test('card arrows follow selection and update the preview and saved order', asyn
   expect(saved[0].position).toBe(0)
 })
 
-test('fonts and bounded sizes update immediately and are saved', async ({ page, isMobile }) => {
+test('fonts and bounded sizes update immediately and are saved @smoke @mobile', async ({ page, isMobile }) => {
   const { writes } = await mock(page)
   await page.goto('/')
   await page.getByRole('button', { name: 'Оформление', exact: true }).click()
@@ -121,7 +121,7 @@ test('all-time daily history can be paged without changing totals', async ({ pag
   await expect(page.getByRole('button',{name:'Следующие',exact:true})).toBeDisabled()
 })
 
-test('contact arrows, typography and saved positions follow the selected card', async ({ page, isMobile }, testInfo) => {
+test('contact arrows, typography and saved positions follow the selected card @mobile', async ({ page, isMobile }, testInfo) => {
   const { writes } = await mock(page,true,contacts)
   await page.goto('/')
   const cards = page.locator('.contact-editor')
@@ -196,7 +196,7 @@ test('owner public preview does not create events', async ({ page }) => {
 })
 
 
-test('largest fonts keep long text and mobile navigation inside their slots', async ({ page, isMobile }, testInfo) => {
+test('largest fonts keep long text and mobile navigation inside their slots @mobile', async ({ page, isMobile }, testInfo) => {
   await mock(page)
   await page.goto('/')
   await page.getByLabel('Отображаемое имя', { exact: true }).fill('ДлинноеИмя'.repeat(6))

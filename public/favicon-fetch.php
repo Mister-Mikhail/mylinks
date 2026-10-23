@@ -63,7 +63,7 @@ function icon_to_png($bytes,$deadline){
  $image=!$svg&&function_exists('imagecreatefromstring')?@imagecreatefromstring($bytes):false;
  if($image){
   $w=imagesx($image);$h=imagesy($image);if($w*$h>16777216){imagedestroy($image);return null;}
-  $target=imagecreatetruecolor(64,64);imagealphablending($target,false);imagesavealpha($target,true);imagefill($target,0,0,imagecolorallocatealpha($target,0,0,0,127));$scale=min(64/$w,64/$h);$dw=max(1,(int)round($w*$scale));$dh=max(1,(int)round($h*$scale));imagecopyresampled($target,$image,(int)((64-$dw)/2),(int)((64-$dh)/2),0,0,$dw,$dh,$w,$h);ob_start();imagepng($target,null,7);$png=ob_get_clean();imagedestroy($image);imagedestroy($target);return $png;
+  $target=imagecreatetruecolor(128,128);imagealphablending($target,false);imagesavealpha($target,true);imagefill($target,0,0,imagecolorallocatealpha($target,0,0,0,127));$scale=min(128/$w,128/$h);$dw=max(1,(int)round($w*$scale));$dh=max(1,(int)round($h*$scale));imagecopyresampled($target,$image,(int)((128-$dw)/2),(int)((128-$dh)/2),0,0,$dw,$dh,$w,$h);ob_start();imagepng($target,null,7);$png=ob_get_clean();imagedestroy($image);imagedestroy($target);return $png;
  }
  // Only ICO/SVG reach the external decoder; never try to decode HTML as media.
  if(!$svg&&substr($bytes,0,4)!=="\0\0\1\0")return null;
@@ -71,7 +71,7 @@ function icon_to_png($bytes,$deadline){
  $ffmpeg=is_executable('/usr/bin/ffmpeg')?'/usr/bin/ffmpeg':(is_executable('/usr/local/bin/ffmpeg')?'/usr/local/bin/ffmpeg':null);
  if(!$ffmpeg||!is_executable('/usr/bin/timeout'))return null;
  $src=tempnam(sys_get_temp_dir(),'ml-icon-');$out=tempnam(sys_get_temp_dir(),'ml-png-');if(!$src||!$out)return null;
- file_put_contents($src,$bytes);$args=array('/usr/bin/timeout',max(.1,min(1.5,$remaining)).'s',$ffmpeg,'-nostdin','-v','error','-y','-max_alloc','16777216','-max_pixels','4194304','-threads','1','-filter_threads','1','-protocol_whitelist','file,pipe');if($svg)$args=array_merge($args,array('-f','svg_pipe'));$args=array_merge($args,array('-i',$src,'-frames:v','1','-vf','scale=64:64:force_original_aspect_ratio=decrease,pad=64:64:(ow-iw)/2:(oh-ih)/2:color=black@0','-f','image2','-vcodec','png',$out));
+ file_put_contents($src,$bytes);$args=array('/usr/bin/timeout',max(.1,min(1.5,$remaining)).'s',$ffmpeg,'-nostdin','-v','error','-y','-max_alloc','16777216','-max_pixels','4194304','-threads','1','-filter_threads','1','-protocol_whitelist','file,pipe');if($svg)$args=array_merge($args,array('-f','svg_pipe'));$args=array_merge($args,array('-i',$src,'-frames:v','1','-vf','scale=128:128:force_original_aspect_ratio=decrease,pad=128:128:(ow-iw)/2:(oh-ih)/2:color=black@0','-f','image2','-vcodec','png',$out));
  $p=proc_open($args,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes);$png=null;
  if(is_resource($p)){fclose($pipes[0]);stream_get_contents($pipes[1]);fclose($pipes[1]);stream_get_contents($pipes[2]);fclose($pipes[2]);if(proc_close($p)===0&&filesize($out)<262144)$png=file_get_contents($out);}
  @unlink($src);@unlink($out);return $png&&substr($png,0,8)==="\x89PNG\r\n\x1a\n"?$png:null;
@@ -126,12 +126,14 @@ function icon_collect($host,$budget=9.8,$primary=null,$backup=null){
  curl_setopt_array($ch,array(CURLOPT_RETURNTRANSFER=>false,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT_MS=>min(1000,(int)($remaining*1000)),CURLOPT_TIMEOUT_MS=>max(1,(int)($remaining*1000)),CURLOPT_HTTPHEADER=>array('apikey: '.$config['key']),CURLOPT_WRITEFUNCTION=>function($ch,$chunk)use(&$bytes){if(strlen($bytes)+strlen($chunk)>524288)return 0;$bytes.=$chunk;return strlen($chunk);}));
  $ok=curl_exec($ch);$code=curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);return $ok&&$code===200?icon_to_png($bytes,$deadline):null;
 }
-function icon_cache_file($key){$dir=__DIR__.'/.private-assets/link-icons';if(!is_dir($dir))@mkdir($dir,0700,true);return $dir.'/'.hash('sha256',$key).'.png';}
+require_once __DIR__.'/icon-cache.php';
+function icon_cache_file($key){return icon_cache_dir().'/'.hash('sha256',$key).'.png';}
 function icon_cached($key,$host,$collect=null){
  $file=icon_cache_file($key);$retry=$file.'.retry';$old=is_file($file)?file_get_contents($file):null;if($old&&substr($old,0,8)!=="\x89PNG\r\n\x1a\n")$old=null;
+ if($old||is_file($retry))icon_cache_access($file);icon_cache_cleanup($file);
  if($old&&filemtime($file)>time()-21600)return $old;
  if(is_file($retry)&&filemtime($retry)>time()-300)return $old;
- $lock=@fopen($file.'.lock','c');if(!$lock)return $old;
+ $lock=icon_cache_open_lock($file);if(!$lock)return $old;
  if(!flock($lock,LOCK_EX|LOCK_NB)){
   // Editor and public cards share one domain snapshot. A concurrent cold read
   // waits for the first writer instead of caching a transient miss in the UI.
@@ -140,7 +142,7 @@ function icon_cached($key,$host,$collect=null){
   return null;
  }
  try{clearstatcache(true,$file);if(is_file($file)&&filemtime($file)>time()-21600)return file_get_contents($file);
-  $collect=$collect??'icon_collect';$png=$collect($host);if($png){$temp=tempnam(dirname($file),'icon-');if($temp){file_put_contents($temp,$png);chmod($temp,0600);if(!rename($temp,$file))@unlink($temp);}return $png;}
-  @touch($retry);return $old;
+  $collect=$collect??'icon_collect';$png=$collect($host);if($png){icon_cache_store($file,$png);return $png;}
+  @touch($retry);@chmod($retry,0600);icon_cache_access($file);return $old;
  }finally{flock($lock,LOCK_UN);fclose($lock);}
 }

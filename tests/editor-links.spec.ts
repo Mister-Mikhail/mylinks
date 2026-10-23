@@ -5,7 +5,7 @@ const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toStr
 const profile = { id, handle: 'sample-user', display_name: 'Тестовый профиль', bio: '', avatar_url: null, avatar_path: null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
 const links = Array.from({ length: 6 }, (_, n) => ({ id: `link-${n}`, profile_id: id, label: `Ссылка ${n + 1}`, url: `https://example${n}.com`, icon_key: 'link', position: n, is_visible: true, is_sensitive: false }))
 
-test('a new link appears at the top, focused and visible', async ({ page }) => {
+test('a new link appears at the top, focused and visible @smoke', async ({ page }) => {
   await page.addInitScript(({ id, token }) => localStorage.setItem('sb-loykiawbqdkitndqkegk-auth-token', JSON.stringify({ access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user: { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' } })), { id, token })
   await page.route('**/rest/v1/**', (route) => {
     const name = new URL(route.request().url()).pathname.split('/').pop()
@@ -27,7 +27,7 @@ test('a new link appears at the top, focused and visible', async ({ page }) => {
   await expect(cards.nth(1).getByLabel('Название ссылки', { exact: true })).toHaveValue('Ссылка 1')
 })
 
-test('master link is copied with a single icon button', async ({ page, context, browserName }) => {
+test('master link is copied with a single icon button @smoke', async ({ page, context, browserName }) => {
   test.skip(browserName !== 'chromium')
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await page.addInitScript(({ id, token }) => localStorage.setItem('sb-loykiawbqdkitndqkegk-auth-token', JSON.stringify({ access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user: { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' } })), { id, token })
@@ -44,7 +44,7 @@ test('master link is copied with a single icon button', async ({ page, context, 
   expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/sample-user$/)
 })
 
-test('links editor shows a live pinned preview on small phones', async ({ page }) => {
+test('links editor shows a live pinned preview on small phones @mobile', async ({ page }) => {
   await page.addInitScript(({ id, token }) => localStorage.setItem('sb-loykiawbqdkitndqkegk-auth-token', JSON.stringify({ access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user: { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' } })), { id, token })
   await page.route('**/rest/v1/**', route => {
     const name = new URL(route.request().url()).pathname.split('/').pop()

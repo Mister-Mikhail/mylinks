@@ -1,20 +1,29 @@
 name: Feature branch checks
 on:
-  push:
-    branches: ['feature/**']
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+# Only the newest version of a PR needs the full suite.
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   VITE_SUPABASE_URL: https://loykiawbqdkitndqkegk.supabase.co
   VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_GjGkSeQ5okx58Tphh7Hfrw_6psgCioE
   SITE_URL: https://mylinks.bar
-  IS_PR: 'true'
+  CI_SUITE: ${{ (github.event_name == 'workflow_dispatch' || github.event.action == 'ready_for_review') && 'full' || 'quick' }}
+  CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+  CI_DEPS_INSTALLED: 'true'
 
 jobs:
   registration_db:
-    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.action == 'ready_for_review'
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16
@@ -36,19 +45,44 @@ jobs:
           command -v psql || { sudo apt-get update -qq && sudo apt-get install -y postgresql-client; }
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f scripts/test-registration-migration.sql
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
+      - run: npm ci
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: curl, gd, dom, xml
+          coverage: none
+      - name: Cache Chromium matching the dependency lockfile
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Cache official Yandex package
+        if: env.CI_SUITE == 'full'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mylinks-yandex
+          key: yandex-${{ runner.os }}-${{ hashFiles('scripts/test-yandex.sh') }}
+      - run: npx playwright install --with-deps chromium
+      - name: Install full-suite server tools
+        if: env.CI_SUITE == 'full'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq apache2-bin php-cgi ffmpeg
       - uses: denoland/setup-deno@v2
+        if: env.CI_SUITE == 'full'
         with:
           deno-version: v2.x
-      - run: deno check --node-modules-dir=auto supabase/functions/favicon/index.ts
-      - name: Lint, build, PHP and desktop/mobile e2e
+      - if: env.CI_SUITE == 'full'
+        run: bash scripts/test-edge.sh
+      - name: Lint, build, PHP, unit and selected browser suite
         run: bash scripts/ci.sh
       - name: Preserve desktop and mobile appearance screenshots
         if: always()
@@ -57,4 +91,4 @@ jobs:
           name: appearance-visual-matrix
           path: test-results/**/*.png
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 2

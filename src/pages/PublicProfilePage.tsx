@@ -1,3 +1,5 @@
+import { CroppedImage } from '../components/CroppedImage'
+import { isFrameCrop } from '../lib/imageCrop'
 import { snapshotUrl } from '../lib/favicons'
 import { publicImageUrl, signedImage } from '../lib/profileImages'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -289,6 +291,7 @@ export function PublicProfilePage({ handle }: { handle: string }) {
     )
   }
 
+  const viewportBackground=visibleData.profile.background_style==='image'&&Boolean(visibleData.profile.background_image_url)&&isFrameCrop(visibleData.profile.background_crop)
   const isOwner = Boolean(session && session.user.id === visibleData.profile.id)
 
   const sendReport = async (event: FormEvent) => {
@@ -308,10 +311,11 @@ export function PublicProfilePage({ handle }: { handle: string }) {
   }
 
   return (
-    <main className={`public-preview-page theme-${visibleData.profile.background_preset}`}>
+    <main className={`public-preview-page theme-${visibleData.profile.background_preset}${viewportBackground?' public-preview-page--frame':''}`}>
+      {viewportBackground&&isFrameCrop(visibleData.profile.background_crop)&&<div className="public-preview-page__background" aria-hidden><CroppedImage fitContainer src={visibleData.profile.background_image_url!} crop={visibleData.profile.background_crop} overlay={visibleData.profile.background_overlay??45}/></div>}
       {isOwner && <button className="back-button" onClick={() => navigate('/')}><ArrowLeft size={17} /> Личный кабинет</button>}
       {isOwner && visibleData.profile.is_published && <ActivationChecklist id={visibleData.profile.id} handle={visibleData.profile.handle} />}
-      <div className="public-preview-page__content"><ProfilePreview profile={visibleData.profile} links={visibleData.links} contacts={visibleData.contacts} interactive onLinkActivate={canTrack ? link => { if (link.id) recordProfileEvent(visibleData.profile.id, link.id) } : undefined} showPrivacy={!visibleData.profile.is_published} />
+      <div className="public-preview-page__content"><ProfilePreview viewportBackground={viewportBackground} profile={visibleData.profile} links={visibleData.links} contacts={visibleData.contacts} interactive onLinkActivate={canTrack ? link => { if (link.id) recordProfileEvent(visibleData.profile.id, link.id) } : undefined} showPrivacy={!visibleData.profile.is_published} />
         {visibleData.profile.is_published && !isOwner && <button className="public-report-trigger" type="button" onClick={() => { setReportOpen(true); setReportSent(false); setReportError('') }}>Пожаловаться на страницу</button>}
       </div>
       {reportOpen && <div className="report-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !reportBusy) setReportOpen(false) }}>

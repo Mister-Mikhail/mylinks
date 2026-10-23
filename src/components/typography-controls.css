@@ -16,3 +16,6 @@
  .font-tape button>span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:22px; }
  .font-tape button>small { font:10px/1.3 Manrope,Arial,sans-serif; color:var(--muted); }
 }
+
+.typography-controls__wheel-hint { display:none; color:var(--muted); font-size:10px; }
+.typography-controls__desktop-font:focus-within .typography-controls__wheel-hint { display:block; }

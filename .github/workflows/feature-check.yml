@@ -93,6 +93,7 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           set -euo pipefail
+          exec > >(tee -a ci.log) 2>&1
           log() { echo "[$(date -u +%H:%M:%S)] $*"; }
           # Background apt jobs on fresh runners hold the dpkg lock for minutes,
           # and man-db reindexes after every package. Neither is needed here.
@@ -109,7 +110,7 @@ jobs:
             log "apt update (attempt $attempt)"
             sudo timeout 180 apt-get $opts update -qq || { log "update failed"; continue; }
             log "apt install (attempt $attempt)"
-            if sudo timeout 300 apt-get $opts install -y -qq --no-install-recommends $pkgs; then
+            if sudo timeout 300 apt-get $opts install -y --no-install-recommends $pkgs | grep -E '^(Get|Unpacking|Setting up|E:|W:)' || false; then
               cp /var/cache/apt/archives/*.deb "$cache"/ 2>/dev/null || true
               log "installed"; exit 0
             fi

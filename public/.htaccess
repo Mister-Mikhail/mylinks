@@ -21,7 +21,14 @@ AddType font/woff2 .woff2
   # Preview images are PNGs served directly on this domain, without redirects.
   RewriteRule ^share-image/([a-z0-9][a-z0-9._-]{1,28}[a-z0-9])\.[a-f0-9]{12}\.png$ share-image.php?handle=$1 [L]
   RewriteRule ^avatar/([a-z0-9][a-z0-9._-]{1,28}[a-z0-9])/([a-f0-9]{8})-(560|1000)(-poster)?\.(webp|mp4)$ avatar-asset.php?handle=$1&hash=$2&size=$3&poster=$4&extension=$5 [L]
-  RewriteRule ^link-icon/([a-z0-9][a-z0-9._-]{1,28}[a-z0-9])/([a-f0-9-]{36})/([a-f0-9]{12})\.png$ link-icon.php?handle=$1&id=$2&hash=$3 [L]
+  # A new namespace escapes previously cached SPA HTML under image URLs.
+  RewriteRule ^i/v2/([a-z0-9][a-z0-9._-]{1,28}[a-z0-9])/([a-f0-9-]{36})/([a-f0-9]{12})\.png$ link-icon.php?handle=$1&id=$2&hash=$3 [END,QSA]
+  RewriteRule ^link-icon/([a-z0-9][a-z0-9._-]{1,28}[a-z0-9])/([a-f0-9-]{36})/([a-f0-9]{12})\.png$ /i/v2/$1/$2/$3.png [R=301,END,NE]
+  RewriteRule ^link-icon/([a-f0-9-]{36})/([a-f0-9]{12})\.png$ legacy-icon.php?id=$1&hash=$2 [END]
+  # Malformed service URLs are errors, never routes in the SPA.
+  RewriteRule ^(?:i|link-icon|avatar|share-image)(?:/|$) asset-not-found.php [END]
+  RewriteRule ^(?:profile-image|profile-image-process|avatar-asset|link-icon|site-icon|legacy-icon)\.php/ asset-not-found.php [END]
+  RewriteRule ^\.private-assets(?:/|$) - [F,END]
   # Metadata must be present for every visitor, regardless of crawler User-Agent.
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
@@ -32,14 +39,27 @@ AddType font/woff2 .woff2
   RewriteRule ^ index.html [L]
 </IfModule>
 
+ErrorDocument 404 /asset-not-found.php
+
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   # The page itself is always revalidated, so updates appear immediately
-  <FilesMatch "\.html$">
-    Header set Cache-Control "no-cache"
+  <FilesMatch "(?:\.html$|^share-profile\.php$)">
+    FileETag None
+    RequestHeader unset If-None-Match
+    RequestHeader unset If-Modified-Since
+    Header unset ETag
+    Header always unset ETag
+    Header unset Last-Modified
+    Header always unset Last-Modified
+    Header unset Cache-Control
+    Header always set Cache-Control "no-store"
   </FilesMatch>
   <If "%{REQUEST_URI} =~ m#^/fonts/.*\.woff2$#">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </If>
+  <If "%{REQUEST_URI} =~ m#^/icons/platforms/#">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </If>
   # Build files in /assets have a content hash in the name: cache for a year

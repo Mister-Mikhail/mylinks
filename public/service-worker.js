@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mylinks-offline-v1'
+const CACHE_NAME = 'mylinks-offline-v2'
 const OFFLINE_URL = '/offline.html'
 
 self.addEventListener('install', event => {
@@ -16,6 +16,7 @@ self.addEventListener('fetch', event => {
   if (event.request.mode !== 'navigate' || event.request.method !== 'GET') return
   const url = new URL(event.request.url)
   if (url.origin !== self.location.origin) return
+  if (/^\/(?:i|link-icon|avatar|share-image)(?:\/|$)|^\/profile-image\.php/.test(url.pathname)) return
   event.respondWith(fetch(event.request).catch(async () => {
     const cache = await caches.open(CACHE_NAME)
     return await cache.match(OFFLINE_URL) || Response.error()

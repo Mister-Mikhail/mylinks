@@ -7,7 +7,7 @@ const { PNG } = createRequire(import.meta.url)('pngjs')
 const id = '00000000-0000-4000-8000-000000000001'
 const handle = 'sample-user'
 const authKey = 'sb-loykiawbqdkitndqkegk-auth-token'
-const cacheKey = `mylinks:page:${handle}`
+const cacheKey = `mylinks:page:v2:${handle}`
 const user = { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' }
 const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: id, exp: 2100000000, role: 'authenticated' })).toString('base64url')}.signature`
 const session = { access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user }
@@ -224,6 +224,6 @@ test('brand icons require a matching hostname, not text embedded in another doma
   const links = page.locator('.profile-card__links .profile-link')
   await expect(links).toHaveCount(2)
   await expect(links.first().locator('img.link-icon__brand')).toHaveCount(0)
-  await expect(links.last().locator('img.link-icon__brand')).toHaveAttribute('src', '/icons/platforms/instagram.png')
+  await expect(links.last().locator('img.link-icon__brand')).toHaveAttribute('src', /\/icons\/platforms\/instagram\.png\?v=[a-f0-9]{12}$/)
 })
 

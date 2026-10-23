@@ -19,7 +19,26 @@ type Address = {address:string;family:number}
 export type Resolver = (host:string)=>Promise<Address[]>
 export type Transport = (url:URL,address:Address,limit:number,accept:string,ua:string,timeout:number)=>Promise<Fetched|null>
 
-export const pinnedRequest:Transport = createPinnedRequest()
+// Bound aggregate sockets and queued work across candidates and requests in an isolate.
+export function limitedTransport(transport:Transport,parallel=6,maxQueue=96):Transport {
+ let active=0
+ const queue:{grant:()=>void}[]=[]
+ return async(url,address,limit,accept,ua,timeout)=>{
+  const deadline=Date.now()+timeout
+  if(active>=parallel){
+   if(queue.length>=maxQueue)return null
+   const admitted=await new Promise<boolean>(resolve=>{
+    const entry={grant:()=>{clearTimeout(timer);active++;resolve(true)}}
+    const timer=setTimeout(()=>{const index=queue.indexOf(entry);if(index>=0)queue.splice(index,1);resolve(false)},Math.max(1,timeout))
+    queue.push(entry)
+   })
+   if(!admitted)return null
+  }else active++
+  try{const remaining=deadline-Date.now();return remaining>0?await transport(url,address,limit,accept,ua,remaining):null}
+  finally{active--;queue.shift()?.grant()}
+ }
+}
+export const pinnedRequest:Transport = limitedTransport(createPinnedRequest())
 
 export async function safeFetch(input:string,limit:number,accept:string,ua:string,timeout=5000,resolve:Resolver=host=>lookup(host,{all:true}),transport:Transport=pinnedRequest):Promise<Fetched|null> {
   const deadline=Date.now()+timeout
@@ -31,7 +50,17 @@ export async function safeFetch(input:string,limit:number,accept:string,ua:strin
       const addresses=await Promise.race([resolve(url.hostname),new Promise<Address[]>(res=>{timer=setTimeout(()=>res([]),Math.max(1,deadline-Date.now()))})]).finally(()=>clearTimeout(timer))
       if(!addresses.length || addresses.some(x=>!publicAddress(x.address)))return null
       const remaining=deadline-Date.now();if(remaining<=0)return null
-      const result=await transport(url,addresses[0],limit,accept,ua,remaining)
+      // Race validated addresses: a dead first A/AAAA record must not mask a working one.
+      // Every socket remains pinned and has the same absolute request deadline.
+      let pending = addresses.length
+      const result = await new Promise<Fetched|null>(resolveResult => {
+        for (const address of addresses) {
+          void transport(url,address,limit,accept,ua,remaining).catch(()=>null).then(value=>{
+            if(value && (value.status===200 || value.status>=300 && value.status<400))resolveResult(value)
+            if(--pending===0)resolveResult(null)
+          })
+        }
+      })
       if(!result)return null
       if(result.status>=300 && result.status<400){if(!result.location)return null;url=new URL(result.location,url);continue}
       return result.status===200 ? result : null

@@ -11,7 +11,7 @@ for (let offset = 0; ; offset += 500) {
   })
   if (!response.ok) throw new Error(`Icon migration must be applied first (${response.status})`)
   const rows = await response.json()
-  for (const row of rows) if (/^\/link-icon\/[a-f0-9-]{36}\/[a-f0-9]{12}\.png$/.test(row.icon_snapshot_path) && /^[a-z0-9][a-z0-9._-]{1,28}[a-z0-9]$/.test(row.profiles?.handle ?? '')) paths.add(row.icon_snapshot_path.replace('/link-icon/', `/link-icon/${row.profiles.handle}/`))
+  for (const row of rows) if (/^\/link-icon\/[a-f0-9-]{36}\/[a-f0-9]{12}\.png$/.test(row.icon_snapshot_path) && /^[a-z0-9][a-z0-9._-]{1,28}[a-z0-9]$/.test(row.profiles?.handle ?? '')) paths.add(row.icon_snapshot_path.replace('/link-icon/', `/i/v2/${row.profiles.handle}/`))
   if (rows.length < 500) break
 }
 let index = 0

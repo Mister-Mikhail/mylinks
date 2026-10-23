@@ -1,3 +1,4 @@
+import { snapshotUrl } from '../lib/favicons'
 import { publicImageUrl, signedImage } from '../lib/profileImages'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -26,11 +27,12 @@ interface CacheEntry {
 
 type Status = 'loading' | 'ready' | 'missing' | 'error'
 
-const CACHE_PREFIX = 'mylinks:page:'
+const CACHE_PREFIX = 'mylinks:page:v2:'
 
 const writeCache = (handle: string, entry: CacheEntry) => {
   try {
     if (!entry.data.profile.is_published) {
+      localStorage.removeItem('mylinks:page:' + handle)
       localStorage.removeItem(CACHE_PREFIX + handle)
       return
     }
@@ -42,6 +44,7 @@ const writeCache = (handle: string, entry: CacheEntry) => {
 
 const clearCache = (handle: string) => {
   try {
+    localStorage.removeItem('mylinks:page:' + handle)
     localStorage.removeItem(CACHE_PREFIX + handle)
   } catch {
     // Nothing to clear.
@@ -60,8 +63,7 @@ const toEditable = (link: ProfileLink, handle?: string): EditableLink => ({
   label_color: link.label_color,
   url: link.url,
   icon_key: link.icon_key,
-  icon_snapshot_path: handle && link.icon_snapshot_path?.match(/^\/link-icon\/([a-f0-9-]{36})\/([a-f0-9]{12})\.png$/)
-    ? link.icon_snapshot_path.replace('/link-icon/', `/link-icon/${handle}/`) : link.icon_snapshot_path,
+  icon_snapshot_path: snapshotUrl(link.icon_snapshot_path,handle),
   card_preset_override: link.card_preset_override,
   card_radius_override: link.card_radius_override,
   card_style: link.card_style,

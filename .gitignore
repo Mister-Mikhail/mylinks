@@ -10,3 +10,5 @@ test-results
 upload
 supabase/.temp
 .sites-runtime
+
+public/.private-assets/

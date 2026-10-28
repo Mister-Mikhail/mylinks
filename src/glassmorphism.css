@@ -1,0 +1,353 @@
+/*
+ * Mylinks glass UI — intentionally isolated to <App /> routes by .glass-app.
+ * Public /:handle pages are rendered by PublicProfilePage outside this scope.
+ * Never style .profile-card, .profile-link, or an owner's custom theme here.
+ */
+.glass-app {
+  display: contents;
+  --glass-ink: #edf5ff;
+  --glass-muted: #b5c6dd;
+  --glass-edge: rgba(221, 234, 255, .19);
+  --glass-edge-strong: rgba(238, 245, 255, .32);
+  --glass-panel: linear-gradient(145deg, rgba(215, 230, 255, .115), rgba(96, 126, 192, .075) 52%, rgba(34, 48, 103, .20));
+  --glass-panel-strong: linear-gradient(142deg, rgba(204, 224, 255, .19), rgba(84, 101, 164, .13) 52%, rgba(30, 41, 93, .31));
+  --glass-shadow: 0 18px 52px rgba(3, 8, 26, .30), inset 0 1px 0 rgba(255, 255, 255, .12);
+  --accent: #a6d9ff;
+  --accent-strong: #86bfff;
+  --line: rgba(224, 235, 255, .16);
+  --line-strong: rgba(224, 235, 255, .29);
+  --muted: #b3c2d6;
+}
+.glass-app :is(.landing-shell,.dashboard-shell,.private-access-page,.onboarding-page,.staff-app) {
+  color: var(--glass-ink);
+  background-color: #0c1531;
+  background-image:
+    radial-gradient(ellipse at 8% 7%, rgba(115, 136, 255, .38), transparent 35%),
+    radial-gradient(ellipse at 94% 19%, rgba(207, 115, 188, .30), transparent 38%),
+    radial-gradient(ellipse at 63% 78%, rgba(30, 138, 206, .30), transparent 46%),
+    linear-gradient(145deg, #111d3e, #0c1834 42%, #152047 71%, #111528);
+  background-attachment: fixed;
+}
+.glass-app :is(.landing-shell,.dashboard-shell,.private-access-page,.onboarding-page,.staff-app) ::selection {
+  background: #c5d9ff;
+  color: #101936;
+}
+/* Ground glass in readable, high-contrast surfaces rather than blur alone. */
+.glass-app :is(.landing-nav,.auth-dialog,.private-access-card,.onboarding-card,.onboarding-live-preview,.settings-card,.staff-stat,.staff-card,.staff-table-box,.staff-login-card,.staff-modal,.staff-native-dialog,.staff-report-card) {
+  border: 1px solid var(--glass-edge);
+  background: var(--glass-panel);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
+  backdrop-filter: blur(24px) saturate(145%);
+}
+.glass-app :is(.auth-dialog,.private-access-card,.onboarding-card,.onboarding-live-preview) {
+  border-radius: 24px;
+  background: var(--glass-panel-strong);
+  box-shadow: 0 28px 88px rgba(3, 7, 25, .42), inset 0 1px 0 rgba(255, 255, 255, .17);
+}
+.glass-app :is(.settings-card,.staff-card,.staff-table-box,.staff-report-card,.staff-stat) {
+  border-radius: 18px;
+}
+.glass-app :is(.settings-card,.link-editor,.appearance-item,.staff-card,.staff-stat,.onboarding-card,.auth-dialog,.private-access-card):focus-within {
+  border-color: rgba(173, 212, 255, .38);
+}
+/* Landing: turn the marketing shell into a light-filled, legible glass hierarchy. */
+.glass-app .landing-nav {
+  height: 76px;
+  padding: 0 22px;
+  margin-top: 14px;
+  border-radius: 22px;
+  background: rgba(53, 76, 138, .21);
+  box-shadow: 0 10px 30px rgba(6, 11, 37, .18), inset 0 1px 0 rgba(255, 255, 255, .11);
+}
+.glass-app .hero__copy {
+  padding: clamp(22px, 3vw, 38px);
+  border: 1px solid var(--glass-edge);
+  border-radius: 30px;
+  background: linear-gradient(140deg, rgba(185, 206, 255, .13), rgba(32, 50, 107, .12));
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+.glass-app .hero h1 {
+  color: #fff;
+  text-shadow: 0 8px 32px rgba(0, 7, 29, .20);
+}
+.glass-app .hero h1 em {
+  color: #a8d5ff;
+}
+.glass-app .hero__copy > p,
+.glass-app .value-strip p,
+.glass-app .auth-dialog__heading p {
+  color: #c6d5e8;
+}
+.glass-app .trust-row {
+  color: #c4d9f2;
+}
+.glass-app .value-strip {
+  border: 0;
+  background: transparent;
+}
+.glass-app .value-strip__grid {
+  gap: 16px;
+  padding-block: 12px 24px;
+}
+.glass-app .value-strip article,
+.glass-app .floating-note {
+  border: 1px solid var(--glass-edge);
+  border-radius: 20px;
+  background: var(--glass-panel);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+.glass-app .value-strip article:first-child { border-left: 1px solid var(--glass-edge); }
+.glass-app .value-strip article > span { color: #a9baf0; }
+.glass-app .landing-footer { color: #c2d0e7; }
+.glass-app .landing-footer p { color: #a4b6d0; }
+.glass-app .hero__phone {
+  border-color: rgba(17, 28, 66, .87);
+  box-shadow: 0 35px 100px rgba(3, 7, 25, .52), 0 0 0 1px rgba(225, 235, 255, .26);
+}
+/* Authentication, reset links, and confirmation states. */
+.glass-app .dialog-backdrop {
+  background: rgba(3, 8, 27, .65);
+  -webkit-backdrop-filter: blur(19px) saturate(135%);
+  backdrop-filter: blur(19px) saturate(135%);
+}
+.glass-app .auth-dialog,
+.glass-app .private-access-card { border-color: var(--glass-edge-strong); }
+.glass-app .auth-dialog__heading h2,
+.glass-app .private-access-card h1,
+.glass-app .onboarding-heading h1 { color: #fff; }
+.glass-app .private-access-card p,
+.glass-app .onboarding-heading p { color: #cad5e8; }
+.glass-app .auth-switch { color: #b9dbff; }
+.glass-app .dialog-close,
+.glass-app .onboarding-back {
+  border: 1px solid var(--glass-edge);
+  background: rgba(222, 235, 255, .09);
+  color: #e9f4ff;
+}
+/* Buttons preserve existing hierarchy, disabled states and interaction targets. */
+.glass-app .button--primary,
+.glass-app .onboarding-next {
+  color: #fff;
+  border: 1px solid rgba(205, 220, 255, .28);
+  background: linear-gradient(110deg, #2588ec, #596afa 66%, #8a62f0);
+  box-shadow: 0 8px 25px rgba(65, 105, 248, .28), inset 0 1px 0 rgba(255, 255, 255, .26);
+}
+.glass-app .button--primary:hover:not(:disabled),
+.glass-app .onboarding-next:hover:not(:disabled) {
+  background: linear-gradient(110deg, #3c9bf5, #6a7dff 66%, #9d78ff);
+}
+.glass-app .button--secondary,
+.glass-app .button--ghost,
+.glass-app .onboarding-back {
+  color: #e3f0ff;
+  background: rgba(194, 218, 255, .10);
+  border-color: var(--glass-edge);
+}
+.glass-app :is(.button--secondary,.button--ghost,.onboarding-back):hover:not(:disabled) {
+  background: rgba(190, 212, 255, .18);
+  border-color: var(--glass-edge-strong);
+}
+/* Shared form language. Do not alter native checkbox, range, color or file controls. */
+.glass-app :is(.auth-form,.confirmation-resend,.settings-card,.onboarding-form,.staff-app) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),textarea,select) {
+  color: #f3f8ff;
+  background-color: rgba(13, 27, 65, .44);
+  border-color: rgba(221, 234, 255, .22);
+}
+.glass-app :is(.auth-form,.confirmation-resend,.settings-card,.onboarding-form,.staff-app) :is(input,textarea,select)::placeholder {
+  color: #a6b9d2;
+}
+.glass-app :is(.auth-form,.confirmation-resend,.settings-card,.onboarding-form,.staff-app) :is(input,textarea,select):focus-visible,
+.glass-app :is(.auth-form,.confirmation-resend,.settings-card,.onboarding-form,.staff-app) :is(input,textarea,select):focus {
+  border-color: #a6d9ff;
+  outline: 2px solid rgba(166, 217, 255, .26);
+  outline-offset: 1px;
+}
+.glass-app :is(.input-prefix,.onboarding-handle,.onboarding-link-address) {
+  background-color: rgba(11, 25, 61, .35);
+  border-color: var(--glass-edge);
+}
+/* Editor: panels float over the aurora, but the user's live profile preview is unchanged. */
+.glass-app .dashboard-grid { background: transparent; }
+.glass-app .dashboard-topbar {
+  background: rgba(24, 34, 78, .57);
+  border-bottom-color: var(--glass-edge);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  backdrop-filter: blur(28px) saturate(160%);
+}
+.glass-app .editor-nav {
+  background: rgba(23, 34, 77, .40);
+  border-color: var(--glass-edge);
+  -webkit-backdrop-filter: blur(25px) saturate(150%);
+  backdrop-filter: blur(25px) saturate(150%);
+}
+.glass-app .editor-nav button { color: #c4d0e9; }
+.glass-app .editor-nav button:hover,
+.glass-app .editor-nav button.active {
+  color: white;
+  background: linear-gradient(120deg, rgba(94, 145, 242, .29), rgba(138, 115, 216, .20));
+  box-shadow: inset 0 0 0 1px rgba(203, 225, 255, .18);
+}
+.glass-app .editor-nav__label { color: #a1b5d2; }
+.glass-app .editor-panel__heading p { color: #c7d5e7; }
+.glass-app .settings-card__title p,
+.glass-app .link-editor__hint,
+.glass-app .reorder-hint,
+.glass-app .empty-links p,
+.glass-app .privacy-note { color: #a9bfd9; }
+.glass-app .settings-card__title h2 { color: #f4f8ff; }
+.glass-app .settings-card {
+  background: linear-gradient(135deg, rgba(195, 214, 255, .105), rgba(33, 47, 100, .25));
+}
+.glass-app :is(.link-editor,.avatar-settings__main,.appearance-item,.onboarding-link,.onboarding-identity) {
+  background: rgba(23, 37, 84, .32);
+  border: 1px solid rgba(215, 232, 255, .17);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+.glass-app :is(.link-editor--selected,.appearance-item--selected) {
+  background: rgba(54, 94, 171, .31);
+  border-color: rgba(155, 209, 255, .63);
+}
+.glass-app :is(.reorder-controls,.segmented-picker,.input-prefix--compact) {
+  background: rgba(12, 26, 62, .36);
+  border-color: var(--glass-edge);
+}
+.glass-app .segmented-picker button[aria-pressed="true"],
+.glass-app .segmented-picker button.selected {
+  color: white;
+  background: rgba(112, 153, 255, .33);
+}
+.glass-app .preview-panel {
+  background: linear-gradient(160deg, rgba(92, 115, 185, .20), rgba(26, 40, 86, .33));
+  border-left-color: var(--glass-edge);
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+}
+.glass-app .preview-panel__heading > div { color: #c1cee5; }
+.glass-app .device-frame {
+  border-color: rgba(31, 44, 86, .92);
+  box-shadow: 0 26px 65px rgba(2, 6, 23, .47), 0 0 0 1px rgba(227, 239, 255, .22);
+}
+.glass-app .privacy-note {
+  background: rgba(195, 218, 255, .08);
+  border-color: var(--glass-edge);
+}
+.glass-app .statistics__metrics > div {
+  background: var(--glass-panel);
+  border: 1px solid var(--glass-edge);
+  border-radius: 15px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .09);
+}
+.glass-app .statistics__metrics span,
+.glass-app .statistics__note,
+.glass-app .statistics__pagination span { color: #b4c8df; }
+/* Registration wizard / onboarding, not the visitor's rendered profile. */
+.glass-app .onboarding-progress i.is-active {
+  background: linear-gradient(90deg, #6bc4ff, #9c8eff);
+  box-shadow: 0 0 12px rgba(119, 169, 255, .35);
+}
+.glass-app .onboarding-link,
+.glass-app .onboarding-theme button,
+.glass-app .onboarding-identity,
+.glass-app .onboarding-live-preview {
+  border-color: var(--glass-edge);
+}
+.glass-app .onboarding-theme button {
+  background: rgba(108, 139, 209, .13);
+}
+.glass-app .onboarding-theme button.is-selected {
+  background: rgba(109, 145, 255, .25);
+  border-color: #a6d9ff;
+}
+/* Staff console: keep dense administrative tables readable on glass. */
+.glass-app .staff-app {
+  --staff-bg: #0d1939;
+  --staff-surface: rgba(146, 171, 229, .12);
+  --staff-border: rgba(215, 232, 255, .17);
+  --staff-muted: #b9c9df;
+}
+.glass-app .staff-header,
+.glass-app .staff-sidebar {
+  background: rgba(22, 34, 78, .48);
+  border-color: var(--glass-edge);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+}
+.glass-app .staff-stat,
+.glass-app .staff-card,
+.glass-app .staff-table-box,
+.glass-app .staff-login-card,
+.glass-app .staff-report-card {
+  background: var(--glass-panel);
+  border-color: var(--glass-edge);
+}
+.glass-app .staff-filters {
+  background: rgba(169, 198, 250, .10);
+  border: 1px solid var(--glass-edge);
+}
+.glass-app .staff-search,
+.glass-app .staff-filter-tabs button,
+.glass-app .staff-sidebar a.active,
+.glass-app .staff-sidebar a:hover {
+  color: #ebf5ff;
+  background: rgba(124, 161, 239, .18);
+  border-color: var(--glass-edge);
+}
+.glass-app .staff-filter-tabs button.active,
+.glass-app .staff-app .button--primary {
+  color: white;
+  background: linear-gradient(115deg, #2188e9, #626df5);
+}
+.glass-app .staff-table th { background: rgba(163, 190, 255, .10); color: #dceafa; }
+.glass-app .staff-table tr:hover td { background: rgba(134, 173, 245, .10); }
+.glass-app .staff-modal,
+.glass-app .staff-native-dialog {
+  background: linear-gradient(150deg, rgba(39, 58, 113, .96), rgba(22, 32, 74, .98));
+}
+.glass-app .staff-app .button--secondary { background: rgba(153, 193, 255, .14); }
+/* Accessible focus and low-cost fallback for constrained devices. */
+.glass-app :is(button,a):focus-visible {
+  outline: 2px solid #b5e5ff;
+  outline-offset: 3px;
+}
+@media (max-width: 900px) {
+  .glass-app .hero__copy { padding: 28px; }
+  .glass-app .value-strip__grid { gap: 12px; }
+}
+@media (max-width: 650px) {
+  .glass-app .landing-nav { height: 66px; margin-top: 10px; padding: 0 13px; border-radius: 16px; }
+  .glass-app .hero__copy { padding: 24px 16px; border-radius: 20px; }
+  .glass-app .value-strip__grid { gap: 12px; padding-bottom: 18px; }
+  .glass-app .value-strip article { min-height: 0; border-radius: 17px; }
+  .glass-app .dashboard-topbar { background: rgba(25, 36, 82, .84); }
+  .glass-app .editor-nav {
+    background: rgba(22, 33, 77, .87);
+    -webkit-backdrop-filter: blur(25px);
+    backdrop-filter: blur(25px);
+  }
+  .glass-app :is(.dashboard-shell--design,.dashboard-shell--links) .preview-panel {
+    background: rgba(22, 34, 79, .79);
+    border-bottom-color: var(--glass-edge);
+  }
+  .glass-app .settings-card { border-radius: 16px; }
+  .glass-app .private-access-card { padding: 30px 22px; }
+  .glass-app :is(.landing-shell,.dashboard-shell,.private-access-page,.onboarding-page,.staff-app) { background-attachment: scroll; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glass-app .button,
+  .glass-app .link-editor,
+  .glass-app .editor-nav button { animation: none; transition: none; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-app :is(.landing-nav,.auth-dialog,.private-access-card,.onboarding-card,.onboarding-live-preview,.settings-card,.staff-stat,.staff-card,.staff-table-box,.staff-login-card,.staff-modal,.staff-native-dialog,.staff-report-card) {
+    background: #213055;
+  }
+  .glass-app :is(.dashboard-topbar,.editor-nav,.preview-panel,.staff-header,.staff-sidebar) {
+    background: #1b2850;
+  }
+}

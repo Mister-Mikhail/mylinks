@@ -12,11 +12,6 @@
   --glass-panel: linear-gradient(145deg, rgba(215, 230, 255, .115), rgba(96, 126, 192, .075) 52%, rgba(34, 48, 103, .20));
   --glass-panel-strong: linear-gradient(142deg, rgba(204, 224, 255, .19), rgba(84, 101, 164, .13) 52%, rgba(30, 41, 93, .31));
   --glass-shadow: 0 18px 52px rgba(3, 8, 26, .30), inset 0 1px 0 rgba(255, 255, 255, .12);
-  --accent: #a6d9ff;
-  --accent-strong: #86bfff;
-  --line: rgba(224, 235, 255, .16);
-  --line-strong: rgba(224, 235, 255, .29);
-  --muted: #b3c2d6;
 }
 .glass-app :is(.landing-shell,.dashboard-shell,.private-access-page,.onboarding-page,.staff-app) {
   color: var(--glass-ink);

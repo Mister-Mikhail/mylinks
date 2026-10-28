@@ -346,3 +346,31 @@
     background: #1b2850;
   }
 }
+
+/* A palette opened inside a frosted panel must stay above the next panel. */
+.glass-app .settings-card:has(.color-field__popover) {
+  position: relative;
+  z-index: 15;
+}
+.glass-app .color-field__popover {
+  background: rgba(28, 42, 88, .97);
+  border: 1px solid var(--glass-edge-strong);
+  box-shadow: 0 18px 48px rgba(4, 9, 28, .46);
+}
+/* Changelog and account-management dialogs are part of the app, too. */
+.glass-app .updates-page {
+  margin-block: 30px;
+  padding: clamp(22px, 4vw, 42px);
+  border: 1px solid var(--glass-edge);
+  border-radius: 24px;
+  background: var(--glass-panel);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+.glass-app .delete-account-dialog {
+  color: #eef5ff;
+  border: 1px solid var(--glass-edge-strong);
+  background: linear-gradient(145deg, #263a75, #19244b);
+  box-shadow: 0 28px 80px rgba(0, 5, 24, .55);
+}

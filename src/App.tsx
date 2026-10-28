@@ -50,6 +50,7 @@ import { StatisticsPanel } from './components/StatisticsPanel'
 import { PasswordRecoveryForm, PasswordRecoveryRequest } from './components/PasswordRecovery'
 import './components/extras.css'
 import './components/admin.css'
+import './glassmorphism.css'
 import { capabilitiesForTier, FREE_CAPABILITIES } from './config/capabilities'
 import {
   buildPlatformUrl,

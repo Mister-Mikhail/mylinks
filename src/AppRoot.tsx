@@ -30,7 +30,7 @@ export default function AppRoot() {
 
   return (
     <Suspense fallback={<main className="loading-screen"><BrandMark /><LoaderCircle className="spin" size={22} /></main>}>
-      <App />
+      <div className="glass-app"><App /></div>
     </Suspense>
   )
 }

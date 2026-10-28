@@ -5,7 +5,7 @@ import { gif } from './helpers/media'
 test('wizard dark name, avatar scale and final layout follow the chosen order @mobile',async({page})=>{
  const state=await mockWizard(page)
  const name=page.getByLabel('Укажите свое имя',{exact:true})
- await expect(name).toHaveCSS('background-color','rgb(17, 23, 32)')
+ await expect(name).toHaveCSS('background-color','rgba(13, 27, 65, 0.44)')
  await name.fill('Анна');await page.getByLabel('Придумайте user name',{exact:true}).fill('anna.page')
  await page.getByRole('button',{name:'Продолжить'}).click()
  const slider=page.getByLabel('Размер аватара',{exact:true}),avatar=page.locator('.avatar-settings__preview')

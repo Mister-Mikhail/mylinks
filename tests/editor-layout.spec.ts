@@ -47,7 +47,7 @@ test('background type stays in one row of four equal segments at 320 px @mobile'
  await expect(page.getByRole('button', { name: 'Полночь', exact: true })).toHaveCount(0)
  await expect(page.getByRole('button', { name: 'Загрузить фон' })).toBeVisible()
  await picker.getByRole('button', { name: 'Градиент' }).click()
- await expect(page.getByLabel('Цвет: Второй цвет фона')).toBeVisible()
+ await expect(page.getByRole('textbox', { name: 'Цвет: Второй цвет фона' })).toBeVisible()
  await expect(page.getByRole('button', { name: 'Загрузить фон' })).toHaveCount(0)
  await picker.getByRole('button', { name: 'Готовый' }).click()
  await expect(page.getByRole('button', { name: 'Полночь', exact: true })).toBeVisible()
@@ -62,9 +62,9 @@ test('featured image upload and 16:9 crop run from expanded Links item @mobile',
  await row.getByLabel('Вид карточки: Мой сайт').selectOption('featured')
  await expect(row.getByRole('button', { name: 'Загрузить фото' })).toBeVisible()
  await row.locator('input[type=file]').setInputFiles({ name: 'featured.webp', mimeType: 'image/webp', buffer: readFileSync('tests/fixtures/avatar.webp') })
- const crop = page.getByRole('group', { name: /Кадр: Загрузить фото/ })
+ const crop = page.getByRole('dialog', { name: 'Настройте кадр' })
  await expect(crop).toBeVisible()
- const ratio = await crop.evaluate(el => { const b = el.getBoundingClientRect(); return b.width / b.height })
+ const ratio = await crop.locator('.image-crop-editor__viewport').evaluate(el => { const b = el.getBoundingClientRect(); return b.width / b.height })
  expect(ratio).toBeGreaterThan(1.75)
  expect(ratio).toBeLessThan(1.8)
  await page.getByRole('button', { name: 'Применить' }).click()
@@ -91,6 +91,7 @@ test('common toolbar, account menu, and responsive widths avoid horizontal overf
  await page.getByRole('button', { name: 'Статистика', exact: true }).click()
  await expect(page.getByRole('button', { name: 'Сохранить' })).toHaveCount(0)
  if (!isMobile) {
+  await page.setViewportSize({ width: 1280, height: 844 })
   await page.locator('.editor-nav__account-button').click()
   await expect(page.getByRole('button', { name: 'Экспорт данных' })).toBeVisible()
  }

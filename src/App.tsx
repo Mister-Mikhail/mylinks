@@ -55,6 +55,7 @@ import { PasswordRecoveryForm, PasswordRecoveryRequest } from './components/Pass
 import './components/extras.css'
 import './components/admin.css'
 import './glassmorphism.css'
+import './editor-layout.css'
 import { capabilitiesForTier, FREE_CAPABILITIES } from './config/capabilities'
 import {
   buildPlatformUrl,
@@ -498,6 +499,7 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
           <label>{mode === 'register' ? 'Email' : 'Email или имя пользователя'}<input type={mode === 'register' ? 'email' : 'text'} value={email} readOnly={Boolean(pendingSignup)} onChange={(event) => setEmail(event.target.value)} placeholder={mode === 'register' ? 'you@example.com' : 'Email или логин страницы'} autoCapitalize="none" autoCorrect="off" inputMode={mode === 'register' ? 'email' : 'text'} autoComplete={mode === 'register' ? 'email' : 'username'} required /></label>
           <label>Пароль<div className="password-field"><input type={showPassword ? 'text' : 'password'} name={mode === 'register' ? 'mylinks-registration-password' : 'password'} value={password} readOnly={Boolean(pendingSignup)} onChange={(event) => setPassword(event.target.value)} placeholder={mode === 'register' ? 'Минимум 6 символов' : 'Ваш пароль'} minLength={mode === 'register' ? 6 : undefined} autoComplete={mode === 'register' ? 'off' : 'current-password'} data-form-type={mode === 'register' ? 'other' : undefined} data-lpignore={mode === 'register' ? 'true' : undefined} data-1p-ignore={mode === 'register' ? 'true' : undefined} data-bwignore={mode === 'register' ? 'true' : undefined} required /><button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
 
+          {mode === 'login' && <Link className="auth-forgot-inline" to="/auth/forgot-password" onClick={onClose}>Забыли пароль?</Link>}
           {error && <div className="form-message form-message--error">{error}</div>}
           {message && <div className="form-message form-message--success">{message}</div>}
           {mode === 'register' && message && <Link className="auth-switch" to="/auth/confirmed">Письмо не пришло? Запросить ещё раз</Link>}
@@ -506,7 +508,6 @@ function AuthDialog({ initialMode, onClose }: { initialMode: AuthMode; onClose: 
             {busy ? <LoaderCircle className="spin" size={18} /> : pendingSignup ? 'Ожидаем подтверждение почты…' : mode === 'register' ? 'Создать профиль' : 'Войти'}
           </button>
         </form>
-        {mode === 'login' && <Link className="auth-switch" to="/auth/forgot-password" onClick={onClose}>Забыли пароль?</Link>}
         <button className="auth-switch" onClick={switchMode}>
           {mode === 'register' ? 'Уже зарегистрированы? Войти' : 'Нет профиля? Создать бесплатно'}
         </button>
@@ -1266,7 +1267,7 @@ function ContentEditor({
                 <small className="link-editor__hint">{getLinkPlatform(link.icon_key).baseUrl ? 'Введите только имя после адреса площадки' : 'Можно без https:// · логотип подтянется автоматически'}</small>
                 <label>Вид карточки<select aria-label={`Вид карточки: ${link.label || 'Новая ссылка'}`} value={link.presentation ?? 'normal'} onChange={event=>updateLink(link.localId,{presentation:event.target.value as 'normal'|'featured'})}><option value="normal">Обычная</option><option value="featured">Большая с изображением</option></select></label>
                 {link.presentation === 'featured' && <div className="featured-image-controls">
-                  <ImageAssetField label="Загрузить фото" owner={profile.id} url={link.image_url} crop={link.image_crop??(link.image_path?{version:1,mode:'legacy',x:(link.image_position_x??50)/100,y:(link.image_position_y??50)/100,zoom:1}:null)} aspect={CARD_ASPECT} onChange={(path,url,crop)=>updateLink(link.localId,{image_path:path,image_url:url,image_crop:crop??null})} onCropChange={crop=>updateLink(link.localId,{image_crop:crop})}/>
+                  <ImageAssetField removeLabel="Удалить фото" label="Загрузить фото" owner={profile.id} url={link.image_url} crop={link.image_crop??(link.image_path?{version:1,mode:'legacy',x:(link.image_position_x??50)/100,y:(link.image_position_y??50)/100,zoom:1}:null)} aspect={CARD_ASPECT} onChange={(path,url,crop)=>updateLink(link.localId,{image_path:path,image_url:url,image_crop:crop??null})} onCropChange={crop=>updateLink(link.localId,{image_crop:crop})}/>
                   <label>Описание изображения<input aria-label={`Описание изображения: ${link.label}`} maxLength={160} value={link.image_alt ?? ''} onChange={event=>updateLink(link.localId,{image_alt:event.target.value})}/></label>
 
                 </div>}

@@ -24,6 +24,7 @@ test('a new link appears at the top, focused and visible @smoke', async ({ page 
   await expect(first.getByLabel('Название ссылки', { exact: true })).toHaveValue('')
   await expect(first.getByLabel('Адрес ссылки')).toBeFocused()
   await expect(first).toBeInViewport()
+  await cards.nth(1).locator('.link-editor__summary').click()
   await expect(cards.nth(1).getByLabel('Название ссылки', { exact: true })).toHaveValue('Ссылка 1')
 })
 
@@ -44,29 +45,25 @@ test('master link is copied with a single icon button @smoke', async ({ page, co
   expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/sample-user$/)
 })
 
-test('links editor shows a live pinned preview on small phones @mobile', async ({ page }) => {
-  await page.addInitScript(({ id, token }) => localStorage.setItem('sb-loykiawbqdkitndqkegk-auth-token', JSON.stringify({ access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user: { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' } })), { id, token })
-  await page.route('**/rest/v1/**', route => {
-    const name = new URL(route.request().url()).pathname.split('/').pop()
-    const data = name === 'profiles' ? profile : name === 'profile_links' ? links : name === 'staff_role' ? null : []
-    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(data) })
-  })
-  await page.route('**/functions/v1/favicon**', route => route.fulfill({ status: 404, body: '' }))
-  await page.goto('/')
-  for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
-    await page.setViewportSize(viewport)
-    const panel = page.locator('.preview-panel')
-    await expect(panel).toBeVisible()
-    const initial = (await panel.boundingBox())!
-    await page.locator('.editor-panel').evaluate(el => { el.scrollTop = el.scrollHeight })
-    expect((await panel.boundingBox())!.y).toBe(initial.y)
-    expect(initial.y + initial.height).toBeLessThan(viewport.height - 64)
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
-  }
-  await page.setViewportSize({ width: 320, height: 568 })
-  await page.getByLabel('Отображаемое имя', { exact: true }).fill('Новое имя')
-  await expect(page.locator('.preview-panel h1')).toHaveText('Новое имя')
-  await page.locator('.link-editor:not(.contact-editor)').first().getByLabel('Название ссылки', { exact: true }).fill('Новая ссылка')
-  await expect(page.locator('.preview-panel .profile-link').first()).toContainText('Новая ссылка')
+test('mobile floating preview displays the full vertical profile instead of pinned strip @mobile', async ({ page, isMobile }) => {
+ test.skip(!isMobile, 'mobile-only layout')
+ await page.addInitScript(({ id, token }) => localStorage.setItem('sb-loykiawbqdkitndqkegk-auth-token', JSON.stringify({ access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user: { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' } })), { id, token })
+ await page.route('**/rest/v1/**', route => { const name = new URL(route.request().url()).pathname.split('/').pop(); return route.fulfill({ contentType:'application/json', body: JSON.stringify(name === 'profiles' ? profile : name === 'profile_links' ? links : name === 'staff_role' ? null : []) }) })
+ await page.goto('/')
+ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }]) {
+  await page.setViewportSize(viewport)
+  await expect(page.locator('.preview-panel')).toBeHidden()
+  const open = page.getByRole('button', { name: 'Превью', exact: true })
+  await expect(open).toBeVisible()
+  await open.click()
+  const dialog = page.getByRole('dialog', { name: 'Предпросмотр страницы' })
+  await expect(dialog.locator('.profile-card')).toBeVisible()
+  await expect(dialog).toContainText('Тестовый профиль')
+  await dialog.getByRole('button', { name: 'Закрыть' }).click()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
+ }
+ await page.getByLabel('Отображаемое имя', { exact: true }).fill('Новое имя')
+ await page.getByRole('button', { name: 'Превью', exact: true }).click()
+ await expect(page.getByRole('dialog', { name: 'Предпросмотр страницы' }).locator('h1')).toHaveText('Новое имя')
 })
 

@@ -7,7 +7,7 @@ test('link editor fields and actions occupy separate areas on desktop and narrow
   await page.setViewportSize({width,height:900})
   const card=page.locator('.link-editor').first()
   await expect(card.locator('.link-editor__body')).toHaveCount(0)
-  await card.locator('.link-editor__summary').click()
+  if (await card.locator('.link-editor__summary').getAttribute('aria-expanded') === 'false') await card.locator('.link-editor__summary').click()
   const body=card.locator('.link-editor__body'),b=await body.boundingBox(),c=await card.boundingBox()
   expect(b!.width).toBeGreaterThan(width<650?140:260)
   expect(b!.x+b!.width).toBeLessThanOrEqual(c!.x+c!.width)

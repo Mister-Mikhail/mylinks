@@ -28,7 +28,7 @@ for(const target of ['background','card'])test(`${target} crop uses real drag/zo
  const {state,writes}=await setup(page)
  let field:string
  if(target==='background'){await page.getByRole('button',{name:'Изображение',exact:true}).click();field='Загрузить фон'}
- else {await page.getByRole('button',{name:'Мой проект',exact:true}).click();field='Изображение карточки: Мой проект'}
+ else {await page.getByRole('button',{name:'Ссылки',exact:true}).click();await page.locator('.link-editor__summary').first().click();field='Загрузить фото'}
  await page.getByLabel(field,{exact:true}).setInputFiles('tests/fixtures/background-grid.webp')
  const dialog=page.getByRole('dialog'),frame=page.locator('.image-crop-editor__viewport'),zoom=page.getByLabel('Масштаб кадра',{exact:true})
  await expect(dialog).toBeVisible();await expect(dialog.getByRole('button',{name:'Применить',exact:true})).toBeEnabled()
@@ -48,17 +48,24 @@ for(const target of ['background','card'])test(`${target} crop uses real drag/zo
  expect(draft.x).toBeGreaterThan(0);expect(draft.zoom).toBeLessThan(1)
  expect(await page.evaluate(()=>scrollY)).toBe(scroll);expect(await page.evaluate(()=>visualViewport?.scale)).toBe(viewportScale)
  await dialog.getByRole('button',{name:'Применить',exact:true}).click();await expect(dialog).toHaveCount(0)
- const selector=target==='background'?'.preview-panel .profile-card__photo>.cropped-image':'.preview-panel .profile-link__image.cropped-image'
- await expect(page.locator(selector)).toHaveAttribute('data-crop',JSON.stringify(draft))
+ const selector=target==='background'?'.profile-card__photo>.cropped-image':'.profile-link__image.cropped-image'
+ const preview=page.locator(isMobile?'.mobile-full-preview':'.preview-panel')
+ if(isMobile)await page.getByRole('button',{name:'Превью',exact:true}).click()
+ await expect(preview.locator(selector)).toHaveAttribute('data-crop',JSON.stringify(draft))
+ if(isMobile)await page.getByRole('button',{name:'Закрыть'}).click()
  // Reopen, reset and cancel must leave the applied frame untouched.
  const fieldRoot=page.locator('.image-asset-field').filter({has:page.getByLabel(field,{exact:true})})
  await fieldRoot.getByRole('button',{name:'Изменить кадр',exact:true}).click();await dialog.getByRole('button',{name:'Сбросить кадр',exact:true}).click();await expect(zoom).toHaveText('100%');await dialog.getByRole('button',{name:'Отмена',exact:true}).click()
- await expect(page.locator(selector)).toHaveAttribute('data-crop',JSON.stringify(draft))
+ if(isMobile)await page.getByRole('button',{name:'Превью',exact:true}).click()
+ await expect(preview.locator(selector)).toHaveAttribute('data-crop',JSON.stringify(draft))
+ if(isMobile)await page.getByRole('button',{name:'Закрыть'}).click()
  await page.getByRole('button',{name:'Сохранить',exact:true}).click()
  await expect.poll(()=>target==='background'?state.profile.background_crop:writes.at(-1)?.[0]?.image_crop).toEqual(draft)
  const original=target==='background'?state.profile.background_image_path:(state.links[0] as Record<string,unknown>).image_path
  await page.reload();await page.getByRole('button',{name:'Оформление',exact:true}).click()
- await expect(page.locator(selector)).toHaveAttribute('data-crop',JSON.stringify(draft))
+ if(isMobile)await page.getByRole('button',{name:'Превью',exact:true}).click()
+ await expect(preview.locator(selector)).toHaveAttribute('data-crop',JSON.stringify(draft))
+ if(isMobile)await page.getByRole('button',{name:'Закрыть'}).click()
  state.profile.is_published=true
  await page.goto('/anna.page')
  const publicSelector=target==='background'?'.public-preview-page__background>.cropped-image':'.profile-link__image.cropped-image'
@@ -115,7 +122,9 @@ test('mobile font tape uses real text, swipe selects on stop, tap selects and Sa
  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach()
  await expect.poll(()=>tape.locator('[aria-selected=true]').getAttribute('data-font')).not.toBe('manrope')
  await tape.locator('[data-font=caveat]').click();await expect(tape.locator('[data-font=caveat]')).toHaveAttribute('aria-selected','true')
- await expect(page.locator('.preview-panel h1')).toHaveCSS('font-family',/Caveat/)
+ await page.getByRole('button',{name:'Превью',exact:true}).click()
+ await expect(page.locator('.mobile-full-preview h1')).toHaveCSS('font-family',/Caveat/)
+ await page.getByRole('button',{name:'Закрыть'}).click()
  // Wait past the 180ms scroll-selection debounce to catch a centering feedback loop.
  await page.waitForTimeout(250);await expect(tape.locator('[data-font=caveat]')).toHaveAttribute('aria-selected','true')
  await tape.screenshot({path:test.info().outputPath('font-tape.png')})

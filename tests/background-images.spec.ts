@@ -11,7 +11,7 @@ async function setup(page:import('@playwright/test').Page){
  await page.getByRole('button',{name:'Изображение',exact:true}).click()
  return {state,getProcessing:()=>processing}
 }
-test('background photo applies only after confirming, preserves crop on reload, and can reset @mobile',async({page},info)=>{
+test('background photo applies only after confirming, preserves crop on reload, and can reset @mobile',async({page,isMobile},info)=>{
  const {state}=await setup(page)
  await page.getByLabel('Загрузить фон',{exact:true}).setInputFiles('tests/fixtures/background-grid.webp')
  await expect(page.getByRole('dialog')).toBeVisible()
@@ -32,10 +32,15 @@ test('background photo applies only after confirming, preserves crop on reload, 
  await page.reload();await page.getByRole('button',{name:'Оформление',exact:true}).click()
  await expect(page.getByAltText('Загрузить фон')).toBeVisible()
  expect(state.profile.background_image_path).toBe(path)
- await expect(page.locator('.preview-panel .profile-card__photo>.cropped-image')).toHaveAttribute('data-crop',JSON.stringify(crop))
- await page.locator('.preview-panel .profile-card').screenshot({path:info.outputPath('background-crop.png')})
+ if (isMobile) await page.getByRole('button',{name:'Превью',exact:true}).click()
+ const preview=page.locator(isMobile?'.mobile-full-preview':'.preview-panel')
+ await expect(preview.locator('.profile-card__photo>.cropped-image')).toHaveAttribute('data-crop',JSON.stringify(crop))
+ await preview.locator('.profile-card').screenshot({path:info.outputPath('background-crop.png')})
+ if (isMobile) await page.getByRole('button',{name:'Закрыть'}).click()
  await page.getByRole('button',{name:'Вернуть исходный фон'}).click()
- await expect(page.locator('.preview-panel .profile-card')).not.toHaveClass(/profile-card--image/)
+ if (isMobile) await page.getByRole('button',{name:'Превью',exact:true}).click()
+ await expect(preview.locator('.profile-card')).not.toHaveClass(/profile-card--image/)
+ if (isMobile) await page.getByRole('button',{name:'Закрыть'}).click()
  await page.getByRole('button',{name:'Сохранить',exact:true}).click()
  await expect.poll(()=>state.profile.background_image_path).toBe(null)
  expect(state.profile.background_crop).toBe(null)

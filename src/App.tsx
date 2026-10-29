@@ -1182,7 +1182,7 @@ function ContentEditor({
                   <span className="link-editor__summary-copy"><strong>{contact.label || (contact.kind === 'phone' ? 'Телефон' : contact.kind === 'email' ? 'Email' : 'Адрес')}</strong><small>{contact.value || 'Введите контакт'}</small></span>
                   <ChevronDown size={19} className={expandedRecord === contact.localId ? 'is-open' : ''}/>
                 </button>
-                <button className="icon-button link-editor__visibility" type="button" onClick={() => updateContact(contact.localId, { is_visible: !contact.is_visible })} aria-label={contact.is_visible ? 'Скрыть' : 'Показать'} aria-pressed={contact.is_visible}>{contact.is_visible ? <Eye size={18}/> : <EyeOff size={18}/>}</button>
+                <label className="link-editor__visibility-label" title={contact.is_visible ? 'Показывать контакт' : 'Контакт скрыт'}><input type="checkbox" aria-label={`Показывать контакт: ${contact.label || contact.value || 'Новый контакт'}`} checked={contact.is_visible} onChange={event => updateContact(contact.localId, { is_visible: event.target.checked })}/><span className="publish-setting__switch"><i/></span></label>
               </div>
               {expandedRecord === contact.localId && <div className="link-editor__expanded">
               <div className="link-editor__body">
@@ -1229,7 +1229,7 @@ function ContentEditor({
                   <span className="link-editor__summary-copy"><strong>{link.label || getLinkPlatform(link.icon_key).label || 'Новая ссылка'}</strong><small>{getLinkPlatform(link.icon_key).baseUrl ? platformUsernameFromUrl(getLinkPlatform(link.icon_key), link.url) || 'Добавьте ник' : link.url.replace(/^https?:\/\//, '').split('/')[0] || 'Введите адрес'}</small></span>
                   <ChevronDown size={19} className={expandedRecord === link.localId ? 'is-open' : ''} />
                 </button>
-                <button type="button" className="icon-button link-editor__visibility" onClick={() => updateLink(link.localId, { is_visible: !link.is_visible })} aria-label={link.is_visible ? 'Скрыть' : 'Показать'} aria-pressed={link.is_visible}>{link.is_visible ? <Eye size={18}/> : <EyeOff size={18}/>}</button>
+                <label className="link-editor__visibility-label" title={link.is_visible ? 'Показывать ссылку' : 'Ссылка скрыта'}><input type="checkbox" aria-label={`Показывать ссылку: ${link.label || 'Новая ссылка'}`} checked={link.is_visible} onChange={event => updateLink(link.localId, { is_visible: event.target.checked })}/><span className="publish-setting__switch"><i/></span></label>
               </div>
               {expandedRecord === link.localId && <div className="link-editor__expanded">
               <div className="link-editor__body">

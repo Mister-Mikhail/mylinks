@@ -1197,7 +1197,7 @@ function ContentEditor({
                 <small className="link-editor__hint">{contact.kind === 'address' ? 'Откроется в приложении карт' : contact.kind === 'phone' ? 'Откроется набор номера' : 'Нажатие копирует · удержание открывает почту'}</small>
               </div>
               <div className="link-editor__delete"><button type="button" onClick={() => { if (window.confirm('Удалить контакт? Изменение будет сохранено после нажатия «Сохранить».')) { removeContact(contact.localId); setExpandedRecord(null) } }}>Удалить контакт</button></div>
-              </div>
+              </div>}
             </article>
           ))}
         </div>
@@ -1277,7 +1277,7 @@ function ContentEditor({
                 </div>
               </div>
               <div className="link-editor__delete"><button type="button" onClick={() => { if (window.confirm('Удалить ссылку? Это действие можно отменить до сохранения страницы.')) { removeLink(link.localId); setExpandedRecord(null) } }}>Удалить ссылку</button></div>
-              </div>
+              </div>}
             </article>
           ))}
         </div>

@@ -21,7 +21,6 @@ import {
   Link2,
   LoaderCircle,
   LockKeyhole,
-  LogOut,
   MoreHorizontal,
   Share2,
   Mail,
@@ -33,7 +32,6 @@ import {
   ShieldAlert,
   ShieldCheck,
   Sparkles,
-  Trash2,
   UserRound,
   X,
 } from 'lucide-react'

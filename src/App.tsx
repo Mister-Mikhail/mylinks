@@ -568,6 +568,13 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [toolMode, setToolMode] = useState<'qr'|'export'|null>(null)
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false)
+  useEffect(() => {
+    if (section !== 'design' || !selectedDesignLinkId) return
+    const frame = window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>('.selected-card-settings')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [selectedDesignLinkId, section])
   const capabilities = capabilitiesForTier('free')
 
   const applyTemporaryResult = (data: unknown, failed: boolean) => {
@@ -1057,7 +1064,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
           ) : (
             <DesignEditor profile={profile} setProfile={setProfile} links={links} contacts={contacts} updateLink={updateLink} updateContact={updateContact} moveContact={moveContact} selectedLinkId={selectedDesignLinkId} onSelectLink={setSelectedDesignLinkId} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} onAvatarDraft={setAvatarDraft} />
           )}
-          {!targetId && <ProfileTools userId={user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} updatedAt={profile.updated_at} avatarPath={profile.avatar_path} mode={toolMode} onClose={() => setToolMode(null)} hideButtons />}
+          <ProfileTools userId={targetId ? undefined : user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} updatedAt={profile.updated_at} avatarPath={profile.avatar_path} mode={toolMode} onClose={() => setToolMode(null)} hideButtons />
           {!targetId && !staffRole && section !== 'stats' && <DeleteAccount handle={profile.handle} onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
         </main>
 
@@ -1403,7 +1410,7 @@ function DesignEditor({
 
       <section className="settings-card">
         <div className="settings-card__title"><Link2 size={18} /><div><h2>Отдельная карточка</h2><p>Выберите карточку в списке «Порядок на странице». Адреса меняются в разделе «Ссылки».</p></div></div>
-        {links.filter(link => link.localId === selectedLinkId).map(link => <div className="appearance-item" key={link.localId}><strong>{link.label || link.url || 'Новая ссылка'}</strong><div className="appearance-item__controls">
+        {links.filter(link => link.localId === selectedLinkId).map(link => <div className="appearance-item selected-card-settings" key={link.localId}><strong>{link.label || link.url || 'Новая ссылка'}</strong><div className="appearance-item__controls">
             <TypographyControls sample={link.label} label="Название ссылки" slot="link" font={link.label_font ?? profile.link_font} size={link.label_font_size ?? profile.link_font_size} color={link.label_color ?? profile.link_color} onChange={(font, size) => updateLink(link.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateLink(link.localId, { label_color: color })} />
             <div className="link-card-style__controls"><label>Стиль<select aria-label={`Стиль этой карточки: ${link.label}`} value={link.card_preset_override ?? ''} onChange={event => updateLink(link.localId, { card_preset_override: event.target.value ? event.target.value as Profile['card_preset'] : null })}><option value="">Как у остальных</option><option value="glass">Стекло</option><option value="solid">Сплошная</option><option value="outline">Контур</option></select></label><label>Скругление<select aria-label={`Скругление этой карточки: ${link.label}`} value={link.card_radius_override ?? ''} onChange={event => updateLink(link.localId, { card_radius_override: event.target.value ? Number(event.target.value) : null })}><option value="">Как у остальных</option><option value="4">4 px</option><option value="13">13 px</option><option value="21">21 px</option><option value="28">28 px</option></select></label></div>
             <details className="card-style-more"><summary>Дополнительные настройки</summary>

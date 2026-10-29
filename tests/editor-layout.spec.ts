@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
-import { mockAppearance } from './appearance.spec'
+import { mockLayout } from './helpers/editor-layout'
 
 test('collapsed link opens, saves changed content and only one item remains expanded @smoke', async ({ page }) => {
- await mockAppearance(page)
+ await mockLayout(page)
  await page.getByRole('button', { name: 'Ссылки', exact: true }).click()
  const row = page.locator('.link-editor:not(.contact-editor)').first()
  await expect(row.locator('.link-editor__body')).toHaveCount(0)
@@ -20,7 +20,7 @@ test('collapsed link opens, saves changed content and only one item remains expa
 })
 
 test('removing a link requires confirmation @smoke', async ({ page }) => {
- await mockAppearance(page)
+ await mockLayout(page)
  await page.getByRole('button', { name: 'Ссылки', exact: true }).click()
  const row = page.locator('.link-editor:not(.contact-editor)').first()
  await row.locator('.link-editor__summary').click()
@@ -34,7 +34,7 @@ test('removing a link requires confirmation @smoke', async ({ page }) => {
 
 test('background type stays in one row of four equal segments at 320 px @mobile', async ({ page }) => {
  await page.setViewportSize({ width: 320, height: 700 })
- await mockAppearance(page)
+ await mockLayout(page)
  const picker = page.getByRole('group', { name: 'Режим фона' })
  const sizes = await picker.locator('button').evaluateAll(nodes => nodes.map(node => {
   const r = node.getBoundingClientRect(); return { top: r.top, width: r.width, left: r.left, right: r.right }
@@ -55,7 +55,7 @@ test('background type stays in one row of four equal segments at 320 px @mobile'
 })
 
 test('featured image upload and 16:9 crop run from expanded Links item @mobile', async ({ page }) => {
- const { uploads } = await mockAppearance(page)
+ const { uploads } = await mockLayout(page)
  await page.getByRole('button', { name: 'Ссылки', exact: true }).click()
  const row = page.locator('.link-editor:not(.contact-editor)').first()
  await row.locator('.link-editor__summary').click()
@@ -74,7 +74,7 @@ test('featured image upload and 16:9 crop run from expanded Links item @mobile',
 })
 
 test('common toolbar, account menu, and responsive widths avoid horizontal overflow @mobile', async ({ page, isMobile }) => {
- await mockAppearance(page)
+ await mockLayout(page)
  for (const width of [1280, 768, 390, 320]) {
   await page.setViewportSize({ width, height: 844 })
   await expect(page.getByRole('button', { name: 'Поделиться' })).toBeVisible()
@@ -97,7 +97,7 @@ test('common toolbar, account menu, and responsive widths avoid horizontal overf
 })
 
 test('before and after visual baseline of Links and Appearance at 1280 and 390 @full', async ({ page }, info) => {
- await mockAppearance(page)
+ await mockLayout(page)
  const local = 'http://127.0.0.1:4173/'
  for (const width of [1280, 390]) {
   await page.setViewportSize({ width, height: 900 })

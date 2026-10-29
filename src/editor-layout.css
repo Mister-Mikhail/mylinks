@@ -1,0 +1,101 @@
+/* Editor layout refinement. This is deliberately NOT a new visual theme:
+   it reuses all glassmorphism variables and existing card colours. */
+.glass-app .dashboard-topbar__identity {display:flex;align-items:center;gap:15px;min-width:0}
+.glass-app .dashboard-topbar__section {padding-left:14px;border-left:1px solid var(--glass-edge);font-weight:650;font-size:15px;white-space:nowrap}
+.glass-app .dashboard-topbar__staff-back {font-size:12px;white-space:nowrap}
+.glass-app .dashboard-topbar__meta {min-width:0}
+.glass-app .dashboard-profile-menu {position:relative}
+.glass-app .dashboard-profile-menu__items {position:fixed;left:14px;bottom:82px;z-index:90;display:grid;gap:4px;min-width:210px;padding:8px;background:rgba(20,34,75,.97);border:1px solid var(--glass-edge-strong);border-radius:15px;box-shadow:0 18px 50px rgba(0,0,0,.4)}
+.glass-app .dashboard-profile-menu__items button {text-align:left;border:0;border-radius:9px;padding:12px 14px;cursor:pointer;color:#fff;background:transparent;font:inherit}
+.glass-app .dashboard-profile-menu__items button:hover,.glass-app .dashboard-profile-menu__items button:focus-visible {background:rgba(188,212,255,.14)}
+.glass-app .dashboard-profile-menu__trigger {display:none}
+.glass-app .editor-nav__account-button {width:100%;text-align:left;cursor:pointer;color:inherit;font:inherit;background:transparent}
+.glass-app .editor-nav__account-button>span:nth-child(2) {min-width:0;flex:1}
+.glass-app .editor-nav__account-button>span:nth-child(2) strong,.glass-app .editor-nav__account-button>span:nth-child(2) span {display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.glass-app .editor-nav__account-button>svg {flex:none;color:var(--muted)}
+.glass-app .section-editor__list {display:grid;gap:9px}
+.glass-app .section-editor__heading {display:flex;align-items:center;gap:5px;min-width:0}
+.glass-app .section-editor__heading>.appearance-item__select,.glass-app .page-order__label {min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.glass-app .page-order__icon {display:grid;flex:0 0 31px;place-items:center}
+.glass-app .page-order__icon img {object-fit:contain;max-width:26px;max-height:26px}
+.glass-app .section-editor__heading>.icon-button {flex:none}
+.glass-app .section-editor__add {display:flex;flex-wrap:wrap;gap:8px;margin:15px 0}
+.glass-app .section-editor__member {display:flex;gap:6px;align-items:center;min-width:0}
+.glass-app .section-editor__member>.appearance-item__select {flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.glass-app .section-editor__block {min-width:0}
+.glass-app .background-mode-picker {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;min-width:0;gap:3px;margin:12px 0;padding:3px}
+.glass-app .background-mode-picker button {min-width:0;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;padding:6px 3px;font-size:clamp(9px,2.6vw,12px)}
+.glass-app .link-editor--collapsible {display:block;padding:0;min-width:0;overflow:hidden}
+.glass-app .link-editor__summary-row {display:flex;align-items:center;gap:4px;min-width:0;min-height:66px;padding:8px 10px}
+.glass-app .link-editor__summary {display:flex;align-items:center;gap:11px;flex:1;min-width:0;padding:3px 0;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.glass-app .link-editor__summary>.link-editor__site-icon {display:grid;place-items:center;flex:0 0 33px}
+.glass-app .link-editor__summary .link-icon__brand,.glass-app .link-editor__summary .link-icon__favicon {max-width:30px;max-height:30px;object-fit:contain}
+.glass-app .link-editor__summary-copy {display:grid;gap:4px;min-width:0;flex:1}
+.glass-app .link-editor__summary-copy strong,.glass-app .link-editor__summary-copy small {white-space:nowrap;text-overflow:ellipsis;overflow:hidden;display:block}
+.glass-app .link-editor__summary-copy strong {font-size:13px;color:var(--text)}
+.glass-app .link-editor__summary-copy small {font-size:11px;color:#aebbc9;font-weight:400}
+.glass-app .link-editor__summary>svg {flex:none;transition:transform .17s}
+.glass-app .link-editor__summary>svg.is-open {transform:rotate(180deg)}
+.glass-app .link-editor__visibility {flex:none;min-width:40px;min-height:40px}
+.glass-app .link-editor__expanded {border-top:1px solid var(--glass-edge);padding:14px;display:grid;gap:10px}
+.glass-app .link-editor__expanded .link-editor__body {width:100%;min-width:0}
+.glass-app .link-editor__delete {display:flex;justify-content:flex-end;padding:14px 0 2px;margin-top:7px;border-top:1px solid var(--glass-edge)}
+.glass-app .link-editor__delete button {background:transparent;color:#ff9ba5;border:0;padding:9px 6px;font:inherit;font-size:12px;cursor:pointer}
+.glass-app .link-editor__delete button:hover {text-decoration:underline}
+.glass-app .link-editor__expanded .featured-image-controls {display:grid;gap:10px;margin-top:10px}
+.glass-app .link-editor__expanded .image-asset-field {max-width:100%}
+.glass-app .link-editor__expanded .image-asset-field__preview {max-width:100%!important;aspect-ratio:16/9}
+.glass-app .link-editor__expanded .image-asset-field__preview img {object-fit:cover;width:100%;height:100%}
+.glass-app .editor-panel .profile-tools {display:none}
+.glass-app .dashboard-grid {grid-template-columns:210px minmax(0,1fr) minmax(400px, .72fr)}
+.glass-app .device-frame {width:min(390px,100%);height:min(760px,calc(100dvh - 175px))}
+.glass-app .mobile-preview-trigger,.glass-app .mobile-full-preview {display:none}
+@media(max-width:1120px) and (min-width:768px) {
+  .glass-app .dashboard-grid {grid-template-columns:76px minmax(0,1fr) minmax(290px,390px)}
+  .glass-app .editor-panel {min-width:0;padding:22px 16px 55px}
+  .glass-app .preview-panel {padding:18px 10px}
+  .glass-app .editor-nav {padding-inline:8px}
+}
+@media(max-width:767px) {
+  .glass-app .dashboard-topbar {display:flex;flex-wrap:wrap;align-items:center;height:auto;min-height:82px;padding:8px 11px;gap:6px;flex:0 0 auto!important}
+  .glass-app .dashboard-topbar__identity {display:flex;align-items:center;width:100%;gap:10px}
+  .glass-app .dashboard-topbar .brand__word {display:inline;font-size:15px}
+  .glass-app .dashboard-topbar .brand__mark {width:27px;height:24px}
+  .glass-app .dashboard-topbar__section {font-size:13px;padding-left:11px}
+  .glass-app .dashboard-topbar__meta {width:100%;justify-content:flex-end;gap:5px}
+  .glass-app .dashboard-topbar__meta .status-chip {display:none}
+  .glass-app .dashboard-topbar__meta .dashboard-action {width:40px;min-width:40px;height:36px;padding:0}
+  .glass-app .dashboard-topbar__meta .dashboard-action .button__label {display:none}
+  .glass-app .dashboard-topbar__meta .dashboard-save {width:auto;min-width:96px;min-height:36px;padding:0 10px}
+  .glass-app .dashboard-topbar__meta .dashboard-save .button__label {display:inline;font-size:12px}
+  .glass-app .dashboard-profile-menu__trigger {display:grid;width:40px;height:36px}
+  .glass-app .dashboard-profile-menu__items {left:auto;right:9px;bottom:auto;top:76px;min-width:195px}
+  .glass-app .editor-nav__account-button {display:none}
+  .glass-app .dashboard-grid {display:flex;flex-direction:column;min-height:0;min-width:0;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  .glass-app .editor-panel {min-width:0;max-width:none;width:100%;padding:16px 12px calc(78px + env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;flex:1}
+  .glass-app .dashboard-shell--design .preview-panel,.glass-app .dashboard-shell--links .preview-panel,.glass-app .dashboard-grid .preview-panel {display:none!important}
+  .glass-app .editor-nav {position:fixed;inset:auto 0 0!important;z-index:40;display:block;width:100%;height:calc(64px + env(safe-area-inset-bottom));padding:7px 10px calc(7px + env(safe-area-inset-bottom));border:0;border-top:1px solid var(--glass-edge)}
+  .glass-app .editor-nav>div:first-child {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:5px}
+  .glass-app .editor-nav>div:first-child:has(.editor-nav__staff-link) {grid-template-columns:repeat(4,minmax(0,1fr))}
+  .glass-app .editor-nav button {width:100%;min-width:0;height:48px;padding:0 3px;font-size:10px;gap:5px}
+  .glass-app .editor-nav button span {display:inline}
+  .glass-app .editor-nav__label {display:none}
+  .glass-app .mobile-preview-trigger {display:flex;position:fixed;bottom:calc(76px + env(safe-area-inset-bottom));right:14px;z-index:39;align-items:center;gap:8px;background:rgba(34,61,137,.95);color:#fff;border:1px solid var(--glass-edge-strong);border-radius:50px;box-shadow:var(--glass-shadow);padding:12px 16px;font:inherit;font-size:13px;cursor:pointer}
+  .glass-app .mobile-full-preview {position:fixed;inset:0;z-index:90;background:#0e1733;display:flex;flex-direction:column;min-height:0}
+  .glass-app .mobile-full-preview__header {flex:none;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:8px 12px;color:#edf6ff;font-size:12px;min-height:60px;border-bottom:1px solid var(--glass-edge)}
+  .glass-app .mobile-full-preview__header>span {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .glass-app .mobile-full-preview__header .button {padding:0 10px;min-height:38px;font-size:12px;flex:none}
+  .glass-app .mobile-full-preview__page {flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;width:100%;max-width:390px;margin:0 auto}
+  .glass-app .mobile-full-preview__page>.profile-card {min-height:100dvh;width:100%;padding:25px 23px 40px}
+  .glass-app .background-mode-picker button {font-size:10px;padding:7px 1px}
+  .glass-app .section-editor__add .button {font-size:11px;padding:0 9px;min-height:37px}
+}
+@media(max-width:359px) {
+  .glass-app .dashboard-topbar__meta {gap:3px}
+  .glass-app .dashboard-topbar__meta .dashboard-save {min-width:92px}
+  .glass-app .section-editor__heading {gap:2px}
+  .glass-app .section-editor__heading>.icon-button {width:30px;min-width:30px}
+  .glass-app .section-editor__block {padding:9px}
+  .glass-app .link-editor__expanded {padding:11px}
+  .glass-app .background-mode-picker button {font-size:9px}
+}

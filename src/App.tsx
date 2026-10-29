@@ -22,6 +22,8 @@ import {
   LoaderCircle,
   LockKeyhole,
   LogOut,
+  MoreHorizontal,
+  Share2,
   Mail,
   MapPin,
   MonitorSmartphone,
@@ -564,6 +566,9 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
   const [temporaryCheckError, setTemporaryCheckError] = useState(false)
   const [error, setError] = useState('')
   const [newLinkId, setNewLinkId] = useState<string | null>(null)
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const [toolMode, setToolMode] = useState<'qr'|'export'|null>(null)
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false)
   const capabilities = capabilitiesForTier('free')
 
   const applyTemporaryResult = (data: unknown, failed: boolean) => {
@@ -987,16 +992,25 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
   return (
     <div className={`dashboard-shell ${section === 'design' ? 'dashboard-shell--design' : section === 'links' ? 'dashboard-shell--links' : ''} ${avatarDraft ? 'dashboard-shell--cropping' : ''}`}>
       <header className="dashboard-topbar">
-        <BrandMark />
-        {targetId && <Link className="button button--secondary button--small" to={`/admin/users/${targetId}`}>← Карточка пользователя</Link>}
-        {section === 'design' && <span className="appearance-topbar-title">Оформление</span>}
+        <div className="dashboard-topbar__identity">
+          <BrandMark />
+          <span className="dashboard-topbar__section">{section === 'links' ? 'Ссылки' : section === 'stats' ? 'Статистика' : 'Оформление'}</span>
+          {targetId && <Link className="dashboard-topbar__staff-back" to={`/admin/users/${targetId}`}>← Пользователь</Link>}
+        </div>
         <div className="dashboard-topbar__meta">
           <span className={`status-chip ${profile.is_published ? 'status-chip--published' : ''}`}><span /> {profile.is_published ? 'Опубликован' : 'Черновик'}</span>
-          <button className="button button--ghost button--small dashboard-action" onClick={openProfilePreview} disabled={avatarUploading || Boolean(avatarDraft)} aria-label="Открыть страницу"><Eye size={16} /> <span className="button__label">Открыть страницу</span></button>
-          <button className="button button--primary button--small" onClick={save} aria-label="Сохранить" disabled={saving || avatarUploading || Boolean(avatarDraft)} title={avatarDraft ? 'Сначала примените фото или отмените кадрирование' : undefined}>
-            {saving ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} <span className="button__label">Сохранить</span>
-          </button>
-          {!targetId && <button className="icon-button" onClick={signOut} aria-label="Выйти"><LogOut size={18} /></button>}
+          <button className="button button--ghost button--small dashboard-action" onClick={openProfilePreview} disabled={avatarUploading || Boolean(avatarDraft)} aria-label="Открыть страницу" title="Открыть страницу"><Eye size={17} /><span className="button__label">Открыть страницу</span></button>
+          <button className="button button--ghost button--small dashboard-action" onClick={() => setToolMode('qr')} aria-label="Поделиться" title="Поделиться"><Share2 size={17}/><span className="button__label">Поделиться</span></button>
+          {section !== 'stats' && <button className="button button--primary button--small dashboard-save" onClick={save} aria-label="Сохранить" disabled={saving || avatarUploading || Boolean(avatarDraft)} title={avatarDraft ? 'Сначала примените фото или отмените кадрирование' : undefined}>
+            {saving ? <LoaderCircle className="spin" size={16}/> : <Save size={16}/>}<span className="button__label">Сохранить</span>
+          </button>}
+          {!targetId && <div className="dashboard-profile-menu">
+            <button className="icon-button dashboard-profile-menu__trigger" type="button" aria-label="Меню профиля" aria-expanded={profileMenuOpen} onClick={() => setProfileMenuOpen(value => !value)}><MoreHorizontal size={22}/></button>
+            {profileMenuOpen && <div className="dashboard-profile-menu__items" role="group" aria-label="Действия профиля">
+              <button type="button" onClick={() => { setToolMode('export'); setProfileMenuOpen(false) }}>Экспорт данных</button>
+              <button type="button" onClick={() => void signOut()}>Выйти</button>
+            </div>}
+          </div>}
         </div>
       </header>
 
@@ -1004,17 +1018,16 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         <aside className="editor-nav">
           <div>
             <p className="editor-nav__label">Редактор</p>
-            <button className={section === 'links' ? 'active' : ''} onClick={() => setSection('links')} disabled={avatarUploading || Boolean(avatarDraft)}><Link2 size={18} /> <span>Ссылки</span></button>
-            <button className={section === 'design' ? 'active' : ''} onClick={() => setSection('design')}><Palette size={18} /> <span>Оформление</span></button>
-            {!targetId && <button className={section === 'stats' ? 'active' : ''} onClick={() => setSection('stats')} disabled={avatarUploading || Boolean(avatarDraft)}><BarChart3 size={18} /><span>Статистика</span></button>}
+            <button aria-label="Ссылки" className={section === 'links' ? 'active' : ''} onClick={() => setSection('links')} disabled={avatarUploading || Boolean(avatarDraft)}><Link2 size={18} /> <span>Ссылки</span></button>
+            <button aria-label="Оформление" className={section === 'design' ? 'active' : ''} onClick={() => setSection('design')}><Palette size={18} /> <span>Оформление</span></button>
+            {!targetId && <button aria-label="Статистика" className={section === 'stats' ? 'active' : ''} onClick={() => setSection('stats')} disabled={avatarUploading || Boolean(avatarDraft)}><BarChart3 size={18} /><span>Статистика</span></button>}
             {staffRole && <Link className="editor-nav__staff-link" to="/admin"><ShieldCheck size={18} /><span className="editor-nav__staff-full">{staffRole === 'admin' ? 'Администрирование' : 'Модерация'}</span><span className="editor-nav__staff-short">{staffRole === 'admin' ? 'Админ' : 'Модератор'}</span></Link>}
           </div>
-          <div className="editor-nav__account">
-            <div className="avatar avatar--small">
-              <AvatarMedia profile={profile} />
-            </div>
-            <div><strong>{profile.display_name}</strong><span>{user.email}</span></div>
-          </div>
+          {!targetId && <button className="editor-nav__account editor-nav__account-button" aria-expanded={profileMenuOpen} aria-label="Меню профиля" onClick={() => setProfileMenuOpen(value => !value)}>
+            <span className="avatar avatar--small"><AvatarMedia profile={profile}/></span>
+            <span><strong>{profile.display_name}</strong><span>{user.email}</span></span>
+            <MoreHorizontal size={18}/>
+          </button>}
         </aside>
 
         <main className="editor-panel">
@@ -1045,7 +1058,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
           ) : (
             <DesignEditor profile={profile} setProfile={setProfile} links={links} contacts={contacts} updateLink={updateLink} updateContact={updateContact} moveContact={moveContact} selectedLinkId={selectedDesignLinkId} onSelectLink={setSelectedDesignLinkId} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} onAvatarDraft={setAvatarDraft} />
           )}
-          {!targetId && section !== 'stats' && <ProfileTools userId={user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} updatedAt={profile.updated_at} avatarPath={profile.avatar_path} />}
+          {!targetId && <ProfileTools userId={user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} updatedAt={profile.updated_at} avatarPath={profile.avatar_path} mode={toolMode} onClose={() => setToolMode(null)} hideButtons />}
           {!targetId && !staffRole && section !== 'stats' && <DeleteAccount handle={profile.handle} onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
         </main>
 
@@ -1061,6 +1074,11 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
           <div className="privacy-note"><ShieldCheck size={17} /><div><strong>{profile.is_published ? 'Профиль опубликован' : 'Профиль пока закрыт'}</strong><span>{profile.is_published ? `Страница mylinks.bar/${profile.handle} доступна всем по ссылке.` : 'Данные страницы доступны только владельцу, пока вы не включите публикацию.'}</span></div></div>
         </aside>
       </div>
+      {section !== 'stats' && <button className="mobile-preview-trigger" type="button" onClick={() => setMobilePreviewOpen(true)}><Eye size={17}/> Превью</button>}
+      {mobilePreviewOpen && <div className="mobile-full-preview" role="dialog" aria-modal="true" aria-label="Предпросмотр страницы">
+        <div className="mobile-full-preview__header"><span>Предпросмотр · mylinks.bar/{profile.handle}</span><button type="button" className="button button--secondary" onClick={() => setMobilePreviewOpen(false)}><X size={18}/> Закрыть</button></div>
+        <div className="mobile-full-preview__page"><ProfilePreview profile={profile} links={links} contacts={contacts} showPrivacy={!profile.is_published} avatarDraft={avatarDraft} selectedLinkId={selectedDesignLinkId}/></div>
+      </div>}
     </div>
   )
 }

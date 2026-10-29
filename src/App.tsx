@@ -1012,7 +1012,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
           </button>}
           {!targetId && <div className="dashboard-profile-menu">
             <button className="icon-button dashboard-profile-menu__trigger" type="button" aria-label="Меню профиля" aria-expanded={profileMenuOpen} onClick={() => setProfileMenuOpen(value => !value)}><MoreHorizontal size={22}/></button>
-            {profileMenuOpen && <div className="dashboard-profile-menu__items" role="group" aria-label="Действия профиля">
+            {profileMenuOpen && <div className="dashboard-profile-menu__items dashboard-profile-menu__items--mobile" role="group" aria-label="Действия профиля на телефоне">
               <button type="button" onClick={() => { setToolMode('export'); setProfileMenuOpen(false) }}>Экспорт данных</button>
               <button type="button" onClick={() => void signOut()}>Выйти</button>
             </div>}
@@ -1029,11 +1029,17 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
             {!targetId && <button aria-label="Статистика" className={section === 'stats' ? 'active' : ''} onClick={() => setSection('stats')} disabled={avatarUploading || Boolean(avatarDraft)}><BarChart3 size={18} /><span>Статистика</span></button>}
             {staffRole && <Link className="editor-nav__staff-link" to="/admin"><ShieldCheck size={18} /><span className="editor-nav__staff-full">{staffRole === 'admin' ? 'Администрирование' : 'Модерация'}</span><span className="editor-nav__staff-short">{staffRole === 'admin' ? 'Админ' : 'Модератор'}</span></Link>}
           </div>
-          {!targetId && <button className="editor-nav__account editor-nav__account-button" aria-expanded={profileMenuOpen} aria-label="Меню профиля" onClick={() => setProfileMenuOpen(value => !value)}>
-            <span className="avatar avatar--small"><AvatarMedia profile={profile}/></span>
-            <span><strong>{profile.display_name}</strong><span>{user.email}</span></span>
-            <MoreHorizontal size={18}/>
-          </button>}
+          {!targetId && <div className="editor-nav__account-container">
+            <button className="editor-nav__account editor-nav__account-button" aria-expanded={profileMenuOpen} aria-label="Меню профиля" onClick={() => setProfileMenuOpen(value => !value)}>
+              <span className="avatar avatar--small"><AvatarMedia profile={profile}/></span>
+              <span><strong>{profile.display_name}</strong><span>{user.email}</span></span>
+              <MoreHorizontal size={18}/>
+            </button>
+            {profileMenuOpen && <div className="dashboard-profile-menu__items dashboard-profile-menu__items--desktop" role="group" aria-label="Действия профиля">
+              <button type="button" onClick={() => { setToolMode('export'); setProfileMenuOpen(false) }}>Экспорт данных</button>
+              <button type="button" onClick={() => void signOut()}>Выйти</button>
+            </div>}
+          </div>}
         </aside>
 
         <main className="editor-panel">

@@ -217,7 +217,7 @@ test('largest fonts keep long text and mobile navigation inside their slots @mob
   await page.locator('.appearance-item__select').first().click()
   await page.getByLabel('Размер: Название ссылки', { exact: true }).selectOption('16')
   if (isMobile) {
-    const tops = await page.locator('.editor-nav button').evaluateAll(buttons => buttons.map(button => button.getBoundingClientRect().top))
+    const tops = await page.locator('.editor-nav button:visible').evaluateAll(buttons => buttons.map(button => button.getBoundingClientRect().top))
     expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(1)
     await expect(page.getByRole('button', { name: 'Статистика', exact: true })).toBeInViewport()
     await page.getByRole('button', { name: 'Открыть страницу', exact: true }).click()

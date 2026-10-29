@@ -15,6 +15,10 @@ export async function mockLayout(page: Page, failUpload = false, displayName = '
   const preview = readFileSync('tests/fixtures/avatar.webp').toString('base64')
   const delivery = readFileSync('tests/fixtures/avatar-delivery.webp').toString('base64')
   const master = readFileSync('tests/fixtures/avatar-master.webp').toString('base64')
+  await page.route('**/profile-image-process.php', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ mime: 'image/webp', data: preview }),
+  }))
   await page.route('**/avatar-process.php', route => {
     const data = route.request().postDataBuffer()?.toString('latin1') || ''
     if (data.includes('prepare')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ token: 'abcdef0123456789abcdef0123456789', kind: 'image', preview: `data:image/webp;base64,${preview}`, width: 64, height: 64 }) })

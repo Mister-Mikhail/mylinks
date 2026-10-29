@@ -47,8 +47,8 @@ export function LinkSectionsEditor({ links, value, onChange, selectedLinkId, onS
     <div className="section-editor__heading">
      {link ? <span className="page-order__icon"><LinkIcon name={link.icon_key} url={link.url} size={20}/></span> :
       block.type === 'divider' ? <ListMinus size={18}/> : <Layers3 size={18}/>}
-     {link ? <button className="appearance-item__select" type="button" aria-pressed={selectedLinkId === link.localId} onClick={() => select(block.link_id)}>{link.label || link.url || 'Новая ссылка'}</button>
-      : <span className="page-order__label">{block.type === 'divider' ? 'Разделитель' : block.type === 'heading' ? block.title || 'Заголовок' : block.title || 'Группа'}</span>}
+     {link ? <button className="appearance-item__select" type="button" aria-pressed={selectedLinkId === link.localId} onClick={() => select(linkKey(link))}>{link.label || link.url || 'Новая ссылка'}</button>
+      : <span className="page-order__label">{block.type === 'divider' ? 'Разделитель' : 'title' in block ? block.title || (block.type === 'heading' ? 'Заголовок' : 'Группа') : 'Ссылка'}</span>}
      <button type="button" className="icon-button" disabled={index === 0} aria-label={link ? `Переместить ссылку выше: ${link.label || index + 1}` : `Поднять блок ${index + 1}`} onClick={() => move(index, -1)}><ArrowUp size={16}/></button>
      <button type="button" className="icon-button" disabled={index === blocks.length - 1} aria-label={link ? `Переместить ссылку ниже: ${link.label || index + 1}` : `Опустить блок ${index + 1}`} onClick={() => move(index, 1)}><ArrowDown size={16}/></button>
      {block.type !== 'link' && <button type="button" className="icon-button" aria-label={block.type === 'group' ? 'Разгруппировать' : 'Удалить блок'} onClick={() => remove(block)}><Trash2 size={16}/></button>}

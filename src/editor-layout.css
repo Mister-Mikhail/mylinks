@@ -28,7 +28,7 @@
 .glass-app .link-editor--collapsible {display:block;padding:0;min-width:0;overflow:hidden}
 .glass-app .link-editor__summary-row {display:flex;align-items:center;gap:4px;min-width:0;min-height:66px;padding:8px 10px}
 .glass-app .link-editor__summary {display:flex;align-items:center;gap:11px;flex:1;min-width:0;padding:3px 0;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
-.glass-app .link-editor__summary>.link-editor__site-icon {display:grid;place-items:center;flex:0 0 33px}
+.glass-app .link-editor__summary>.link-editor__site-icon {display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px}
 .glass-app .link-editor__summary .link-icon__brand,.glass-app .link-editor__summary .link-icon__favicon {max-width:30px;max-height:30px;object-fit:contain}
 .glass-app .link-editor__summary-copy {display:grid;gap:4px;min-width:0;flex:1}
 .glass-app .link-editor__summary-copy strong,.glass-app .link-editor__summary-copy small {white-space:nowrap;text-overflow:ellipsis;overflow:hidden;display:block}

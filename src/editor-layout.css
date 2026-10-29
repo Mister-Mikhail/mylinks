@@ -5,7 +5,7 @@
 .glass-app .dashboard-topbar__staff-back {font-size:12px;white-space:nowrap}
 .glass-app .dashboard-topbar__meta {min-width:0}
 .glass-app .dashboard-profile-menu {position:relative}
-.glass-app .dashboard-profile-menu__items {position:fixed;left:14px;bottom:82px;z-index:90;display:grid;gap:4px;min-width:210px;padding:8px;background:rgba(20,34,75,.97);border:1px solid var(--glass-edge-strong);border-radius:15px;box-shadow:0 18px 50px rgba(0,0,0,.4)}
+.glass-app .dashboard-profile-menu__items {position:absolute;z-index:90;display:grid;gap:4px;min-width:210px;padding:8px;background:rgba(20,34,75,.97);border:1px solid var(--glass-edge-strong);border-radius:15px;box-shadow:0 18px 50px rgba(0,0,0,.4)}
 .glass-app .dashboard-profile-menu__items button {text-align:left;border:0;border-radius:9px;padding:12px 14px;cursor:pointer;color:#fff;background:transparent;font:inherit}
 .glass-app .dashboard-profile-menu__items button:hover,.glass-app .dashboard-profile-menu__items button:focus-visible {background:rgba(188,212,255,.14)}
 .glass-app .dashboard-profile-menu__trigger {display:none}
@@ -50,7 +50,7 @@
 .glass-app .link-editor__expanded .image-asset-field {max-width:100%}
 .glass-app .link-editor__expanded .image-asset-field__preview {max-width:100%!important;aspect-ratio:16/9}
 .glass-app .link-editor__expanded .image-asset-field__preview img {object-fit:cover;width:100%;height:100%}
-.glass-app .editor-panel .profile-tools {display:none}
+.glass-app .editor-panel .profile-tools {display:contents}
 .glass-app .dashboard-grid {grid-template-columns:210px minmax(0,1fr) 460px}
 .glass-app .device-frame {width:min(404px,100%);height:min(760px,calc(100dvh - 175px))}
 .glass-app .mobile-preview-trigger,.glass-app .mobile-full-preview {display:none}
@@ -73,7 +73,8 @@
   .glass-app .dashboard-topbar__meta .dashboard-save {width:auto;min-width:96px;min-height:36px;padding:0 10px}
   .glass-app .dashboard-topbar__meta .dashboard-save .button__label {display:inline;font-size:12px}
   .glass-app .dashboard-profile-menu__trigger {display:grid;width:40px;height:36px}
-  .glass-app .dashboard-profile-menu__items {left:auto;right:9px;bottom:auto;top:76px;min-width:195px}
+  .glass-app .dashboard-profile-menu__items--mobile {right:0;top:calc(100% + 8px);min-width:195px}
+  .glass-app .editor-nav__account-container {display:none}
   .glass-app .editor-nav__account-button {display:none}
   .glass-app .dashboard-grid {display:flex;flex-direction:column;min-height:0;min-width:0;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
   .glass-app .editor-panel {min-width:0;max-width:none;width:100%;padding:16px 12px calc(78px + env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;flex:1}
@@ -112,3 +113,6 @@
 /* Reuse the site's green publish-switch states in compact link/contact rows. */
 .glass-app .link-editor__visibility-label input:checked+.publish-setting__switch {background:rgba(78,162,117,.34);border-color:rgba(103,214,155,.3)}
 .glass-app .link-editor__visibility-label input:checked+.publish-setting__switch i {left:20px;background:#7ce0aa}
+
+@media(min-width:768px){.glass-app .editor-nav {z-index:21}.glass-app .dashboard-profile-menu__items--mobile {display:none}.glass-app .editor-nav__account-container {position:relative}.glass-app .dashboard-profile-menu__items--desktop {left:0;bottom:calc(100% + 8px);min-width:210px}}
+@media(max-width:767px){.glass-app .dashboard-profile-menu__items--desktop {display:none}}

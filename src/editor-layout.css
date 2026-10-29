@@ -36,7 +36,11 @@
 .glass-app .link-editor__summary-copy small {font-size:11px;color:#aebbc9;font-weight:400}
 .glass-app .link-editor__summary>svg {flex:none;transition:transform .17s}
 .glass-app .link-editor__summary>svg.is-open {transform:rotate(180deg)}
-.glass-app .link-editor__visibility {flex:none;min-width:40px;min-height:40px}
+.glass-app .link-editor__visibility-label {position:relative;display:grid;place-items:center;flex:0 0 45px;min-width:45px;min-height:44px;cursor:pointer}
+.glass-app .link-editor__visibility-label input {position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:1}
+.glass-app .link-editor__visibility-label .publish-setting__switch {position:relative;display:block;flex:0 0 auto;margin:0}
+.glass-app .link-editor__visibility-label input:focus-visible+.publish-setting__switch {outline:2px solid var(--accent);outline-offset:3px}
+.glass-app .link-editor__visibility-label input:not(:checked)+.publish-setting__switch {opacity:.5}
 .glass-app .link-editor__expanded {border-top:1px solid var(--glass-edge);padding:14px;display:grid;gap:10px}
 .glass-app .link-editor__expanded .link-editor__body {width:100%;min-width:0}
 .glass-app .link-editor__delete {display:flex;justify-content:flex-end;padding:14px 0 2px;margin-top:7px;border-top:1px solid var(--glass-edge)}
@@ -99,3 +103,5 @@
   .glass-app .link-editor__expanded {padding:11px}
   .glass-app .background-mode-picker button {font-size:9px}
 }
+
+@media(max-width:650px){.glass-app .landing-nav .button--ghost{display:inline-flex}.glass-app .landing-nav .brand__word{font-size:15px}.glass-app .landing-nav__actions{gap:4px}.glass-app .landing-nav__actions .button{padding:0 8px;font-size:11px;min-height:36px}}

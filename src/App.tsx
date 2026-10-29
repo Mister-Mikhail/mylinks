@@ -36,6 +36,7 @@ import {
   X,
 } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import { BrandMark } from './components/BrandMark'
 import { OnboardingWizard } from './components/OnboardingWizard'
 import { TemporaryAccountGate } from './components/TemporaryAccountGate'
@@ -1087,10 +1088,10 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         </aside>
       </div>
       {section !== 'stats' && <button className="mobile-preview-trigger" type="button" onClick={() => setMobilePreviewOpen(true)}><Eye size={17}/> Превью</button>}
-      {mobilePreviewOpen && <div className="mobile-full-preview" role="dialog" aria-modal="true" aria-label="Предпросмотр страницы">
+      {mobilePreviewOpen && createPortal(<div className="mobile-full-preview" role="dialog" aria-modal="true" aria-label="Предпросмотр страницы">
         <div className="mobile-full-preview__header"><span>Предпросмотр · mylinks.bar/{profile.handle}</span><button type="button" className="button button--secondary" onClick={() => setMobilePreviewOpen(false)}><X size={18}/> Закрыть</button></div>
         <div className="mobile-full-preview__page"><ProfilePreview profile={profile} links={links} contacts={contacts} showPrivacy={!profile.is_published} avatarDraft={avatarDraft} selectedLinkId={selectedDesignLinkId}/></div>
-      </div>}
+      </div>, document.querySelector('.glass-app') ?? document.body)}
     </div>
   )
 }

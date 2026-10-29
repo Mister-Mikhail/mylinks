@@ -40,9 +40,9 @@ test('card arrows follow selection and update the preview and saved order @smoke
   const bounds = await cards.first().evaluate(card => {
     const icon = card.querySelector('.link-editor__site-icon')!.getBoundingClientRect()
     const adult = card.querySelector('.sensitive-toggle')!.getBoundingClientRect()
-    return { iconRight: icon.right, adultLeft: adult.left }
+    return { iconBottom: icon.bottom, adultTop: adult.top }
   })
-  expect(bounds.iconRight).toBeLessThan(bounds.adultLeft)
+  expect(bounds.iconBottom).toBeLessThan(bounds.adultTop)
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
   await expect(page.getByText('Изменения сохранены')).toBeVisible()
   const savedLayout = (writes.filter(write => write.table === 'profiles').at(-1)!.body as { link_layout: { blocks: { link_id?: string }[] } }).link_layout

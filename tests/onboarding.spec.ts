@@ -48,8 +48,10 @@ test('five-step flow saves short links and phone and restores progress @smoke', 
   await expect(page).toHaveURL(/\/anna.petrova$/)
   await expect(page.getByRole('link', { name: 'Мой VK' })).toBeVisible()
   await page.getByRole('button', { name: 'Личный кабинет' }).click()
+  await page.locator('.contact-editor .link-editor__summary').first().click()
   await expect(page.getByRole('textbox', { name: 'Значение контакта', exact: true })).toHaveValue('+79990000000')
   await page.reload()
+  await page.locator('.contact-editor .link-editor__summary').first().click()
   await expect(page.getByRole('textbox', { name: 'Значение контакта', exact: true })).toHaveValue('+79990000000')
 })
 

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 import { mockWizard } from './helpers/wizard'
-test('featured card preserves saved ID, crop and image when switching display modes @mobile',async({page},info)=>{
+test('featured card preserves saved ID, crop and image when switching display modes @mobile',async({page,isMobile},info)=>{
  const state=await mockWizard(page),id='00000000-0000-4000-8000-000000000081',path=`${state.profile.id}/11111111-1111-4111-8111-111111111111.webp`
  state.profile={...state.profile,onboarding_completed:true,handle:'anna.page',display_name:'Анна'}
  state.links=[{id,profile_id:state.profile.id,label:'Мой сайт',url:'https://example.com',position:0,is_visible:true,icon_key:'link',presentation:'normal',image_path:path,image_alt:'Проект',image_position_x:30,image_position_y:60}]
@@ -10,16 +10,21 @@ test('featured card preserves saved ID, crop and image when switching display mo
  const image=readFileSync('tests/fixtures/avatar.webp')
  await page.route('**/storage/v1/**',route=>{const url=new URL(route.request().url());return route.request().method()==='GET'?route.fulfill({contentType:'image/webp',body:image}):route.fulfill({contentType:'application/json',body:JSON.stringify({signedURL:url.pathname.replace('/storage/v1','')+'?token=test'})})})
  await page.reload()
+ await page.locator('.link-editor__summary').first().click()
  await page.getByLabel('Вид карточки: Мой сайт').selectOption('featured')
- await expect(page.locator('.preview-panel .profile-link--featured')).toHaveCount(1)
- await expect(page.locator('.preview-panel .profile-link__image')).toHaveCSS('object-position','30% 60%')
- await expect(page.locator('.preview-panel .profile-link__image')).toBeVisible()
- await expect.poll(()=>page.locator('.preview-panel .profile-link__image').evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBeGreaterThan(0)
- await page.locator('.preview-panel .profile-link--featured').screenshot({path:info.outputPath('featured-card.png')})
+ if (isMobile) await page.getByRole('button',{name:'Превью',exact:true}).click()
+ const preview=page.locator(isMobile?'.mobile-full-preview':'.preview-panel')
+ await expect(preview.locator('.profile-link--featured')).toHaveCount(1)
+ await expect(preview.locator('.profile-link__image')).toHaveCSS('object-position','30% 60%')
+ await expect(preview.locator('.profile-link__image')).toBeVisible()
+ await expect.poll(()=>preview.locator('.profile-link__image').evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBeGreaterThan(0)
+ await preview.locator('.profile-link--featured').screenshot({path:info.outputPath('featured-card.png')})
+ if (isMobile) await page.getByRole('button',{name:'Закрыть'}).click()
  await page.getByRole('button',{name:'Сохранить',exact:true}).click()
  await expect.poll(()=>writes.length).toBe(1)
  expect(writes[0][0]).toMatchObject({id,url:'https://example.com',presentation:'featured',image_path:path,image_position_x:30,image_position_y:60})
  await page.reload()
+ await page.locator('.link-editor__summary').first().click()
  await expect(page.getByLabel('Вид карточки: Мой сайт')).toHaveValue('featured')
  await page.getByLabel('Вид карточки: Мой сайт').selectOption('normal')
  await page.getByRole('button',{name:'Сохранить',exact:true}).click()

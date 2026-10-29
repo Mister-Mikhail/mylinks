@@ -12,13 +12,13 @@ async function setup(page:Page,handle='anna.page'){
  state.contacts=[{id:'public',profile_id:id,kind:'email',label:'Email',value:'public@example.com',position:0,is_visible:true},{id:'private',profile_id:id,kind:'phone',label:'Телефон',value:'+79990000000',position:1,is_visible:false}]
  await page.route('**/auth/v1/user',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({id,email:'test@example.com',app_metadata:{},user_metadata:{}})}))
  await page.reload()
- await expect(page.getByRole('button',{name:'Экспорт данных'})).toBeVisible()
+ await expect(page.locator('.editor-nav__account-button')).toBeVisible()
  return state
 }
 async function bytes(download:Download){const stream=await download.createReadStream();const chunks:Buffer[]=[];for await(const chunk of stream!)chunks.push(chunk);return Buffer.concat(chunks)}
 for(const handle of ['anna.page','anna_page'])test(`QR PNG and SVG encode the canonical address ${handle}`,async({page})=>{
  await setup(page,handle)
- await page.getByRole('button',{name:'QR-код / Поделиться'}).click()
+ await page.getByRole('button',{name:'Поделиться',exact:true}).click()
  const dialog=page.getByRole('dialog',{name:'QR-код страницы'})
  await expect(dialog).toContainText('Страница пока закрыта')
  await expect(dialog.locator('img')).toBeVisible()
@@ -39,6 +39,7 @@ for(const handle of ['anna.page','anna_page'])test(`QR PNG and SVG encode the ca
 for(const includePrivate of [false,true])test(`JSON export requires opt-in for hidden contacts: ${includePrivate}`,async({page})=>{
  const state=await setup(page)
  const saved=JSON.stringify(state)
+ await page.locator('.editor-nav__account-button').click()
  await page.getByRole('button',{name:'Экспорт данных'}).click()
  const dialog=page.getByRole('dialog',{name:'Экспорт данных'})
  await dialog.getByLabel('Контакты',{exact:true}).check()
@@ -57,6 +58,7 @@ test('export refuses changed identity and provides short-lived URLs only when ex
  state.profile.avatar_path=id+'/avatar.gif'
  let ttl=0
  await page.route('**/storage/v1/object/sign/**',route=>{if(route.request().method()==='GET')return route.fulfill({status:404});ttl=route.request().postDataJSON().expiresIn;return route.fulfill({contentType:'application/json',body:'{"signedURL":"/object/sign/avatars/test?token=short-lived"}'})})
+ await page.locator('.editor-nav__account-button').click()
  await page.getByRole('button',{name:'Экспорт данных'}).click()
  await page.getByLabel('Добавить ссылки на скачивание файлов на 5 минут').check()
  const pending=page.waitForEvent('download');await page.getByRole('button',{name:'Скачать JSON'}).click()
@@ -64,6 +66,7 @@ test('export refuses changed identity and provides short-lived URLs only when ex
  expect(ttl).toBe(300);expect(data.assets[0].download_url).toContain('short-lived');expect(Date.parse(data.assets[0].expires_at)-Date.now()).toBeLessThanOrEqual(300000)
  await page.getByRole('button',{name:'Закрыть',exact:true}).click()
  await page.reload()
+ await page.locator('.editor-nav__account-button').click()
  await page.getByRole('button',{name:'Экспорт данных'}).click()
  state.profile.id='00000000-0000-4000-8000-000000000092'
  await page.getByRole('button',{name:'Скачать JSON'}).click()
@@ -75,6 +78,7 @@ test('export preserves custom appearance and individual card overrides without c
  Object.assign(state.profile,{background_position_x:25,background_position_y:75,background_zoom:180,background_style:'gradient',background_primary:'#e17209',background_secondary:'#162638',card_radius:24,card_padding:20,card_border_width:2,card_opacity:80,link_font:'lora',link_font_size:18,link_color:'#e17209',show_qr:true,qr_size:180})
  Object.assign(state.links[0] as object,{card_preset_override:'outline',card_radius_override:12,card_style:{version:1,padding:16,borderWidth:1,opacity:90},label_color:null})
  const saved=JSON.stringify(state)
+ await page.locator('.editor-nav__account-button').click()
  await page.getByRole('button',{name:'Экспорт данных'}).click()
  const pending=page.waitForEvent('download')
  await page.getByRole('button',{name:'Скачать JSON'}).click()

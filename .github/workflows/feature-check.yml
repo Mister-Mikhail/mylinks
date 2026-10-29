@@ -16,13 +16,13 @@ env:
   VITE_SUPABASE_URL: https://loykiawbqdkitndqkegk.supabase.co
   VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_GjGkSeQ5okx58Tphh7Hfrw_6psgCioE
   SITE_URL: https://mylinks.bar
-  CI_SUITE: ${{ (github.event_name == 'workflow_dispatch' || github.event.action == 'ready_for_review') && 'full' || 'quick' }}
+  CI_SUITE: ${{ (github.event_name == 'workflow_dispatch' || github.event.action == 'ready_for_review' || github.head_ref == 'feature/editor-layout-after-glass') && 'full' || 'quick' }}
   CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
   CI_DEPS_INSTALLED: 'true'
 
 jobs:
   registration_db:
-    if: github.event_name == 'workflow_dispatch' || github.event.action == 'ready_for_review'
+    if: github.event_name == 'workflow_dispatch' || github.event.action == 'ready_for_review' || github.head_ref == 'feature/editor-layout-after-glass'
     runs-on: ubuntu-24.04
     services:
       postgres:

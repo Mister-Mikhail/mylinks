@@ -4,7 +4,7 @@ import type { ImageCrop, FrameCrop } from '../lib/imageCrop'
 import { CroppedImage } from './CroppedImage'
 import { isFrameCrop } from '../lib/imageCrop'
 import { uploadProfileImage } from '../lib/profileImages'
-export function ImageAssetField({label,owner,url,onChange,crop,aspect,onCropChange}:{crop?:ImageCrop|null;aspect?:number;onCropChange?:(crop:FrameCrop)=>void;label:string;owner:string;url?:string|null;onChange:(path:string|null,url:string|null,crop?:ImageCrop|null)=>void}) {
+export function ImageAssetField({label,owner,url,onChange,crop,aspect,removeLabel="Удалить изображение",onCropChange}:{crop?:ImageCrop|null;aspect?:number;removeLabel?:string;onCropChange?:(crop:FrameCrop)=>void;label:string;owner:string;url?:string|null;onChange:(path:string|null,url:string|null,crop?:ImageCrop|null)=>void}) {
  const [busy,setBusy]=useState(false),[error,setError]=useState('')
  const [editing,setEditing]=useState(false)
  const [pending,setPending]=useState<{path:string;url:string|null}|null>(null)
@@ -21,7 +21,7 @@ export function ImageAssetField({label,owner,url,onChange,crop,aspect,onCropChan
   {url&&aspect&&<button type="button" className="button button--ghost button--small" onClick={()=>setEditing(true)}>Изменить кадр</button>}
   {editing&&(pending?.url||url)&&aspect&&onCropChange&&<ImageCropEditor label={label} src={(pending?.url||url)!} aspect={aspect} crop={pending?null:crop} onCancel={()=>{setPending(null);setEditing(false)}} onApply={next=>{if(pending)onChange(pending.path,pending.url,next);else onCropChange(next);setPending(null);setEditing(false)}}/>}
   {busy&&<button type="button" className="button button--ghost button--small" onClick={()=>{controller.current?.abort();setBusy(false)}}>Отменить загрузку</button>}
-  {url&&<button type="button" className="button button--ghost button--small" disabled={busy} onClick={()=>onChange(null,null)}>Удалить изображение</button>}
+  {url&&<button type="button" className="button button--ghost button--small" disabled={busy} onClick={()=>onChange(null,null)}>{removeLabel}</button>}
   <small>JPG, PNG, WebP · до 10 МБ. Уменьшим до 1600 px, удалим метаданные. Применится после сохранения страницы.</small>
   {error&&<p role="alert">{error}</p>}
  </div>

@@ -51,8 +51,8 @@
 .glass-app .link-editor__expanded .image-asset-field__preview {max-width:100%!important;aspect-ratio:16/9}
 .glass-app .link-editor__expanded .image-asset-field__preview img {object-fit:cover;width:100%;height:100%}
 .glass-app .editor-panel .profile-tools {display:none}
-.glass-app .dashboard-grid {grid-template-columns:210px minmax(0,1fr) minmax(400px, .72fr)}
-.glass-app .device-frame {width:min(390px,100%);height:min(760px,calc(100dvh - 175px))}
+.glass-app .dashboard-grid {grid-template-columns:210px minmax(0,1fr) 460px}
+.glass-app .device-frame {width:min(404px,100%);height:min(760px,calc(100dvh - 175px))}
 .glass-app .mobile-preview-trigger,.glass-app .mobile-full-preview {display:none}
 @media(max-width:1120px) and (min-width:768px) {
   .glass-app .dashboard-grid {grid-template-columns:76px minmax(0,1fr) minmax(290px,390px)}
@@ -105,3 +105,10 @@
 }
 
 @media(max-width:650px){.glass-app .landing-nav .button--ghost{display:inline-flex}.glass-app .landing-nav .brand__word{font-size:15px}.glass-app .landing-nav__actions{gap:4px}.glass-app .landing-nav__actions .button{padding:0 8px;font-size:11px;min-height:36px}}
+
+/* Password recovery stays immediately below the password input, before submit. */
+.glass-app .auth-forgot-inline {display:block;text-align:right;justify-self:end;color:#bedcff;font-size:12px;font-weight:600;margin-top:-5px;text-decoration:none}
+.glass-app .auth-forgot-inline:hover {text-decoration:underline}
+/* Reuse the site's green publish-switch states in compact link/contact rows. */
+.glass-app .link-editor__visibility-label input:checked+.publish-setting__switch {background:rgba(78,162,117,.34);border-color:rgba(103,214,155,.3)}
+.glass-app .link-editor__visibility-label input:checked+.publish-setting__switch i {left:20px;background:#7ce0aa}

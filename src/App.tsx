@@ -7,6 +7,8 @@ import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'rea
 import type { Session, User } from '@supabase/supabase-js'
 import {
   BarChart3,
+  ChevronDown,
+  Phone,
   ArrowDown,
   ArrowLeft,
   ArrowRight,
@@ -1037,7 +1039,6 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
 
           {section === 'links' ? (
             <ContentEditor
-              onOpenDesign={() => setSection('design')}
               profile={profile}
               setProfile={setProfile}
               links={links}
@@ -1076,7 +1077,6 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
 }
 
 interface ContentEditorProps {
-  onOpenDesign: () => void
   profile: Profile
   setProfile: (profile: Profile) => void
   links: EditableLink[]
@@ -1090,7 +1090,7 @@ interface ContentEditorProps {
   newLinkId?: string | null
 }
 
-function ContentEditor({ onOpenDesign,
+function ContentEditor({
   profile,
   setProfile,
   links,
@@ -1104,6 +1104,7 @@ function ContentEditor({ onOpenDesign,
   newLinkId = null,
 }: ContentEditorProps) {
   const [masterLinkCopied, setMasterLinkCopied] = useState(false)
+  const [expandedRecord, setExpandedRecord] = useState<string | null>(null)
 
   const copyMasterLink = async () => {
     if (!profile.handle) return
@@ -1115,10 +1116,11 @@ function ContentEditor({ onOpenDesign,
 
   useEffect(() => {
     if (!newLinkId) return
+    setExpandedRecord(newLinkId)
     const card = document.querySelector<HTMLElement>(`[data-link-id="${newLinkId}"]`)
     if (!card) return
     card.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    card.querySelector<HTMLInputElement>('input[aria-label="Адрес ссылки"]')?.focus({ preventScroll: true })
+    window.requestAnimationFrame(() => card.querySelector<HTMLInputElement>('input[aria-label="Адрес ссылки"], input[aria-label^="Имя пользователя в"]')?.focus({ preventScroll: true }))
   }, [newLinkId])
 
   const changePlatform = (link: EditableLink, nextValue: LinkIconName) => {
@@ -1138,7 +1140,6 @@ function ContentEditor({ onOpenDesign,
 
   return (
     <div className="editor-stack">
-      <button type="button" className="button button--secondary" onClick={onOpenDesign}><Palette size={18} />Шаблоны и оформление страницы</button>
       <section className="settings-card">
         <div className="settings-card__title"><UserRound size={18} /><div><h2>Профиль</h2><p>Имя, описание и адрес вашей страницы.</p></div></div>
         <div className="field-grid">
@@ -1157,6 +1158,53 @@ function ContentEditor({ onOpenDesign,
 
       <section className="settings-card">
         <div className="settings-card__title settings-card__title--action">
+          <div className="settings-card__title-copy"><MapPin size={18} /><div><h2>Контакты</h2><p>Адреса, телефоны и почта · без ограничений</p></div></div>
+          <div className="settings-card__actions">
+            <button className="button button--secondary button--small" type="button" onClick={addContact}><Plus size={16} /> Добавить</button>
+          </div>
+        </div>
+
+        <div className="links-editor">
+          {contacts.length === 0 && (
+            <button className="empty-links" type="button" onClick={addContact}><span><Plus size={21} /></span><strong>Добавьте контакты</strong><p>Адрес, телефон или электронную почту.</p></button>
+          )}
+          {contacts.map((contact) => (
+            <article className={`link-editor contact-editor link-editor--collapsible ${expandedRecord === contact.localId ? 'link-editor--expanded' : ''}`} key={contact.localId} data-contact-id={contact.localId}>
+              <div className="link-editor__summary-row">
+                <button className="link-editor__summary" type="button" aria-expanded={expandedRecord === contact.localId} onClick={() => setExpandedRecord(current => current === contact.localId ? null : contact.localId)}>
+                  <span className="link-editor__site-icon" aria-hidden="true">{contact.kind === 'email' ? <Mail size={22}/> : contact.kind === 'phone' ? <Phone size={22}/> : <MapPin size={22}/>}</span>
+                  <span className="link-editor__summary-copy"><strong>{contact.label || (contact.kind === 'phone' ? 'Телефон' : contact.kind === 'email' ? 'Email' : 'Адрес')}</strong><small>{contact.value || 'Введите контакт'}</small></span>
+                  <ChevronDown size={19} className={expandedRecord === contact.localId ? 'is-open' : ''}/>
+                </button>
+                <button className="icon-button link-editor__visibility" type="button" onClick={() => updateContact(contact.localId, { is_visible: !contact.is_visible })} aria-label={contact.is_visible ? 'Скрыть' : 'Показать'} aria-pressed={contact.is_visible}>{contact.is_visible ? <Eye size={18}/> : <EyeOff size={18}/>}</button>
+              </div>
+              {expandedRecord === contact.localId && <div className="link-editor__expanded">
+              <div className="link-editor__body">
+                <div className="link-editor__row">
+                  <select aria-label="Тип контакта" value={contact.kind} onChange={(event) => updateContact(contact.localId, { kind: event.target.value as ContactKind, latitude: null, longitude: null })}>
+                    {CONTACT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                  <input aria-label="Подпись контакта" value={contact.label} onChange={(event) => updateContact(contact.localId, { label: event.target.value })} placeholder="Подпись (необязательно)" maxLength={80} />
+                </div>
+                <input
+                  aria-label="Значение контакта"
+                  type={contact.kind === 'email' ? 'email' : contact.kind === 'phone' ? 'tel' : 'text'}
+                  inputMode={contact.kind === 'email' ? 'email' : contact.kind === 'phone' ? 'tel' : 'text'}
+                  value={contact.value}
+                  onChange={(event) => updateContact(contact.localId, { value: event.target.value, latitude: null, longitude: null })}
+                  placeholder={contactPlaceholder(contact.kind)}
+                />
+                <small className="link-editor__hint">{contact.kind === 'address' ? 'Откроется в приложении карт' : contact.kind === 'phone' ? 'Откроется набор номера' : 'Нажатие копирует · удержание открывает почту'}</small>
+              </div>
+              <div className="link-editor__delete"><button type="button" onClick={() => { if (window.confirm('Удалить контакт? Изменение будет сохранено после нажатия «Сохранить».')) { removeContact(contact.localId); setExpandedRecord(null) } }}>Удалить контакт</button></div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="settings-card">
+        <div className="settings-card__title settings-card__title--action">
           <div className="settings-card__title-copy"><Link2 size={18} /><div><h2>Ссылки</h2><p>{links.length} из {FREE_CAPABILITIES.maxLinks}</p></div></div>
           <div className="settings-card__actions">
             <button className="button button--secondary button--small" onClick={addLink} disabled={links.length >= FREE_CAPABILITIES.maxLinks} title={links.length >= FREE_CAPABILITIES.maxLinks ? `Можно добавить не больше ${FREE_CAPABILITIES.maxLinks} ссылок` : undefined}><Plus size={16} /> Добавить</button>
@@ -1168,7 +1216,16 @@ function ContentEditor({ onOpenDesign,
             <button className="empty-links" onClick={addLink}><span><Plus size={21} /></span><strong>Добавьте первую ссылку</strong><p>Instagram, Telegram, сайт или любой другой адрес.</p></button>
           )}
           {links.map((link) => (
-            <article className={`link-editor ${newLinkId === link.localId ? 'link-editor--new' : ''}`} key={link.localId} data-link-id={link.localId}>
+            <article className={`link-editor link-editor--collapsible ${expandedRecord === link.localId ? 'link-editor--expanded' : ''} ${newLinkId === link.localId ? 'link-editor--new' : ''}`} key={link.localId} data-link-id={link.localId}>
+              <div className="link-editor__summary-row">
+                <button type="button" className="link-editor__summary" aria-expanded={expandedRecord === link.localId} onClick={() => setExpandedRecord(current => current === link.localId ? null : link.localId)}>
+                  <span className="link-editor__site-icon" aria-hidden="true"><LinkIcon name={link.icon_key} url={link.url} size={28}/></span>
+                  <span className="link-editor__summary-copy"><strong>{link.label || getLinkPlatform(link.icon_key).label || 'Новая ссылка'}</strong><small>{getLinkPlatform(link.icon_key).baseUrl ? platformUsernameFromUrl(getLinkPlatform(link.icon_key), link.url) || 'Добавьте ник' : link.url.replace(/^https?:\\/\\//, '').split('/')[0] || 'Введите адрес'}</small></span>
+                  <ChevronDown size={19} className={expandedRecord === link.localId ? 'is-open' : ''} />
+                </button>
+                <button type="button" className="icon-button link-editor__visibility" onClick={() => updateLink(link.localId, { is_visible: !link.is_visible })} aria-label={link.is_visible ? 'Скрыть' : 'Показать'} aria-pressed={link.is_visible}>{link.is_visible ? <Eye size={18}/> : <EyeOff size={18}/>}</button>
+              </div>
+              {expandedRecord === link.localId && <div className="link-editor__expanded">
               <div className="link-editor__body">
                 <div className="link-editor__row">
                   <select aria-label="Площадка" value={LINK_PLATFORMS.some((platform) => platform.value === link.icon_key) ? link.icon_key : 'link'} onChange={(event) => changePlatform(link, event.target.value as LinkIconName)}>
@@ -1202,12 +1259,11 @@ function ContentEditor({ onOpenDesign,
                 <small className="link-editor__hint">{getLinkPlatform(link.icon_key).baseUrl ? 'Введите только имя после адреса площадки' : 'Можно без https:// · логотип подтянется автоматически'}</small>
                 <label>Вид карточки<select aria-label={`Вид карточки: ${link.label || 'Новая ссылка'}`} value={link.presentation ?? 'normal'} onChange={event=>updateLink(link.localId,{presentation:event.target.value as 'normal'|'featured'})}><option value="normal">Обычная</option><option value="featured">Большая с изображением</option></select></label>
                 {link.presentation === 'featured' && <div className="featured-image-controls">
-                  <small>Фото и кадр: Оформление → Отдельная карточка.</small>
+                  <ImageAssetField label="Загрузить фото" owner={profile.id} url={link.image_url} crop={link.image_crop??(link.image_path?{version:1,mode:'legacy',x:(link.image_position_x??50)/100,y:(link.image_position_y??50)/100,zoom:1}:null)} aspect={CARD_ASPECT} onChange={(path,url,crop)=>updateLink(link.localId,{image_path:path,image_url:url,image_crop:crop??null})} onCropChange={crop=>updateLink(link.localId,{image_crop:crop})}/>
                   <label>Описание изображения<input aria-label={`Описание изображения: ${link.label}`} maxLength={160} value={link.image_alt ?? ''} onChange={event=>updateLink(link.localId,{image_alt:event.target.value})}/></label>
 
                 </div>}
                 <div className="link-editor__footer">
-                  <span className="link-editor__site-icon" role="img" aria-label="Иконка сайта"><LinkIcon name={link.icon_key} url={link.url} size={28} /></span>
                 <label className={`sensitive-toggle ${isKnownSensitiveUrl(link.url) ? 'sensitive-toggle--forced' : ''}`}>
                   <input
                     type="checkbox"
@@ -1220,56 +1276,14 @@ function ContentEditor({ onOpenDesign,
                 </label>
                 </div>
               </div>
-              <div className="link-editor__actions">
-                <button className="icon-button" onClick={() => updateLink(link.localId, { is_visible: !link.is_visible })} aria-label={link.is_visible ? 'Скрыть' : 'Показать'}>{link.is_visible ? <Eye size={17} /> : <EyeOff size={17} />}</button>
-                <button className="icon-button icon-button--danger" onClick={() => removeLink(link.localId)} aria-label="Удалить"><Trash2 size={16} /></button>
+              <div className="link-editor__delete"><button type="button" onClick={() => { if (window.confirm('Удалить ссылку? Это действие можно отменить до сохранения страницы.')) { removeLink(link.localId); setExpandedRecord(null) } }}>Удалить ссылку</button></div>
               </div>
             </article>
           ))}
         </div>
       </section>
 
-      <LinkSectionsEditor links={links} value={profile.link_layout} onChange={layout=>setProfile({...profile,link_layout:layout})}/>
 
-      <section className="settings-card">
-        <div className="settings-card__title settings-card__title--action">
-          <div className="settings-card__title-copy"><MapPin size={18} /><div><h2>Контакты</h2><p>Адреса, телефоны и почта · без ограничений</p></div></div>
-          <div className="settings-card__actions">
-            <button className="button button--secondary button--small" type="button" onClick={addContact}><Plus size={16} /> Добавить</button>
-          </div>
-        </div>
-
-        <div className="links-editor">
-          {contacts.length === 0 && (
-            <button className="empty-links" type="button" onClick={addContact}><span><Plus size={21} /></span><strong>Добавьте контакты</strong><p>Адрес, телефон или электронную почту.</p></button>
-          )}
-          {contacts.map((contact) => (
-            <article className="link-editor contact-editor" key={contact.localId} data-contact-id={contact.localId}>
-              <div className="link-editor__body">
-                <div className="link-editor__row">
-                  <select aria-label="Тип контакта" value={contact.kind} onChange={(event) => updateContact(contact.localId, { kind: event.target.value as ContactKind, latitude: null, longitude: null })}>
-                    {CONTACT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                  </select>
-                  <input aria-label="Подпись контакта" value={contact.label} onChange={(event) => updateContact(contact.localId, { label: event.target.value })} placeholder="Подпись (необязательно)" maxLength={80} />
-                </div>
-                <input
-                  aria-label="Значение контакта"
-                  type={contact.kind === 'email' ? 'email' : contact.kind === 'phone' ? 'tel' : 'text'}
-                  inputMode={contact.kind === 'email' ? 'email' : contact.kind === 'phone' ? 'tel' : 'text'}
-                  value={contact.value}
-                  onChange={(event) => updateContact(contact.localId, { value: event.target.value, latitude: null, longitude: null })}
-                  placeholder={contactPlaceholder(contact.kind)}
-                />
-                <small className="link-editor__hint">{contact.kind === 'address' ? 'Откроется в приложении карт' : contact.kind === 'phone' ? 'Откроется набор номера' : 'Нажатие копирует · удержание открывает почту'}</small>
-              </div>
-              <div className="link-editor__actions">
-                <button className="icon-button" type="button" onClick={() => updateContact(contact.localId, { is_visible: !contact.is_visible })} aria-label={contact.is_visible ? 'Скрыть' : 'Показать'}>{contact.is_visible ? <Eye size={17} /> : <EyeOff size={17} />}</button>
-                <button className="icon-button icon-button--danger" type="button" onClick={() => removeContact(contact.localId)} aria-label="Удалить"><Trash2 size={16} /></button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
     </div>
   )
 }

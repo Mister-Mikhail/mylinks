@@ -293,18 +293,21 @@ test('failed upload keeps crop editable and does not change stored avatar', asyn
   await page.getByRole('button', { name: 'Отмена', exact: true }).click()
 })
 
-test('preview stays pinned on small portrait and landscape phones @mobile', async ({ page }) => {
-  await mockAppearance(page)
-  for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
-    await page.setViewportSize(viewport)
-    const panel = page.locator('.preview-panel')
-    const first = (await panel.boundingBox())!
-    await page.locator('.editor-panel').evaluate(el => { el.scrollTop = el.scrollHeight })
-    expect((await panel.boundingBox())!.y).toBe(first.y)
-    expect(first.y + first.height).toBeLessThan(viewport.height - 64)
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
-    await expect(page.getByRole('button', { name: 'Сохранить', exact: true })).toBeVisible()
-  }
+test('mobile appearance uses a full-height preview dialog and no pinned strip @mobile', async ({ page }) => {
+ await mockAppearance(page)
+ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }]) {
+  await page.setViewportSize(viewport)
+  await expect(page.locator('.preview-panel')).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Превью', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Превью', exact: true }).click()
+  const modal = page.getByRole('dialog', { name: 'Предпросмотр страницы' })
+  await expect(modal.locator('.profile-card')).toBeVisible()
+  const rect=(await modal.boundingBox())!
+  expect(rect.height).toBeGreaterThanOrEqual(viewport.height - 1)
+  await modal.getByRole('button', { name: 'Закрыть' }).click()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
+  await expect(page.getByRole('button', { name: 'Сохранить', exact: true })).toBeVisible()
+ }
 })
 
 

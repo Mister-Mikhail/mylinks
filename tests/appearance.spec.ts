@@ -138,6 +138,7 @@ test('custom gradient and bounded card controls persist without changing the old
   expect(patches.at(-1)).toMatchObject({ background_preset: 'midnight', background_style: 'gradient', background_primary: '#e4dbcd', background_secondary: '#afc5d4', card_padding: 20, card_border_width: 2, card_opacity: 80 })
   await page.reload(); await page.getByRole('button', { name: 'Оформление', exact: true }).click()
   await expect(preview).toHaveCSS('background-image', /linear-gradient/)
+  await page.getByRole('button', { name: 'Готовый', exact: true }).click()
   await page.getByRole('button', { name: 'Полночь', exact: true }).click()
   await expect(preview).toHaveClass(/theme-midnight/)
   expect(pageErrors).toEqual([])

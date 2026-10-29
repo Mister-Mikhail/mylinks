@@ -1,5 +1,5 @@
 import { LinkSectionsEditor } from './components/LinkSectionsEditor'
-import { moveLayoutLink, layoutFor } from './lib/linkLayout'
+import { layoutFor } from './lib/linkLayout'
 import { ImageAssetField } from './components/ImageAssetField'
 import { signedImage } from './lib/profileImages'
 import { ColorField } from './components/ColorField'
@@ -676,17 +676,6 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
     setLinks((current) => current.filter((link) => link.localId !== localId).map((link, index) => ({ ...link, position: index })))
   }
 
-  const moveLink = (index: number, direction: -1 | 1) => {
-    if(profile.link_layout){setProfile({...profile,link_layout:moveLayoutLink(profile.link_layout,links,links[index].id || links[index].localId,direction)});return}
-    const target = index + direction
-    if (target < 0 || target >= links.length) return
-    setLinks((current) => {
-      const next = [...current]
-      ;[next[index], next[target]] = [next[target], next[index]]
-      return next.map((link, position) => ({ ...link, position }))
-    })
-  }
-
   const addContact = () => {
     setContacts((current) => [...current, {
       localId: crypto.randomUUID(),
@@ -1054,7 +1043,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
           ) : section === 'stats' ? (
             <StatisticsPanel profileId={user.id} />
           ) : (
-            <DesignEditor profile={profile} setProfile={setProfile} links={links} contacts={contacts} updateLink={updateLink} moveLink={moveLink} updateContact={updateContact} moveContact={moveContact} selectedLinkId={selectedDesignLinkId} onSelectLink={setSelectedDesignLinkId} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} onAvatarDraft={setAvatarDraft} />
+            <DesignEditor profile={profile} setProfile={setProfile} links={links} contacts={contacts} updateLink={updateLink} updateContact={updateContact} moveContact={moveContact} selectedLinkId={selectedDesignLinkId} onSelectLink={setSelectedDesignLinkId} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} onAvatarDraft={setAvatarDraft} />
           )}
           {!targetId && section !== 'stats' && <ProfileTools userId={user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} updatedAt={profile.updated_at} avatarPath={profile.avatar_path} />}
           {!targetId && !staffRole && section !== 'stats' && <DeleteAccount handle={profile.handle} onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
@@ -1220,7 +1209,7 @@ function ContentEditor({
               <div className="link-editor__summary-row">
                 <button type="button" className="link-editor__summary" aria-expanded={expandedRecord === link.localId} onClick={() => setExpandedRecord(current => current === link.localId ? null : link.localId)}>
                   <span className="link-editor__site-icon" aria-hidden="true"><LinkIcon name={link.icon_key} url={link.url} size={28}/></span>
-                  <span className="link-editor__summary-copy"><strong>{link.label || getLinkPlatform(link.icon_key).label || 'Новая ссылка'}</strong><small>{getLinkPlatform(link.icon_key).baseUrl ? platformUsernameFromUrl(getLinkPlatform(link.icon_key), link.url) || 'Добавьте ник' : link.url.replace(/^https?:\\/\\//, '').split('/')[0] || 'Введите адрес'}</small></span>
+                  <span className="link-editor__summary-copy"><strong>{link.label || getLinkPlatform(link.icon_key).label || 'Новая ссылка'}</strong><small>{getLinkPlatform(link.icon_key).baseUrl ? platformUsernameFromUrl(getLinkPlatform(link.icon_key), link.url) || 'Добавьте ник' : link.url.replace(/^https?:\/\//, '').split('/')[0] || 'Введите адрес'}</small></span>
                   <ChevronDown size={19} className={expandedRecord === link.localId ? 'is-open' : ''} />
                 </button>
                 <button type="button" className="icon-button link-editor__visibility" onClick={() => updateLink(link.localId, { is_visible: !link.is_visible })} aria-label={link.is_visible ? 'Скрыть' : 'Показать'} aria-pressed={link.is_visible}>{link.is_visible ? <Eye size={18}/> : <EyeOff size={18}/>}</button>
@@ -1294,7 +1283,6 @@ function DesignEditor({
   links,
   contacts,
   updateLink,
-  moveLink,
   updateContact,
   moveContact,
   selectedLinkId,
@@ -1308,7 +1296,6 @@ function DesignEditor({
   links: EditableLink[]
   contacts: EditableContact[]
   updateLink: (localId: string, patch: Partial<EditableLink>) => void
-  moveLink: (index: number, direction: -1 | 1) => void
   updateContact: (localId: string, patch: Partial<EditableContact>) => void
   moveContact: (index: number, direction: -1 | 1) => void
   selectedLinkId: string | null
@@ -1324,21 +1311,23 @@ function DesignEditor({
 
       <section className="settings-card">
         <div className="settings-card__title"><Palette size={18} /><div><h2>Фон</h2><p>Выберите настроение профиля.</p></div></div>
+          <div className="segmented-picker background-mode-picker" role="group" aria-label="Режим фона">
+            {([['preset', 'Готовый'], ['solid', 'Цвет'], ['gradient', 'Градиент'], ['image', 'Изображение']] as const).map(([mode, label]) => <button type="button" key={mode} aria-pressed={(profile.background_style ?? 'preset') === mode} className={(profile.background_style ?? 'preset') === mode ? 'selected' : ''} onClick={() => setProfile({ ...profile, background_style: mode })}>{label}</button>)}
+          </div>
+        {(profile.background_style ?? 'preset') === 'preset' && <>
         <div className="theme-picker">
           {([
             ['midnight', 'Полночь'],
             ['mist', 'Туман'],
             ['cobalt', 'Кобальт'],
           ] as const).map(([value, label]) => (
-            <button aria-pressed={profile.background_style !== 'solid' && profile.background_style !== 'gradient' && profile.background_preset === value} className={`theme-option theme-option--${value} ${profile.background_style !== 'solid' && profile.background_style !== 'gradient' && profile.background_preset === value ? 'selected' : ''}`} onClick={() => setProfile({ ...profile, background_preset: value, background_style: 'preset' })} key={value}>
-              <span className="theme-option__swatch"><i /><i /></span><strong>{label}</strong>{profile.background_preset === value && <Check size={16} />}
+            <button aria-pressed={(profile.background_style ?? 'preset') === 'preset' && profile.background_preset === value} className={`theme-option theme-option--${value} ${(profile.background_style ?? 'preset') === 'preset' && profile.background_preset === value ? 'selected' : ''}`} onClick={() => setProfile({ ...profile, background_preset: value, background_style: 'preset' })} key={value}>
+              <span className="theme-option__swatch"><i /><i /></span><strong>{label}</strong>{(profile.background_style ?? 'preset') === 'preset' && profile.background_preset === value && <Check size={16} />}
             </button>
           ))}
         </div>
+        </>}
         <div className="appearance-custom-colors">
-          <div className="segmented-picker" role="group" aria-label="Режим фона">
-            {([['preset', 'Готовый'], ['solid', 'Цвет'], ['gradient', 'Градиент'], ['image', 'Изображение']] as const).map(([mode, label]) => <button type="button" key={mode} aria-pressed={(profile.background_style ?? 'preset') === mode} className={(profile.background_style ?? 'preset') === mode ? 'selected' : ''} onClick={() => setProfile({ ...profile, background_style: mode })}>{label}</button>)}
-          </div>
           {['solid','gradient'].includes(profile.background_style || '') && <div className="appearance-custom-colors__pickers">
             <ColorField label="Основной цвет фона" value={profile.background_primary ?? '#162638'} onChange={color => setProfile({ ...profile, background_primary: color })} />
             {profile.background_style === 'gradient' && <ColorField label="Второй цвет фона" value={profile.background_secondary ?? '#24435b'} onChange={color => setProfile({ ...profile, background_secondary: color })} />}
@@ -1393,21 +1382,18 @@ function DesignEditor({
         </details>
       </section>
 
-      <section className="settings-card">
-        <div className="settings-card__title"><Link2 size={18} /><div><h2>Отдельная карточка</h2><p>Настройте карточки и расположение. Адреса меняются в разделе «Ссылки».</p></div></div>
-        <div className="appearance-item-list">{links.map((link, index) => <article className={`appearance-item ${selectedLinkId === link.localId ? 'appearance-item--selected' : ''}`} key={link.localId}>
-          <div className="appearance-item__heading"><span className="appearance-item__number">{index + 1}</span><button type="button" className="appearance-item__select" aria-pressed={selectedLinkId === link.localId} onClick={() => onSelectLink(link.localId)}>{link.label || link.url || 'Новая ссылка'}</button><div className="appearance-item__arrows"><button type="button" className="icon-button" disabled={index === 0} onClick={() => moveLink(index, -1)} aria-label={`Переместить ссылку выше: ${link.label || index + 1}`}><ArrowUp size={16} /></button><button type="button" className="icon-button" disabled={index === links.length - 1} onClick={() => moveLink(index, 1)} aria-label={`Переместить ссылку ниже: ${link.label || index + 1}`}><ArrowDown size={16} /></button></div></div>
-          {selectedLinkId === link.localId && <div className="appearance-item__controls">
-            {link.presentation==='featured'&&<ImageAssetField label={`Изображение карточки: ${link.label}`} owner={profile.id} url={link.image_url} crop={link.image_crop??(link.image_path?{version:1,mode:'legacy',x:(link.image_position_x??50)/100,y:(link.image_position_y??50)/100,zoom:1}:null)} aspect={CARD_ASPECT} onChange={(path,url,crop)=>updateLink(link.localId,{image_path:path,image_url:url,image_crop:crop??null})} onCropChange={crop=>updateLink(link.localId,{image_crop:crop})}/>}
+      <LinkSectionsEditor links={links} value={profile.link_layout} onChange={layout => setProfile({ ...profile, link_layout: layout })} selectedLinkId={selectedLinkId} onSelectLink={id => onSelectLink(id)} />
 
+      <section className="settings-card">
+        <div className="settings-card__title"><Link2 size={18} /><div><h2>Отдельная карточка</h2><p>Выберите карточку в списке «Порядок на странице». Адреса меняются в разделе «Ссылки».</p></div></div>
+        {links.filter(link => link.localId === selectedLinkId).map(link => <div className="appearance-item" key={link.localId}><strong>{link.label || link.url || 'Новая ссылка'}</strong><div className="appearance-item__controls">
             <TypographyControls sample={link.label} label="Название ссылки" slot="link" font={link.label_font ?? profile.link_font} size={link.label_font_size ?? profile.link_font_size} color={link.label_color ?? profile.link_color} onChange={(font, size) => updateLink(link.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateLink(link.localId, { label_color: color })} />
             <div className="link-card-style__controls"><label>Стиль<select aria-label={`Стиль этой карточки: ${link.label}`} value={link.card_preset_override ?? ''} onChange={event => updateLink(link.localId, { card_preset_override: event.target.value ? event.target.value as Profile['card_preset'] : null })}><option value="">Как у остальных</option><option value="glass">Стекло</option><option value="solid">Сплошная</option><option value="outline">Контур</option></select></label><label>Скругление<select aria-label={`Скругление этой карточки: ${link.label}`} value={link.card_radius_override ?? ''} onChange={event => updateLink(link.localId, { card_radius_override: event.target.value ? Number(event.target.value) : null })}><option value="">Как у остальных</option><option value="4">4 px</option><option value="13">13 px</option><option value="21">21 px</option><option value="28">28 px</option></select></label></div>
             <details className="card-style-more"><summary>Дополнительные настройки</summary>
               {([['padding', 'Отступ', 8, 24, 12], ['borderWidth', 'Толщина рамки', 0, 3, 1], ['opacity', 'Плотность подложки', 60, 100, 100]] as const).map(([key, label, min, max, fallback]) => <label className="avatar-size-control" key={key}><span><span className="field-caption">{label} этой карточки</span><strong>{link.card_style?.[key] ?? fallback}{key === 'opacity' ? '%' : ' px'}</strong></span><input type="range" aria-label={`${label} этой карточки`} min={min} max={max} value={link.card_style?.[key] ?? fallback} onChange={event => updateLink(link.localId, { card_style: { version: 1, ...link.card_style, [key]: Number(event.target.value) } })} /></label>)}
             </details>
-          <button type="button" className="button button--ghost button--small" onClick={() => { updateLink(link.localId, { label_font: null, label_font_size: null, label_color: null, card_preset_override: null, card_radius_override: null, card_style: null }) }}>Как у всех</button></div>}
-        </article>)}</div>
-        {links.length === 0 && <p className="appearance-item__empty">Добавьте ссылки в разделе «Ссылки» — они появятся здесь.</p>}
+          <button type="button" className="button button--ghost button--small" onClick={() => { updateLink(link.localId, { label_font: null, label_font_size: null, label_color: null, card_preset_override: null, card_radius_override: null, card_style: null }) }}>Как у всех</button></div></div>)}
+        {!selectedLinkId && <p className="appearance-item__empty">Выберите ссылку в списке «Порядок на странице», чтобы настроить её вид.</p>}
       </section>
 
 

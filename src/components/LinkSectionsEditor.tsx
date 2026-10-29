@@ -54,7 +54,7 @@ export function LinkSectionsEditor({ links, value, onChange, selectedLinkId, onS
      {block.type !== 'link' && <button type="button" className="icon-button" aria-label={block.type === 'group' ? 'Разгруппировать' : 'Удалить блок'} onClick={() => remove(block)}><Trash2 size={16}/></button>}
     </div>
     {(block.type === 'heading' || block.type === 'group') && <label>Название<input aria-label={block.type === 'group' ? 'Название группы' : 'Текст заголовка'} value={block.title} maxLength={80} onChange={event => patch(block.id, { title: event.target.value })}/></label>}
-    {block.type === 'group' && <details><summary>Ссылки группы · {block.link_ids.length}</summary>
+    {block.type === 'group' && <details open><summary>Ссылки группы · {block.link_ids.length}</summary>
      {block.link_ids.map((id, i) => <div className="section-editor__member" key={id}>
       <button type="button" className="appearance-item__select" onClick={() => select(id)}>{byId.get(id)?.label || 'Новая ссылка'}</button>
       <button type="button" className="icon-button" aria-label={`Выше в группе: ${byId.get(id)?.label}`} disabled={i === 0} onClick={() => { const ids = [...block.link_ids]; [ids[i], ids[i - 1]] = [ids[i - 1], ids[i]]; patch(block.id, { link_ids: ids }) }}><ArrowUp size={14}/></button>

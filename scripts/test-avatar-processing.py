@@ -86,6 +86,14 @@ with tempfile.TemporaryDirectory(prefix='mylinks-avatar-test-') as temp:
                     assert (probe['width'], probe['height']) == expected, (source[0], key, probe)
                     if item['mime'] == 'video/mp4':
                         assert probe['codec_name'] == 'h264', probe
+                if result['kind'] == 'video':
+                    # Public high-DPR / reduced-motion delivery creates its own master poster.
+                    video = root / 'master.mp4'
+                    poster = root / 'public-master-poster.webp'
+                    code = "define('MYLINKS_AVATAR_LIBRARY_ONLY',true); require $argv[1]; file_put_contents($argv[3],avatar_asset_poster(file_get_contents($argv[2])));"
+                    subprocess.run(['php', '-r', code, str(Path('public/avatar-asset.php').resolve()), str(video), str(poster)], check=True)
+                    dimensions = subprocess.check_output(['ffprobe','-v','error','-select_streams','v:0','-show_entries','stream=width,height','-of','csv=p=0',str(poster)]).decode().strip()
+                    assert dimensions == '1000,1250', dimensions
                 post({'action': 'discard', 'token': prepared['token']})
             prepared = post({'action': 'prepare'}, sources[0])
             legacy = post({'action': 'render', 'token': prepared['token'], 'x': 0, 'y': 0, 'size': prepared['width'], 'rotation': 0})
@@ -94,7 +102,7 @@ with tempfile.TemporaryDirectory(prefix='mylinks-avatar-test-') as temp:
             dimensions = subprocess.check_output(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', str(target)]).decode().strip()
             assert dimensions == '1000,1000', dimensions
             post({'action': 'discard', 'token': prepared['token']})
-            print('Real PHP/FFmpeg: photo, GIF, H.264 video and poster use 560x700/1000x1250; legacy square preserved')
+            print('Real PHP/FFmpeg: photo, GIF, H.264 video and poster use 560x700/1000x1250, including the public master poster; legacy square preserved')
         except BaseException:
             log.flush()
             print((root / 'php.log').read_text())

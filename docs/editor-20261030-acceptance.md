@@ -22,7 +22,7 @@
 - `npm run lint`, `npm run build`: успешно.
 - Unit: 52 passed.
 - PHP: весь `npm run test:php` успешно.
-- Реальная цепочка PHP → FFmpeg для фото, GIF и MP4: размеры 560×700/1000×1250, постер 560×700, кодек H.264; старый квадрат 1000×1000 сохранён. `scripts/test-avatar-processing.py` включён в полный CI.
+- Реальная цепочка PHP → FFmpeg для фото, GIF и MP4: размеры 560×700/1000×1250, постер 560×700, кодек H.264 и отдельный публичный постер 1000×1250; старый квадрат 1000×1000 сохранён. `scripts/test-avatar-processing.py` включён в полный CI.
 - Полный Chromium desktop/mobile: **147 passed, 4 skipped** (Chrome for Testing 153.0.8010.12). Пропуски — существующие условные проверки платформы.
 - Изолированный SQL fixture целиком, включая повтор миграции, owner/onboarding/staff/legacy/RLS: успешно в PGlite PostgreSQL. Проверка `registration_db` на PostgreSQL 16 в Actions ещё обязательна.
 

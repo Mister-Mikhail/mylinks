@@ -21,6 +21,7 @@ npm run test:php
 case "$suite" in
   quick) npm run test:quick ;;
   full)
+    python3 scripts/test-avatar-processing.py
     if [ -f scripts/test-asset-routes.py ]; then python3 scripts/test-asset-routes.py; fi
     npm run test:full
     bash scripts/test-yandex.sh

@@ -121,17 +121,20 @@ if ($preview && $width && $height && abs($preview[0]/$preview[1]-$height/$width)
     list($width,$height)=array($height,$width);
 $x=(float)($_POST['x'] ?? NAN); $y=(float)($_POST['y'] ?? NAN); $size=(float)($_POST['size'] ?? NAN);
 $rotation=(float)($_POST['rotation'] ?? 0);
+$aspect=(float)($_POST['aspect'] ?? 1);
+if (!in_array($aspect,array(1.0,0.8),true)) avatar_error(400,'Проверьте форму аватара.');
 if (!$preview || !$width || !$height || !is_finite($x) || !is_finite($y) || !is_finite($size) || $size<=0 || !is_finite($rotation) || abs($rotation)>30)
     avatar_error(400,'Проверьте положение кадра.');
-$crop=max(1,min($width,$height,(int)round($size*$width/$preview[0])));
+$crop=max(1,min($width,(int)floor($height*$aspect),(int)round($size*$width/$preview[0])));
+$cropHeight=max(1,min($height,(int)round($crop/$aspect)));
 $cx=max(0,min($width-$crop,(int)round($x*$width/$preview[0])));
-$cy=max(0,min($height-$crop,(int)round($y*$height/$preview[1])));
+$cy=max(0,min($height-$cropHeight,(int)round($y*$height/$preview[1])));
 $animated=in_array(strtolower(pathinfo($source,PATHINFO_EXTENSION)),array('gif','mp4','webm','mov','m4v','3gp'),true);
 $start=is_file($root.'/'.$token.'-start') ? max(0.0,min(6.0,(float)file_get_contents($root.'/'.$token.'-start'))) : 0.0;
-$encode=function($side,$video) use($root,$token,$source,$crop,$cx,$cy,$rotation,$start) {
+$encode=function($side,$video) use($root,$token,$source,$crop,$cropHeight,$cx,$cy,$rotation,$start,$aspect) {
     $target=$root.'/'.$token.'-'.$side.($video?'.mp4':'.webp');
     $filter=($rotation==0?'':'rotate='.$rotation.'*PI/180:ow=iw:oh=ih:c=black,').
-        'crop='.$crop.':'.$crop.':'.$cx.':'.$cy.',scale='.$side.':'.$side.':flags=lanczos';
+        'crop='.$crop.':'.$cropHeight.':'.$cx.':'.$cy.',scale='.$side.':'.(int)round($side/$aspect).':flags=lanczos';
     $args=array_merge(array(avatar_bin('ffmpeg'),'-nostdin','-v','error','-y'),$start>0?array('-ss',(string)$start):array(),array('-i',$source));
     if ($video) $args=array_merge($args,array('-t','10','-an','-vf',$filter.',fps=24,format=yuv420p',
         '-c:v','libx264','-preset','veryfast','-b:v',$side===1000?'1500k':'700k',

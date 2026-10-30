@@ -59,7 +59,7 @@
   :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__topline, :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__footer { display: none; }
   :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__identity { align-self: center; min-width: 0; gap: 3px; padding: 0; }
   :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__identity > .avatar { width: calc(var(--avatar-size, 101px) * 0.35); height: calc(var(--avatar-size, 101px) * 0.35); margin: 0 0 2px; flex: none; border-width: 1px; font-size: 11px; }
-  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__identity > .avatar--square { border-radius: 7px; }
+  :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__identity > .avatar--square { border-radius: 0; }
   :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__identity h1 { width: 100%; margin: 0; font-size: 12px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__handle { font-size: 9px; max-width: 100%; }
   :is(.dashboard-shell--design, .dashboard-shell--links) .profile-card__handle span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -105,7 +105,7 @@
   .dashboard-shell--design .avatar-cropper__heading h2 { font-size: 12px; margin: 0; }
   .dashboard-shell--design .avatar-cropper__heading .icon-button { width: 32px; height: 32px; }
   .dashboard-shell--design .avatar-cropper__viewport { width: 100%; grid-row: 2 / 5; align-self: center; }
-  .dashboard-shell--design .avatar-cropper__viewport--square { border-radius: 10px; }
+  .dashboard-shell--design .avatar-cropper__viewport--square { border-radius: 0; }
   .dashboard-shell--design .avatar-cropper__move { bottom: 6px; font-size: 7px; padding: 3px 5px; white-space: nowrap; }
   .dashboard-shell--design .avatar-cropper__move > svg { display: none; }
   .dashboard-shell--design .crop-zoom-control { grid-template-columns: minmax(0, 1fr) auto auto; grid-column: 2; gap: 6px; margin: 0; align-self: end; }

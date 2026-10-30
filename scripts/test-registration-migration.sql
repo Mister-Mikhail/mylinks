@@ -158,3 +158,7 @@ end $$;
 \i scripts/test-background-position.sql
 
 \i scripts/test-image-crops.sql
+
+\i supabase/migrations/20261030180400_full_width_avatar.sql
+\i supabase/migrations/20261030180400_full_width_avatar.sql
+\i scripts/test-full-avatar.sql

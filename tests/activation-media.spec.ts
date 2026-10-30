@@ -73,6 +73,7 @@ async function avatarStep(page: Page) {
 for (const media of [{ name: 'motion.gif', mime: 'image/gif', data: gif, kind: 'gif' }, { name: 'motion.webm', mime: 'video/webm', data: shortVideo, kind: 'video' }]) {
   test(`${media.kind} keeps animation, crop and poster after saving and reload`, async ({ page }) => {
     const state = await avatarStep(page)
+    await page.getByRole('button', { name: 'Во всю ширину', exact: true }).click()
     await page.locator('input[type=file]').setInputFiles({ name: media.name, mimeType: media.mime, buffer: Buffer.from(media.data, 'base64') })
     const dialog = page.getByRole('dialog', { name: 'Настройте кадр' })
     await expect(dialog).toBeVisible()
@@ -87,6 +88,9 @@ for (const media of [{ name: 'motion.gif', mime: 'image/gif', data: gif, kind: '
     expect(state.profile.avatar_path).toMatch(/\.mp4$/)
     expect(state.profile.avatar_master_path).toMatch(/master-.*\.mp4$/)
     expect(state.profile.avatar_poster_path).toMatch(/poster-.*\.webp$/)
+    await page.getByRole('button', { name: 'Продолжить', exact: true }).click()
+    await page.getByRole('button', { name: 'Назад', exact: true }).click()
+    expect(state.profile.avatar_shape).toBe('full')
     await page.reload()
     const video = page.locator('.avatar-settings__preview video')
     await expect(video).toBeVisible()

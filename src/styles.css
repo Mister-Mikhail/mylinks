@@ -630,7 +630,7 @@ a {
 }
 
 .avatar--square {
-  border-radius: 18px;
+  border-radius: 0;
 }
 
 .avatar--small {
@@ -1568,7 +1568,7 @@ select:focus {
 }
 
 .avatar-cropper__viewport--square {
-  border-radius: 30px;
+  border-radius: 0;
 }
 
 .avatar-cropper__viewport > img {
@@ -2819,3 +2819,14 @@ select:focus {
 }
 
 .link-icon__plate { background: #fff; border-radius: 4px; padding: 2px; box-sizing: border-box; }
+
+/* The full avatar is a separate edge-to-edge row; other shapes keep their layout. */
+.avatar--square,.avatar-cropper__viewport--square {border-radius:0}
+.avatar-cropper__viewport--full {aspect-ratio:4/5;border-radius:0}
+.profile-card.profile-card--full-avatar {padding:0 0 21px}
+.profile-card--full-avatar>.avatar--full {position:relative;width:100%;height:auto;aspect-ratio:4/5;border:0;border-radius:0;box-shadow:none;margin:0;overflow:hidden}
+.profile-card--full-avatar>.profile-card__identity {padding:20px 33px 8px}
+.profile-card--full-avatar>.profile-card__body {padding:0 23px}
+.profile-card--full-avatar>.profile-card__topline {position:absolute;top:12px;left:12px;z-index:2}
+.profile-card--full-avatar>.profile-card__footer {padding-inline:23px}
+.avatar-settings__preview.avatar--full {width:100%;height:auto;aspect-ratio:4/5;border-radius:0;border:0;box-shadow:none}

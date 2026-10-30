@@ -40,7 +40,7 @@ const formatProfile = (raw: Record<string, unknown>, currentHandle: string, owne
   const handle = text(raw.handle, 30)
   const displayName = text(raw.display_name, 30)
   if ((handle !== currentHandle && (!/^[a-z]+([._][a-z]+)?$/.test(handle) || handle.length < 3)) || !/^[\p{L}]+(?: [\p{L}]+)*$/u.test(displayName)) throw new Error('Проверьте имя и user name.')
-  if (!['midnight','mist','cobalt'].includes(String(raw.background_preset)) || !['glass','solid','outline'].includes(String(raw.card_preset)) || !['round','square'].includes(String(raw.avatar_shape))) throw new Error('Проверьте оформление.')
+  if (!['midnight','mist','cobalt'].includes(String(raw.background_preset)) || !['glass','solid','outline'].includes(String(raw.card_preset)) || !['round','square','full'].includes(String(raw.avatar_shape))) throw new Error('Проверьте оформление.')
   if (!['preset','solid','gradient','image'].includes(String(raw.background_style ?? 'preset'))) throw new Error('Проверьте тип фона.')
   return {
     ...(Object.hasOwn(raw,'link_layout')?{link_layout:raw.link_layout}:{}),

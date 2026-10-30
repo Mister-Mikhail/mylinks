@@ -125,7 +125,9 @@ test('administrator opens the filled page and saves through the regular editor',
   else await expect(page.getByRole('heading', { name: 'Ссылки и контакты' })).toBeVisible()
   await page.getByRole('textbox', { name: 'О себе', exact: true }).fill('Фотограф и путешественник')
   await page.getByRole('checkbox', { name: /QR-код на странице/ }).check()
+  await page.getByRole('button', { name: 'Оформление', exact: true }).click()
+  await page.getByRole('button', { name: 'Во всю ширину', exact: true }).click()
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click()
-  await expect.poll(() => saved).toMatchObject({ action: 'save', target_id: targetId, profile: { bio: 'Фотограф и путешественник', show_qr: true } })
+  await expect.poll(() => saved).toMatchObject({ action: 'save', target_id: targetId, profile: { bio: 'Фотограф и путешественник', show_qr: true, avatar_shape: 'full' } })
 })
 

@@ -4,7 +4,7 @@ import type { FontKey } from './lib/typography'
 export type BackgroundPreset = 'midnight' | 'mist' | 'cobalt'
 export type CardPreset = 'glass' | 'solid' | 'outline'
 export interface CardStyleV1 { version: 1; padding?: number; borderWidth?: number; opacity?: number }
-export type AvatarShape = 'round' | 'square'
+export type AvatarShape = 'round' | 'square' | 'full'
 export type AvatarSize = 'small' | 'medium' | 'large'
 export type LinkIcon = 'instagram' | 'telegram' | 'youtube' | 'tiktok' | 'whatsapp' | 'onlyfans' | 'vk' | 'facebook' | 'x' | 'website' | 'email' | 'link'
 export type ContactKind = 'address' | 'phone' | 'email'

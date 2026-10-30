@@ -47,18 +47,21 @@ export function TypographyControls({ label, slot, font = 'manrope', size = DEFAU
   }
   const family = FONT_OPTIONS.find(option => option.value === font)?.family ?? FONT_OPTIONS[0].family
   return <div className="typography-controls" role="group" aria-label={`Оформление: ${label}`}>
+    <strong className="typography-controls__slot">{label}</strong>
     <label className="typography-controls__desktop-font">Шрифт<select ref={select} onKeyDown={event=>{if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();cycle(event.key==='ArrowDown'?1:-1)}}} aria-label={`Шрифт: ${label}`} value={font} onChange={event => onChange(event.target.value as FontKey, size)}>
       {FONT_GROUPS.map(([group, options]) => <optgroup key={group} label={group}>{options.map(option => <option key={option.value} value={option.value} style={{ fontFamily: option.family }}>{option.label}</option>)}</optgroup>)}
     </select><small className="typography-controls__wheel-hint">Колесо меняет шрифт, пока поле выбрано</small></label>
     <div className="font-tape" ref={tape} role="listbox" aria-label={`Образцы шрифтов: ${label}`} onScroll={()=>{clearTimeout(timer.current);const container=tape.current;if(container&&tapeTarget.current!==null){const target=tapeTarget.current;tapeTarget.current=null;if(Math.abs(container.scrollLeft-target)<1)return}timer.current=setTimeout(chooseCentered,180)}}>
       {FONT_GROUPS.map(([group,options])=><div className="font-tape__group" key={group} role="group" aria-label={group}><span className="font-tape__separator">{group}</span>{options.map(option=><button type="button" role="option" key={option.value} data-font={option.value} aria-selected={font===option.value} className={font===option.value?'selected':''} onClick={()=>{clearTimeout(timer.current);onChange(option.value,size)}}><span style={{fontFamily:option.family}}>{sample?.trim()||label}</span><small>{option.label}</small></button>)}</div>)}
     </div>
-    <label>Размер<select aria-label={`Размер: ${label}`} value={size} onChange={event => onChange(font, Number(event.target.value))}>
+    <div className="typography-controls__values"><label>Размер<select aria-label={`Размер: ${label}`} value={size} onChange={event => onChange(font, Number(event.target.value))}>
       {TEXT_SIZES[slot].map(value => <option key={value} value={value}>{value} px</option>)}
     </select></label>
-    {onColorChange && <ColorField label={label} value={color} onChange={onColorChange} />}
+    {onColorChange && <ColorField caption="Цвет" label={label} value={color} onChange={onColorChange} />}
+    </div>
     <span className="typography-controls__sample" style={{ fontFamily: family, color: color || undefined, fontSize: `${size}px` }}>{sample?.trim() || 'Аа Бб 123'} <small>{FONT_OPTIONS.find(option => option.value === font)?.label}</small></span>
-    {(font !== 'manrope' || size !== DEFAULT_SIZES[slot]) && <button type="button" className="typography-controls__reset" onClick={() => onChange('manrope', DEFAULT_SIZES[slot])} aria-label={`Сбросить шрифт и размер: ${label}`}>Сбросить</button>}
+    <div className="typography-controls__resets">{(font !== 'manrope' || size !== DEFAULT_SIZES[slot]) && <button type="button" className="typography-controls__reset" onClick={() => onChange('manrope', DEFAULT_SIZES[slot])} aria-label={`Сбросить шрифт и размер: ${label}`}>Сбросить</button>}
     {color && onColorChange && <button type="button" className="typography-controls__reset" onClick={() => onColorChange(null)} aria-label={`Вернуть автоматический цвет: ${label}`}>Цвет: авто</button>}
+    </div>
   </div>
 }

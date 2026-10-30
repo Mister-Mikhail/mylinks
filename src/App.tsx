@@ -1,3 +1,4 @@
+import { LinkCardSettings } from './components/LinkCardSettings'
 import { LinkSectionsEditor } from './components/LinkSectionsEditor'
 import { layoutFor } from './lib/linkLayout'
 import { ImageAssetField } from './components/ImageAssetField'
@@ -569,13 +570,19 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [toolMode, setToolMode] = useState<'qr'|'export'|null>(null)
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false)
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
+  const changeSection = (next: EditorSection) => { setSection(next); setProfileMenuOpen(false) }
   useEffect(() => {
-    if (section !== 'design' || !selectedDesignLinkId) return
-    const frame = window.requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>('.selected-card-settings')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-    })
-    return () => window.cancelAnimationFrame(frame)
-  }, [selectedDesignLinkId, section])
+    if (!profileMenuOpen) return
+    const trigger = document.activeElement as HTMLElement | null
+    const outside = (event: PointerEvent) => {
+      if (!(event.target instanceof Element) || !event.target.closest('.dashboard-profile-menu, .editor-nav__account-container')) setProfileMenuOpen(false)
+    }
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { setProfileMenuOpen(false); trigger?.focus() } }
+    document.addEventListener('pointerdown', outside)
+    document.addEventListener('keydown', escape)
+    return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape) }
+  }, [profileMenuOpen])
   const capabilities = capabilitiesForTier('free')
 
   const applyTemporaryResult = (data: unknown, failed: boolean) => {
@@ -1016,6 +1023,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
             {profileMenuOpen && <div className="dashboard-profile-menu__items dashboard-profile-menu__items--mobile" role="group" aria-label="Действия профиля на телефоне">
               <button type="button" onClick={() => { setToolMode('export'); setProfileMenuOpen(false) }}>Экспорт данных</button>
               <button type="button" onClick={() => void signOut()}>Выйти</button>
+              {!staffRole && <><hr/><button className="dashboard-profile-menu__delete" type="button" onClick={() => { setProfileMenuOpen(false); setDeleteAccountOpen(true) }}>Удалить аккаунт</button></>}
             </div>}
           </div>}
         </div>
@@ -1025,9 +1033,9 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
         <aside className="editor-nav">
           <div>
             <p className="editor-nav__label">Редактор</p>
-            <button aria-label="Ссылки" className={section === 'links' ? 'active' : ''} onClick={() => setSection('links')} disabled={avatarUploading || Boolean(avatarDraft)}><Link2 size={18} /> <span>Ссылки</span></button>
-            <button aria-label="Оформление" className={section === 'design' ? 'active' : ''} onClick={() => setSection('design')}><Palette size={18} /> <span>Оформление</span></button>
-            {!targetId && <button aria-label="Статистика" className={section === 'stats' ? 'active' : ''} onClick={() => setSection('stats')} disabled={avatarUploading || Boolean(avatarDraft)}><BarChart3 size={18} /><span>Статистика</span></button>}
+            <button aria-label="Ссылки" className={section === 'links' ? 'active' : ''} onClick={() => changeSection('links')} disabled={avatarUploading || Boolean(avatarDraft)}><Link2 size={18} /> <span>Ссылки</span></button>
+            <button aria-label="Оформление" className={section === 'design' ? 'active' : ''} onClick={() => changeSection('design')}><Palette size={18} /> <span>Оформление</span></button>
+            {!targetId && <button aria-label="Статистика" className={section === 'stats' ? 'active' : ''} onClick={() => changeSection('stats')} disabled={avatarUploading || Boolean(avatarDraft)}><BarChart3 size={18} /><span>Статистика</span></button>}
             {staffRole && <Link className="editor-nav__staff-link" to="/admin"><ShieldCheck size={18} /><span className="editor-nav__staff-full">{staffRole === 'admin' ? 'Администрирование' : 'Модерация'}</span><span className="editor-nav__staff-short">{staffRole === 'admin' ? 'Админ' : 'Модератор'}</span></Link>}
           </div>
           {!targetId && <div className="editor-nav__account-container">
@@ -1039,6 +1047,7 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
             {profileMenuOpen && <div className="dashboard-profile-menu__items dashboard-profile-menu__items--desktop" role="group" aria-label="Действия профиля">
               <button type="button" onClick={() => { setToolMode('export'); setProfileMenuOpen(false) }}>Экспорт данных</button>
               <button type="button" onClick={() => void signOut()}>Выйти</button>
+              {!staffRole && <><hr/><button className="dashboard-profile-menu__delete" type="button" onClick={() => { setProfileMenuOpen(false); setDeleteAccountOpen(true) }}>Удалить аккаунт</button></>}
             </div>}
           </div>}
         </aside>
@@ -1069,10 +1078,10 @@ function Dashboard({ user, targetId }: { user: User; targetId?: string }) {
           ) : section === 'stats' ? (
             <StatisticsPanel profileId={user.id} />
           ) : (
-            <DesignEditor profile={profile} setProfile={setProfile} links={links} contacts={contacts} updateLink={updateLink} updateContact={updateContact} moveContact={moveContact} selectedLinkId={selectedDesignLinkId} onSelectLink={setSelectedDesignLinkId} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} onAvatarDraft={setAvatarDraft} />
+            <DesignEditor profile={profile} setProfile={setProfile} links={links} contacts={contacts} updateLink={updateLink} updateContact={updateContact} moveContact={moveContact} selectedLinkId={selectedDesignLinkId} onSelectLink={id => setSelectedDesignLinkId(current => current === id ? null : id)} avatarUploading={avatarUploading} onAvatarUpload={uploadAvatar} onAvatarDraft={setAvatarDraft} />
           )}
           <ProfileTools userId={targetId ? undefined : user.id} handle={persistedHandle.current || profile.handle} published={persistedPublished.current} updatedAt={profile.updated_at} avatarPath={profile.avatar_path} mode={toolMode} onClose={() => setToolMode(null)} hideButtons />
-          {!targetId && !staffRole && section !== 'stats' && <DeleteAccount handle={profile.handle} onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
+          {!targetId && !staffRole && deleteAccountOpen && <DeleteAccount open={deleteAccountOpen} onOpenChange={setDeleteAccountOpen} handle={profile.handle} onDeleted={async () => { editorSnapshot = null; await supabase.auth.signOut({ scope: 'local' }); navigate('/') }} />}
         </main>
 
         <aside className="preview-panel">
@@ -1216,7 +1225,7 @@ function ContentEditor({
                 />
                 <small className="link-editor__hint">{contact.kind === 'address' ? 'Откроется в приложении карт' : contact.kind === 'phone' ? 'Откроется набор номера' : 'Нажатие копирует · удержание открывает почту'}</small>
               </div>
-              <div className="link-editor__delete"><button type="button" onClick={() => { if (window.confirm('Удалить контакт? Изменение будет сохранено после нажатия «Сохранить».')) { removeContact(contact.localId); setExpandedRecord(null) } }}>Удалить контакт</button></div>
+              <div className="link-editor__delete"><button type="button" onClick={() => { if (window.confirm(`Удалить контакт „${contact.label || contact.value || 'Новый контакт'}“? Он исчезнет со страницы после нажатия „Сохранить“.`)) { removeContact(contact.localId); setExpandedRecord(null) } }}>Удалить контакт</button></div>
               </div>}
             </article>
           ))}
@@ -1291,12 +1300,12 @@ function ContentEditor({
                     disabled={isKnownSensitiveUrl(link.url)}
                     onChange={(event) => updateLink(link.localId, { is_sensitive: event.target.checked })}
                   />
-                  <span className="sensitive-toggle__switch"><i /></span>
-                  <span><ShieldAlert size={14} /><strong>Предупреждение 18+</strong><small>{isKnownSensitiveUrl(link.url) ? 'Включено автоматически для этой площадки' : 'Включите, если по ссылке возможен контент для взрослых'}</small></span>
+                  <span className="publish-setting__switch"><i /></span>
+                  <span className="sensitive-toggle__copy"><strong>Предупреждение 18+</strong><small>{isKnownSensitiveUrl(link.url) ? 'Включено автоматически для этой площадки' : 'Включите, если по ссылке возможен контент для взрослых'}</small></span>
                 </label>
                 </div>
               </div>
-              <div className="link-editor__delete"><button type="button" onClick={() => { if (window.confirm('Удалить ссылку? Это действие можно отменить до сохранения страницы.')) { removeLink(link.localId); setExpandedRecord(null) } }}>Удалить ссылку</button></div>
+              <div className="link-editor__delete"><button type="button" onClick={() => { if (window.confirm(`Удалить ссылку „${link.label || link.url || 'Новая ссылка'}“? Она исчезнет со страницы после нажатия „Сохранить“.`)) { removeLink(link.localId); setExpandedRecord(null) } }}>Удалить ссылку</button></div>
               </div>}
             </article>
           ))}
@@ -1367,7 +1376,7 @@ function DesignEditor({
         </div>
         {profile.background_style === 'image' && <div className="appearance-image-controls">
           <ImageAssetField label="Загрузить фон" aspect={BACKGROUND_ASPECT} crop={profile.background_crop??(profile.background_image_path?{version:1,mode:'legacy',x:(profile.background_position_x??50)/100,y:(profile.background_position_y??50)/100,zoom:(profile.background_zoom??100)/100}:null)} onCropChange={crop=>setProfile({...profile,background_crop:crop})} owner={profile.id} url={profile.background_image_url} onChange={(path,url,crop) => setProfile({...profile,background_image_path:path,background_image_url:url,background_crop:crop??null,background_position_x:50,background_position_y:50,background_zoom:100})} />
-          <label className="avatar-size-control"><span>Затемнение фона · {profile.background_overlay ?? 45}%</span><input type="range" aria-label="Затемнение фона" min="0" max="80" value={profile.background_overlay ?? 45} onChange={event=>setProfile({...profile,background_overlay:Number(event.target.value)})}/></label>
+          <label className="avatar-size-control"><span><span className="field-caption">Затемнение фона</span><strong>{profile.background_overlay ?? 45}%</strong></span><input type="range" aria-label="Затемнение фона" min="0" max="80" value={profile.background_overlay ?? 45} onChange={event=>setProfile({...profile,background_overlay:Number(event.target.value)})}/></label>
           <button type="button" className="button button--ghost button--small" onClick={()=>setProfile({...profile,background_style:'preset',background_image_path:null,background_image_url:null,background_crop:null,background_overlay:45,background_position_x:50,background_position_y:50,background_zoom:100})}>Вернуть исходный фон</button>
           <p>Проверьте читаемость текста поверх изображения.</p>
         </div>}
@@ -1413,21 +1422,7 @@ function DesignEditor({
         </details>
       </section>
 
-      <LinkSectionsEditor links={links} value={profile.link_layout} onChange={layout => setProfile({ ...profile, link_layout: layout })} selectedLinkId={selectedLinkId} onSelectLink={id => onSelectLink(id)} />
-
-      <section className="settings-card">
-        <div className="settings-card__title"><Link2 size={18} /><div><h2>Отдельная карточка</h2><p>Выберите карточку в списке «Порядок на странице». Адреса меняются в разделе «Ссылки».</p></div></div>
-        {links.filter(link => link.localId === selectedLinkId).map(link => <div className="appearance-item selected-card-settings" key={link.localId}><strong>{link.label || link.url || 'Новая ссылка'}</strong><div className="appearance-item__controls">
-            <TypographyControls sample={link.label} label="Название ссылки" slot="link" font={link.label_font ?? profile.link_font} size={link.label_font_size ?? profile.link_font_size} color={link.label_color ?? profile.link_color} onChange={(font, size) => updateLink(link.localId, { label_font: font, label_font_size: size })} onColorChange={color => updateLink(link.localId, { label_color: color })} />
-            <div className="link-card-style__controls"><label>Стиль<select aria-label={`Стиль этой карточки: ${link.label}`} value={link.card_preset_override ?? ''} onChange={event => updateLink(link.localId, { card_preset_override: event.target.value ? event.target.value as Profile['card_preset'] : null })}><option value="">Как у остальных</option><option value="glass">Стекло</option><option value="solid">Сплошная</option><option value="outline">Контур</option></select></label><label>Скругление<select aria-label={`Скругление этой карточки: ${link.label}`} value={link.card_radius_override ?? ''} onChange={event => updateLink(link.localId, { card_radius_override: event.target.value ? Number(event.target.value) : null })}><option value="">Как у остальных</option><option value="4">4 px</option><option value="13">13 px</option><option value="21">21 px</option><option value="28">28 px</option></select></label></div>
-            <details className="card-style-more"><summary>Дополнительные настройки</summary>
-              {([['padding', 'Отступ', 8, 24, 12], ['borderWidth', 'Толщина рамки', 0, 3, 1], ['opacity', 'Плотность подложки', 60, 100, 100]] as const).map(([key, label, min, max, fallback]) => <label className="avatar-size-control" key={key}><span><span className="field-caption">{label} этой карточки</span><strong>{link.card_style?.[key] ?? fallback}{key === 'opacity' ? '%' : ' px'}</strong></span><input type="range" aria-label={`${label} этой карточки`} min={min} max={max} value={link.card_style?.[key] ?? fallback} onChange={event => updateLink(link.localId, { card_style: { version: 1, ...link.card_style, [key]: Number(event.target.value) } })} /></label>)}
-            </details>
-          <button type="button" className="button button--ghost button--small" onClick={() => { updateLink(link.localId, { label_font: null, label_font_size: null, label_color: null, card_preset_override: null, card_radius_override: null, card_style: null }) }}>Как у всех</button></div></div>)}
-        {!selectedLinkId && <p className="appearance-item__empty">Выберите ссылку в списке «Порядок на странице», чтобы настроить её вид.</p>}
-      </section>
-
-
+      <LinkSectionsEditor links={links} value={profile.link_layout} onChange={layout => setProfile({ ...profile, link_layout: layout })} selectedLinkId={selectedLinkId} onSelectLink={id => onSelectLink(id)} renderLinkSettings={link => <LinkCardSettings link={link} profile={profile} updateLink={updateLink}/>} />
 
       <AvatarEditor profile={profile} setProfile={setProfile} uploading={avatarUploading} onUpload={onAvatarUpload} onDraftChange={onAvatarDraft} />
 

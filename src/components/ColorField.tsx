@@ -3,7 +3,7 @@ import { Check, Copy, X } from 'lucide-react'
 import { hexToHsl, hslToHex, normalizeColor } from '../lib/color'
 import { copyText } from '../lib/clipboard'
 import './color-field.css'
-export function ColorField({label,value,onChange}:{label:string;value?:string|null;onChange:(value:string)=>void}) {
+export function ColorField({label,value,onChange,caption}:{caption?:string;label:string;value?:string|null;onChange:(value:string)=>void}) {
  const [open,setOpen]=useState(false),[draft,setDraft]=useState(''),[editing,setEditing]=useState(false),[invalid,setInvalid]=useState(false),[copied,setCopied]=useState(false)
  const [hsl,setHsl]=useState<[number,number,number]>([0,0,100])
  const root=useRef<HTMLDivElement>(null),trigger=useRef<HTMLButtonElement>(null)
@@ -17,7 +17,7 @@ export function ColorField({label,value,onChange}:{label:string;value?:string|nu
  const change=(next:string)=>{onChange(next);setCopied(false);setInvalid(false)}
  const commit=()=>{const normalized=normalizeColor(draft);if(normalized){change(normalized);setEditing(false)}else setInvalid(true)}
  return <div className="color-field" ref={root}>
-  <span className="color-field__label">{label}</span>
+  <span className="color-field__label">{caption || label}</span>
   <div className="color-field__row">
    <button type="button" className="color-field__swatch" ref={trigger} aria-label={`Палитра: ${label}`} aria-expanded={open} style={{background:value || '#ffffff'}} onClick={()=>{setHsl(hexToHsl(value || '#ffffff'));setOpen(!open)}} />
    <input type="text" aria-label={`Цвет: ${label}`} aria-invalid={invalid} autoComplete="off" spellCheck={false} placeholder="#rrggbb" value={editing?draft:value || ''} onFocus={()=>{setDraft(value || '');setEditing(true)}} onChange={event=>{setDraft(event.target.value);setInvalid(false);const normalized=normalizeColor(event.target.value);if(normalized)change(normalized)}} onBlur={()=>{if(draft.trim())commit();else{setEditing(false);setInvalid(false)}}} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();commit()}if(event.key==='Escape'){event.preventDefault();setDraft(value || '');setEditing(false);setInvalid(false)}}} />

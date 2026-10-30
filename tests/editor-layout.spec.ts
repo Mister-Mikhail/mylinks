@@ -96,19 +96,3 @@ test('common toolbar, account menu, and responsive widths avoid horizontal overf
   await expect(page.getByRole('button', { name: 'Экспорт данных' })).toBeVisible()
  }
 })
-
-test('before and after visual baseline of Links and Appearance at 1280 and 390 @full', async ({ page }, info) => {
- await mockLayout(page)
- const local = 'http://127.0.0.1:4173/'
- for (const width of [1280, 390]) {
-  await page.setViewportSize({ width, height: 900 })
-  for (const version of ['before', 'after'] as const) {
-   await page.goto(version === 'before' ? 'https://mylinks.bar/' : local)
-   for (const section of ['Ссылки', 'Оформление']) {
-    await page.getByRole('button', { name: section, exact: true }).click()
-    await expect(page.locator('.editor-panel')).toBeVisible()
-    await page.screenshot({ path: info.outputPath(`${version}-${section === 'Ссылки' ? 'links' : 'appearance'}-${width}.png`), fullPage: false })
-   }
-  }
- }
-})

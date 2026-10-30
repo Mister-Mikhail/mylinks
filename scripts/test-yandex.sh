@@ -18,7 +18,7 @@ dpkg-deb -x "$package" "$work"
 export PLAYWRIGHT_EXECUTABLE_PATH="$work/opt/yandex/browser/yandex-browser"
 "$PLAYWRIGHT_EXECUTABLE_PATH" --version
 specs=()
-for name in icon-library icon-delivery public-profile crop-font-gestures background-images featured-images wizard-layout; do
+for name in icon-library icon-delivery public-profile crop-font-gestures background-images featured-images wizard-layout editor-layout editor-polish-full-avatar editor-review-capture; do
   [ ! -f "tests/$name.spec.ts" ] || specs+=("tests/$name.spec.ts")
 done
 npx playwright test "${specs[@]}" --workers=4 --reporter=line

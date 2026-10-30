@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 
-export function DeleteAccount({ onDeleted, handle }: { onDeleted: () => Promise<void>; handle?: string }) {
-  const [open, setOpen] = useState(false)
+export function DeleteAccount({ onDeleted, handle, open: controlledOpen, onOpenChange }: { onDeleted: () => Promise<void>; handle?: string; open?:boolean; onOpenChange?:(open:boolean)=>void }) {
+  const [localOpen, setLocalOpen] = useState(false)
+  const open = controlledOpen ?? localOpen
+  const setOpen = (value:boolean) => { setLocalOpen(value); onOpenChange?.(value) }
   const [confirmation, setConfirmation] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -29,7 +31,7 @@ export function DeleteAccount({ onDeleted, handle }: { onDeleted: () => Promise<
     finally { setBusy(false) }
   }
   return <>
-    <button className="delete-account-trigger" type="button" onClick={() => { setOpen(true); setConfirmation(''); setError('') }}>Удалить мой профиль</button>
+    {controlledOpen === undefined && <button className="delete-account-trigger" type="button" onClick={() => { setOpen(true); setConfirmation(''); setError('') }}>Удалить мой профиль</button>}
     <dialog className="delete-account-dialog" ref={dialog} aria-labelledby="delete-account-title" onCancel={event => { if (busy) event.preventDefault(); else setOpen(false) }}>
       <h2 id="delete-account-title">Удалить профиль и аккаунт?</h2>
       <p>Страница, ссылки, контакты, статистика и аватар будут удалены без возможности восстановления. Войти в этот аккаунт больше не получится.</p>

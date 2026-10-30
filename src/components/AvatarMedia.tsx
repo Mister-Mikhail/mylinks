@@ -43,10 +43,11 @@ export function AvatarMedia({ profile, draft, alt = '' }: { profile: Profile; dr
   const kind = draft?.kind || profile.avatar_media || 'image'
   // Stored files are already cropped and rotated on the server. Only the live draft needs CSS positioning.
   const crop = draft
+  const frameAspect = profile.avatar_shape === 'full' ? 4 / 5 : 1
   const style: CSSProperties | undefined = crop ? {
-    position: 'absolute', width: `${Math.max(1, crop.aspectRatio) * crop.zoom * 100}%`,
-    height: `${Math.max(1, 1 / crop.aspectRatio) * crop.zoom * 100}%`,
-    left: `${50 + crop.x * 100}%`, top: `${50 + crop.y * 100}%`,
+    position: 'absolute', width: `${Math.max(1, crop.aspectRatio / frameAspect) * crop.zoom * 100}%`,
+    height: `${Math.max(1, frameAspect / crop.aspectRatio) * crop.zoom * 100}%`,
+    left: `${50 + crop.x * 100}%`, top: `${50 + crop.y * 100 * frameAspect}%`,
     maxWidth: 'none', transform: `translate(-50%, -50%) rotate(${draft?.rotation || 0}deg)`,
   } : undefined
   if ((reduceMotion || videoFailed) && !draft && poster) return <img ref={(node) => { media.current = node }} className="avatar__media" src={needsMeasurement && !displayWidth ? undefined : poster} alt={alt} />

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { ArrowDown, ArrowUp, Layers3, ListMinus, ListTree, Plus, Trash2 } from 'lucide-react'
 import { LinkIcon } from './LinkIcon'
 import type { EditableLink, LinkLayout, LinkLayoutBlock } from '../types'
@@ -8,11 +9,12 @@ interface Props {
  value?: LinkLayout | null
  onChange: (layout: LinkLayout | null) => void
  selectedLinkId?: string | null
+ renderLinkSettings?: (link: EditableLink) => ReactNode
  onSelectLink?: (localId: string) => void
 }
 
 /** The sole layout/order editor. Keeps existing link_layout IDs unchanged. */
-export function LinkSectionsEditor({ links, value, onChange, selectedLinkId, onSelectLink }: Props) {
+export function LinkSectionsEditor({ links, value, onChange, selectedLinkId, onSelectLink, renderLinkSettings }: Props) {
  const blocks = layoutFor(links, value)
  const byId = new Map(links.map(link => [linkKey(link), link]))
  const save = (next: LinkLayoutBlock[]) => onChange({ version: 1, blocks: next })
@@ -53,14 +55,16 @@ export function LinkSectionsEditor({ links, value, onChange, selectedLinkId, onS
      <button type="button" className="icon-button" disabled={index === blocks.length - 1} aria-label={link ? `Переместить ссылку ниже: ${link.label || index + 1}` : `Опустить блок ${index + 1}`} onClick={() => move(index, 1)}><ArrowDown size={16}/></button>
      {block.type !== 'link' && <button type="button" className="icon-button" aria-label={block.type === 'group' ? 'Разгруппировать' : 'Удалить блок'} onClick={() => remove(block)}><Trash2 size={16}/></button>}
     </div>
+    {link && selectedLinkId === link.localId && renderLinkSettings?.(link)}
     {(block.type === 'heading' || block.type === 'group') && <label>Название<input aria-label={block.type === 'group' ? 'Название группы' : 'Текст заголовка'} value={block.title} maxLength={80} onChange={event => patch(block.id, { title: event.target.value })}/></label>}
     {block.type === 'group' && <details open><summary>Ссылки группы · {block.link_ids.length}</summary>
-     {block.link_ids.map((id, i) => <div className="section-editor__member" key={id}>
-      <button type="button" className="appearance-item__select" onClick={() => select(id)}>{byId.get(id)?.label || 'Новая ссылка'}</button>
+     {block.link_ids.map((id, i) => <div className="section-editor__member-block" key={id}><div className="section-editor__member">
+      <span className="page-order__icon"><LinkIcon name={byId.get(id)?.icon_key || 'link'} url={byId.get(id)?.url || ''} size={20}/></span>
+      <button type="button" className="appearance-item__select" aria-pressed={selectedLinkId === byId.get(id)?.localId} onClick={() => select(id)}>{byId.get(id)?.label || 'Новая ссылка'}</button>
       <button type="button" className="icon-button" aria-label={`Выше в группе: ${byId.get(id)?.label}`} disabled={i === 0} onClick={() => { const ids = [...block.link_ids]; [ids[i], ids[i - 1]] = [ids[i - 1], ids[i]]; patch(block.id, { link_ids: ids }) }}><ArrowUp size={14}/></button>
       <button type="button" className="icon-button" aria-label={`Ниже в группе: ${byId.get(id)?.label}`} disabled={i === block.link_ids.length - 1} onClick={() => { const ids = [...block.link_ids]; [ids[i], ids[i + 1]] = [ids[i + 1], ids[i]]; patch(block.id, { link_ids: ids }) }}><ArrowDown size={14}/></button>
       <button type="button" className="button button--ghost button--small" onClick={() => save(blocks.flatMap(item => item.id === block.id ? [{ ...block, link_ids: block.link_ids.filter(value => value !== id) }, { id, type: 'link', link_id: id }] : [item]))}>Из группы</button>
-     </div>)}
+     </div>{byId.get(id) && selectedLinkId === byId.get(id)?.localId && renderLinkSettings?.(byId.get(id)!)}</div>)}
      <label>Добавить ссылку<select aria-label={`Добавить ссылку в группу: ${block.title}`} value="" onChange={event => placeInGroup(block.id, event.target.value)}><option value="">Выберите ссылку</option>{links.filter(link => !block.link_ids.includes(linkKey(link))).map(link => <option key={linkKey(link)} value={linkKey(link)}>{link.label || link.url || 'Новая ссылка'}</option>)}</select></label>
     </details>}
    </article>

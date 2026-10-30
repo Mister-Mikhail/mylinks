@@ -82,7 +82,7 @@ function avatar_asset_poster($bytes) {
     $result = @tempnam(sys_get_temp_dir(),'mylinks-poster-');
     if (!$source || !$result) return null;
     file_put_contents($source,$bytes);
-    $args = array($timeout,'15s',$ffmpeg,'-nostdin','-v','error','-y','-ss','0.15','-i',$source,'-frames:v','1','-vf','scale=1000:1000:flags=lanczos','-c:v','libwebp','-quality','84','-f','webp',$result);
+    $args = array($timeout,'15s',$ffmpeg,'-nostdin','-v','error','-y','-ss','0.15','-i',$source,'-frames:v','1','-vf','scale=1000:-2:flags=lanczos','-c:v','libwebp','-quality','84','-f','webp',$result);
     $process = proc_open(implode(' ',array_map('escapeshellarg',$args)),array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes);
     $image = null;
     if (is_resource($process)) { fclose($pipes[0]); stream_get_contents($pipes[1]); fclose($pipes[1]); stream_get_contents($pipes[2]); fclose($pipes[2]); if (proc_close($process)===0 && filesize($result)<3*1024*1024) $image=file_get_contents($result); }

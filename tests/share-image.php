@@ -21,4 +21,8 @@ if (class_exists('Imagick')) {
     verify_image($alternativeInfo && $alternativeInfo['mime']==='image/png' && $alternativeInfo[0]===1200 && $alternativeInfo[1]===630,'Imagick fallback failed');
 }
 unset($image);
-echo "Share-image checks passed\n";
+
+$full=preview_image_render($bytes,'full');
+$fullImage=imagecreatefromstring($full);
+foreach(array(50,570) as $y){$pixel=imagecolorsforindex($fullImage,imagecolorat($fullImage,310,$y));verify_image($pixel['red']===230 && $pixel['green']===100,'Full 4:5 avatar missing from preview');}
+echo "Share-image and full avatar checks passed\n";

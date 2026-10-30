@@ -95,8 +95,9 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
   const blocks=layoutFor(links,profile.link_layout)
 
   return (
-    <section className={`profile-card theme-${appearanceTheme(profile)}${profile.background_style === 'image' && profile.background_image_url ? ` profile-card--image ${isFrameCrop(profile.background_crop)?`profile-card--frame${viewportBackground?' profile-card--viewport':''}`:''}` : ''}`} style={appearanceStyle(profile)} aria-label={`Профиль ${profile.display_name}`}>
+    <section className={`profile-card ${profile.avatar_shape === 'full' ? 'profile-card--full-avatar ' : ''}theme-${appearanceTheme(profile)}${profile.background_style === 'image' && profile.background_image_url ? ` profile-card--image ${isFrameCrop(profile.background_crop)?`profile-card--frame${viewportBackground?' profile-card--viewport':''}`:''}` : ''}`} style={appearanceStyle(profile)} aria-label={`Профиль ${profile.display_name}`}>
       {!viewportBackground&&profile.background_style==='image'&&profile.background_image_url&&isFrameCrop(profile.background_crop)&&<span className="profile-card__photo" aria-hidden><CroppedImage fitContainer src={profile.background_image_url} crop={profile.background_crop} overlay={profile.background_overlay??45}/></span>}
+      {profile.avatar_shape === 'full' && <div className="avatar avatar--full"><AvatarMedia profile={profile} draft={avatarDraft}/></div>}
       <div className="profile-card__noise" />
       <div className="profile-card__topline">
         {showPrivacy ? (
@@ -105,9 +106,10 @@ export function ProfilePreview({ profile, links, contacts = [], interactive = fa
       </div>
 
       <div className="profile-card__identity">
-        <div className={`avatar avatar--${profile.avatar_shape}`} style={{ '--avatar-size': `${Math.round(42 + (profile.avatar_scale || 28) * 2.1)}px`, '--avatar-width': `${profile.avatar_scale || 28}%` } as CSSProperties}>
+        {profile.avatar_shape !== 'full' && <>        <div className={`avatar avatar--${profile.avatar_shape}`} style={{ '--avatar-size': `${Math.round(42 + (profile.avatar_scale || 28) * 2.1)}px`, '--avatar-width': `${profile.avatar_scale || 28}%` } as CSSProperties}>
           <AvatarMedia profile={profile} draft={avatarDraft} />
         </div>
+</>}
         <h1 style={textStyle(profile.name_font, profile.name_font_size, 'name', profile.name_color)}>{profile.display_name || 'Ваше имя'}</h1>
         <button className="profile-card__handle" style={textStyle(profile.handle_font, profile.handle_font_size, 'handle', profile.handle_color)} type="button" onClick={() => void copyProfileLink()} aria-label="Скопировать ссылку на профиль">
           {profileLinkCopied ? <Check size={11} /> : <Copy size={10} />}

@@ -37,6 +37,8 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
   const [source, setSource] = useState<string | null>(null)
   const [imageSize, setImageSize] = useState<ImageSize>({ width: 0, height: 0 })
   const [viewportSize, setViewportSize] = useState(320)
+  const frameAspect = profile.avatar_shape === 'full' ? 4 / 5 : 1
+  const viewportHeight = viewportSize / frameAspect
   const [zoom, setZoom] = useState(1)
   const [rotation, setRotation] = useState(0)
   const [offset, setOffset] = useState<Point>(DEFAULT_OFFSET)
@@ -169,15 +171,15 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
     setPreparing(true)
 
     try {
-      const coverScale = Math.max(viewportSize / imageSize.width, viewportSize / imageSize.height)
+      const coverScale = Math.max(viewportSize / imageSize.width, viewportHeight / imageSize.height)
       const renderedScale = coverScale * zoom
       const renderedWidth = imageSize.width * renderedScale
       const renderedHeight = imageSize.height * renderedScale
       const sourceX = ((renderedWidth - viewportSize) / 2 - offset.x) / renderedScale
-      const sourceY = ((renderedHeight - viewportSize) / 2 - offset.y) / renderedScale
+      const sourceY = ((renderedHeight - viewportHeight) / 2 - offset.y) / renderedScale
       const sourceSize = viewportSize / renderedScale
 
-      const result = await renderAvatar(preparedToken, sourceX, sourceY, sourceSize, rotation, controller.signal)
+      const result = await renderAvatar(preparedToken, sourceX, sourceY, sourceSize, rotation, controller.signal, frameAspect)
       if (controller.signal.aborted) return
       const uploaded = await onUpload(result.delivery, { kind: result.kind, poster: result.poster, master: result.master, crop: { aspectRatio: imageSize.width / imageSize.height, zoom, x: offset.x / viewportSize, y: offset.y / viewportSize, rotation } })
       if (controller.signal.aborted) return
@@ -191,7 +193,7 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
   }
 
   const coverScale = imageSize.width && viewportSize
-    ? Math.max(viewportSize / imageSize.width, viewportSize / imageSize.height)
+    ? Math.max(viewportSize / imageSize.width, viewportHeight / imageSize.height)
     : 1
 
   const mediaStyle = { width: imageSize.width ? imageSize.width * coverScale * zoom : 'auto', height: imageSize.height ? imageSize.height * coverScale * zoom : 'auto', transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px)) rotate(${rotation}deg)` }
@@ -280,13 +282,14 @@ export function AvatarEditor({ profile, setProfile, uploading, onUpload, onDraft
           <div className="segmented-picker segmented-picker--small avatar-shape-picker">
             <button type="button" aria-pressed={profile.avatar_shape === 'round'} className={profile.avatar_shape === 'round' ? 'selected' : ''} onClick={() => setProfile({ ...profile, avatar_shape: 'round' })}>Круг</button>
             <button type="button" aria-pressed={profile.avatar_shape === 'square'} className={profile.avatar_shape === 'square' ? 'selected' : ''} onClick={() => setProfile({ ...profile, avatar_shape: 'square' })}>Квадрат</button>
+            <button type="button" aria-pressed={profile.avatar_shape === 'full'} className={profile.avatar_shape === 'full' ? 'selected' : ''} onClick={() => setProfile({ ...profile, avatar_shape: 'full' })}>Во всю ширину</button>
           </div>
         </div>
-        <label className="avatar-size-control">
+        {profile.avatar_shape !== 'full' && <label className="avatar-size-control">
           <span><span className="field-caption">Размер</span><strong>{profile.avatar_scale}%</strong></span>
           <input aria-label="Размер аватара" type="range" min="10" max="100" step="1" value={profile.avatar_scale} onChange={(event) => setProfile({ ...profile, avatar_scale: Number(event.target.value) })} />
           <small><span>Маленький</span><span>На всю ширину</span></small>
-        </label>
+        </label>}
       </div>
 
       {source && (modal ? createPortal(<dialog className="avatar-crop-dialog" ref={dialogRef} aria-labelledby="avatar-crop-title" onCancel={event => { event.preventDefault(); if (!uploading && !preparing) closeEditor() }}>{cropEditor}</dialog>, document.body) : <div className="avatar-cropper-inline">{cropEditor}</div>)}

@@ -116,3 +116,132 @@
 
 @media(min-width:768px){.glass-app .editor-nav {z-index:21}.glass-app .dashboard-profile-menu__items--mobile {display:none}.glass-app .editor-nav__account-container {position:relative}.glass-app .dashboard-profile-menu__items--desktop {left:0;bottom:calc(100% + 8px);min-width:210px}}
 @media(max-width:767px){.glass-app .dashboard-profile-menu__items--desktop {display:none}}
+
+/* Shared editor geometry. Public profile typography and glass colours stay independent. */
+.glass-app {
+ --editor-card-padding:20px; --editor-card-gap:16px; --editor-field-gap:12px; --editor-label-gap:6px;
+ --editor-input-height:44px; --editor-button-height:40px; --editor-small-button-height:36px;
+ --editor-input-font:14px; --editor-label-font:12px; --editor-label-weight:600; --editor-hint-font:11px;
+ --editor-heading-font:15px; --editor-heading-weight:650; --editor-input-inset:14px;
+ --editor-nav-height:64px; --editor-preview-height:44px; --editor-preview-gap:12px; --editor-topbar-height:56px;
+ --editor-switch-width:40px; --editor-switch-height:24px; --editor-switch-inset:3px; --editor-switch-knob:16px;
+}
+.glass-app .editor-panel .editor-stack {display:grid;gap:var(--editor-card-gap)}
+.glass-app .editor-panel .settings-card {display:flex;flex-direction:column;gap:var(--editor-field-gap);padding:var(--editor-card-padding);min-width:0;margin:0}
+.glass-app .editor-panel .settings-card>*,.glass-app .editor-panel .settings-card>details {margin:0;min-width:0;width:100%;max-width:100%;box-sizing:border-box}
+.glass-app .editor-panel .settings-card__title,.glass-app .editor-panel .settings-card__title-copy {display:flex;align-items:flex-start;gap:var(--editor-field-gap)}
+.glass-app .editor-panel .settings-card__title>div,.glass-app .editor-panel .settings-card__title-copy>div {min-width:0}
+.glass-app .editor-panel .settings-card__title svg {flex:none;margin:0}
+.glass-app .editor-panel .settings-card__title h2 {font-size:var(--editor-heading-font);font-weight:var(--editor-heading-weight);line-height:1.4;margin:0}
+.glass-app .editor-panel .settings-card__title p {display:block;font-size:var(--editor-hint-font);line-height:1.5;margin:var(--editor-label-gap) 0 0}
+.glass-app .editor-panel :is(label,.field-caption,.color-field__label,.typography-controls__slot) {font-size:var(--editor-label-font);font-weight:var(--editor-label-weight)}
+.glass-app .editor-panel label:not(.sensitive-toggle):not(.publish-setting):not(.link-editor__visibility-label) {gap:var(--editor-label-gap)}
+.glass-app .editor-panel :is(.field-grid,.links-editor,.link-editor__body,.link-editor__expanded,.appearance-fields,.appearance-item__controls,.appearance-contact-fields,.appearance-image-controls) {gap:var(--editor-field-gap)}
+.glass-app .editor-panel :is(input,select):not([type=checkbox]):not([type=range]):not([type=file]):not([type=hidden]) {height:var(--editor-input-height);min-height:var(--editor-input-height);padding:0 var(--editor-input-inset);font-size:var(--editor-input-font);box-sizing:border-box;min-width:0;max-width:100%;line-height:normal}
+.glass-app .editor-panel textarea {font-size:var(--editor-input-font);padding:var(--editor-label-gap) var(--editor-input-inset)}
+.glass-app .editor-panel .button {height:var(--editor-button-height);min-height:var(--editor-button-height);padding-block:0;box-sizing:border-box;white-space:nowrap}
+.glass-app .editor-panel .button--small {height:var(--editor-small-button-height);min-height:var(--editor-small-button-height)}
+.glass-app .editor-panel :is(small,.link-editor__hint,.appearance-image-controls>p) {font-size:var(--editor-hint-font);line-height:1.45}
+.glass-app .editor-panel .input-prefix {display:flex;align-items:center;height:var(--editor-input-height);padding:0 var(--editor-input-inset);gap:var(--editor-label-gap);background:rgba(8,22,53,.28);min-width:0}
+.glass-app .editor-panel .input-prefix>span {flex:none;font-size:var(--editor-input-font);line-height:normal}
+.glass-app .editor-panel .input-prefix>input {flex:1;width:0;border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0;padding-inline:0!important}
+.glass-app .editor-panel .input-prefix__copy {position:static;transform:none;flex:none;padding:0;width:var(--editor-small-button-height);height:var(--editor-small-button-height)}
+.glass-app .editor-panel .profile-text-field label>small {display:block;text-align:right;margin-top:4px}
+.glass-app .editor-panel .color-field {width:100%;min-width:0}
+.glass-app .editor-panel .color-field__row {display:grid;grid-template-columns:var(--editor-input-height) minmax(96px,1fr) var(--editor-input-height);gap:var(--editor-label-gap)}
+.glass-app .editor-panel .color-field__row input {width:100%}
+.glass-app .editor-panel .color-field__row :is(.color-field__swatch,.icon-button) {width:var(--editor-input-height);height:var(--editor-input-height);min-width:0;min-height:0}
+.glass-app .editor-panel .typography-controls {display:flex;flex-direction:column;gap:var(--editor-field-gap);min-width:0;width:100%}
+.glass-app .editor-panel .typography-controls__slot {order:0}
+.glass-app .editor-panel .typography-controls__desktop-font {order:1}
+.glass-app .editor-panel .font-tape {order:1;scrollbar-width:none;mask-image:linear-gradient(to right,transparent,#000 5%,#000 95%,transparent)}
+.glass-app .editor-panel .font-tape::-webkit-scrollbar {display:none}
+.glass-app .editor-panel .font-tape button>span {white-space:normal;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
+.glass-app .editor-panel .typography-controls__values {order:2;display:grid;grid-template-columns:minmax(70px,1fr) minmax(200px,2fr);gap:var(--editor-field-gap);align-items:start}
+.glass-app .editor-panel .typography-controls__sample {order:3;display:block;white-space:normal;overflow:visible;overflow-wrap:anywhere;text-overflow:clip;max-width:100%}
+.glass-app .editor-panel .typography-controls__sample small {display:block;white-space:normal;overflow:visible}
+.glass-app .editor-panel .typography-controls__resets {order:4;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--editor-field-gap)}
+.glass-app .editor-panel :is(.image-asset-field,.avatar-settings__upload) {display:grid;gap:var(--editor-field-gap)}
+.glass-app .editor-panel :is(.image-asset-field__actions,.avatar-settings__upload-actions) {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--editor-label-gap);width:100%}
+.glass-app .editor-panel .avatar-settings__upload-actions {grid-template-columns:repeat(2,minmax(0,1fr))}
+.glass-app .editor-panel :is(.image-asset-field__actions,.avatar-settings__upload-actions)>.button {width:100%;padding-inline:var(--editor-label-gap);font-size:var(--editor-label-font);justify-content:center}
+.glass-app .editor-panel .avatar-settings__main {display:block;padding:0;border:0;background:none;order:0}
+.glass-app .editor-panel .avatar-settings__upload>strong,.glass-app .editor-panel .avatar-settings__preview {display:none}
+.glass-app .editor-panel .avatar-settings__upload>span {order:2;font-size:var(--editor-hint-font)}
+.glass-app .editor-panel .avatar-settings__controls {order:0;display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--editor-field-gap)}
+.glass-app .editor-panel .avatar-settings__controls>div {flex:1;min-width:0}
+.glass-app .editor-panel .avatar-size-control {display:grid;gap:var(--editor-label-gap);min-width:0;flex:1}
+.glass-app .editor-panel .avatar-size-control>span,.glass-app .editor-panel .avatar-size-control small {display:flex;justify-content:space-between;align-items:center;gap:var(--editor-label-gap);width:100%}
+.glass-app .editor-panel .avatar-size-control>span strong {font-size:var(--editor-label-font);white-space:nowrap}
+.glass-app .editor-panel .avatar-size-control small {font-size:var(--editor-hint-font)}
+.glass-app .editor-panel .avatar-size-control input[type=range] {display:block;width:100%;margin-inline:0}
+.glass-app .editor-panel :is(.publish-setting,.sensitive-toggle) {display:flex;align-items:center;gap:var(--editor-field-gap);padding:var(--editor-field-gap);margin:0}
+.glass-app .editor-panel .publish-setting>span:last-child {min-width:0}
+.glass-app .editor-panel .publish-setting__switch {position:relative;flex:0 0 var(--editor-switch-width);width:var(--editor-switch-width);height:var(--editor-switch-height);margin:0}
+.glass-app .editor-panel .publish-setting__switch i {top:var(--editor-switch-inset);left:var(--editor-switch-inset);width:var(--editor-switch-knob);height:var(--editor-switch-knob)}
+.glass-app .editor-panel :is(.publish-setting,.sensitive-toggle,.link-editor__visibility-label) input:checked+.publish-setting__switch {background:rgba(78,162,117,.34);border-color:rgba(103,214,155,.3)}
+.glass-app .editor-panel :is(.publish-setting,.sensitive-toggle,.link-editor__visibility-label) input:checked+.publish-setting__switch i {left:calc(var(--editor-switch-width) - var(--editor-switch-knob) - var(--editor-switch-inset) - 2px);background:#7ce0aa}
+.glass-app .editor-panel .link-editor__summary-row {padding:var(--editor-field-gap);align-items:center}
+.glass-app .editor-panel .link-editor__expanded {padding:var(--editor-field-gap)}
+.glass-app .editor-panel .link-editor__visibility-label {flex-basis:var(--editor-switch-width);min-width:var(--editor-switch-width)}
+.glass-app .editor-panel .link-editor__footer {display:block;width:100%}
+.glass-app .editor-panel .sensitive-toggle {display:grid;grid-template-columns:minmax(0,1fr) var(--editor-switch-width);background:transparent;padding:0;gap:var(--editor-label-gap)}
+.glass-app .editor-panel .sensitive-toggle__copy {display:block;grid-column:1;grid-row:1;min-width:0}
+.glass-app .editor-panel .sensitive-toggle__copy strong {display:block;white-space:nowrap;font-size:var(--editor-label-font)}
+.glass-app .editor-panel .sensitive-toggle__copy small {display:block;margin-top:var(--editor-label-gap);font-size:var(--editor-hint-font)}
+.glass-app .editor-panel .sensitive-toggle>.publish-setting__switch {grid-column:2;grid-row:1;align-self:center}
+.glass-app .editor-panel .sensitive-toggle input:focus-visible+.publish-setting__switch {outline:2px solid var(--accent);outline-offset:var(--editor-switch-inset)}
+.glass-app .editor-panel .sensitive-toggle--forced {opacity:.8}
+.glass-app .editor-panel .selected-card-settings {display:grid;gap:var(--editor-field-gap);padding-top:var(--editor-field-gap);border-top:1px solid var(--glass-edge);margin-top:var(--editor-field-gap);min-width:0}
+.glass-app .editor-panel .section-editor__member-block {min-width:0}
+.glass-app .editor-panel .section-editor__member {flex-wrap:wrap}
+.glass-app .editor-panel .section-editor__member>.appearance-item__select {flex:1;min-width:40px}
+.glass-app .dashboard-profile-menu__items hr {width:100%;border:0;border-top:1px solid var(--glass-edge);margin:var(--editor-label-gap) 0}
+.glass-app .dashboard-profile-menu__items .dashboard-profile-menu__delete {color:#ff9ba5}
+@media(max-width:767px) {
+ .glass-app {--editor-card-padding:16px;--editor-input-font:16px}
+ .glass-app .dashboard-topbar {flex-wrap:nowrap;height:var(--editor-topbar-height);min-height:var(--editor-topbar-height);padding:0 var(--editor-label-gap);gap:var(--editor-label-gap)}
+ .glass-app .dashboard-topbar__identity {width:auto;min-width:0;flex:1;gap:var(--editor-label-gap)}
+ .glass-app .dashboard-topbar .brand {flex:none}
+ .glass-app .dashboard-topbar .brand__word {display:none}
+ .glass-app .dashboard-topbar .brand__mark {width:24px;height:24px}
+ .glass-app .dashboard-topbar__section {padding:0;border:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--editor-label-font)}
+ .glass-app .dashboard-topbar__staff-back {display:none}
+ .glass-app .dashboard-topbar__meta {flex:none;width:auto;gap:var(--editor-switch-inset)}
+ .glass-app .dashboard-topbar__meta .dashboard-action,.glass-app .dashboard-profile-menu__trigger {width:var(--editor-small-button-height);min-width:var(--editor-small-button-height);height:var(--editor-small-button-height);padding:0}
+ .glass-app .dashboard-topbar__meta .dashboard-save {height:var(--editor-small-button-height);min-height:var(--editor-small-button-height);min-width:0;padding:0 var(--editor-label-gap);gap:var(--editor-switch-inset)}
+ .glass-app .dashboard-topbar__meta .dashboard-save .button__label {font-size:var(--editor-label-font)}
+ .glass-app .dashboard-grid {padding-bottom:0}
+ .glass-app .editor-panel {padding-bottom:calc(var(--editor-nav-height) + var(--editor-preview-height) + var(--editor-preview-gap)*2 + var(--editor-card-padding) + env(safe-area-inset-bottom));scroll-padding-bottom:calc(var(--editor-nav-height) + var(--editor-preview-height) + var(--editor-preview-gap)*2 + env(safe-area-inset-bottom))}
+ .glass-app .mobile-preview-trigger {height:var(--editor-preview-height);bottom:calc(var(--editor-nav-height) + var(--editor-preview-gap) + env(safe-area-inset-bottom));padding-block:0}
+ .glass-app .editor-panel .typography-controls__values {grid-template-columns:1fr}
+ .glass-app .editor-panel .typography-controls__values>label {max-width:100%}
+ .glass-app .editor-panel .typography-controls__desktop-font {display:none!important}
+ .glass-app .editor-panel .font-tape {display:flex}
+ .glass-app .editor-panel .image-asset-field__actions {grid-template-columns:repeat(2,minmax(0,1fr))}
+ .glass-app .editor-panel .image-asset-field__actions>.button:last-child:nth-of-type(3) {grid-column:1/-1}
+ .glass-app .editor-panel .avatar-settings__controls {display:grid;grid-template-columns:1fr}
+ .glass-app .editor-panel .settings-card__title--action {flex-wrap:wrap}
+ .glass-app .editor-panel .settings-card__actions {margin-left:auto}
+}
+
+.glass-app .mobile-full-preview__page>.profile-card.profile-card--full-avatar {padding:0 0 21px}
+.glass-app .editor-panel .avatar-cropper__viewport--full {aspect-ratio:4/5;border-radius:0}
+.glass-app .editor-panel .avatar-cropper__viewport--square {border-radius:0}
+.glass-app .editor-panel .avatar-shape-picker {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));min-width:0}
+.glass-app .editor-panel .avatar-shape-picker button {min-width:0;padding-inline:var(--editor-label-gap);white-space:nowrap;font-size:var(--editor-label-font)}
+.glass-app .editor-panel .settings-card {container-type:inline-size}
+.glass-app .editor-panel .settings-card__title--action {flex-wrap:wrap}
+.glass-app .editor-panel .settings-card__actions {margin-left:auto}
+.glass-app .editor-panel .sensitive-toggle__copy strong {line-height:1.4}
+@container(max-width:430px) {
+ .glass-app .editor-panel .field-grid {grid-template-columns:minmax(0,1fr)}
+ .glass-app .editor-panel .typography-controls__values {grid-template-columns:minmax(0,1fr)}
+ .glass-app .editor-panel .avatar-settings__controls {display:grid;grid-template-columns:minmax(0,1fr)}
+ .glass-app .editor-panel .image-asset-field__actions {grid-template-columns:repeat(2,minmax(0,1fr))}
+ .glass-app .editor-panel .image-asset-field__actions>.button:last-child:nth-of-type(3) {grid-column:1/-1}
+}
+/* The native checkbox remains the click/focus target across every switch size. */
+.glass-app .editor-panel .publish-setting {position:relative}
+.glass-app .editor-panel .publish-setting>input {position:absolute;inset:0;z-index:1;width:100%;height:100%;opacity:0;cursor:pointer}
+.glass-app .editor-panel :is(.publish-setting,.sensitive-toggle)>.publish-setting__switch {pointer-events:none}

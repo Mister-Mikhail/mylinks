@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs'
 import type { Page } from '@playwright/test'
 
-export async function mockLayout(page: Page, failUpload = false, displayName = 'Тестовый профиль') {
+export async function mockLayout(page: Page, failUpload = false, displayName = 'Тестовый профиль', options: {profile?:Record<string,unknown>; links?:Record<string,unknown>[]; contacts?:Record<string,unknown>[]} = {}) {
   const id = '00000000-0000-4000-8000-000000000001'
   const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: id, exp: 2100000000, role: 'authenticated' })).toString('base64url')}.signature`
   await page.addInitScript(({ id, token }) => localStorage.setItem('sb-loykiawbqdkitndqkegk-auth-token', JSON.stringify({ access_token: token, refresh_token: 'test-refresh', expires_at: 2100000000, expires_in: 3600, token_type: 'bearer', user: { id, email: 'test@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '2025-01-01T00:00:00Z' } })), { id, token })
-  let profile = { id, handle: 'sample-user', display_name: displayName, bio: 'Мои проекты', avatar_url: null, avatar_path: null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
-  let links: Record<string, unknown>[] = [{ id: 'link-test', profile_id: id, label: 'Мой сайт', url: 'https://example.com', icon_key: 'website', position: 0, is_visible: true, is_sensitive: false }]
+  let profile = { id, handle: 'sample-user', display_name: displayName, bio: 'Мои проекты', avatar_url: null, avatar_path: null, avatar_shape: 'round', avatar_size: 'medium', avatar_scale: 28, background_preset: 'midnight', card_preset: 'glass', is_published: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z', ...options.profile }
+  let links: Record<string, unknown>[] = options.links ?? [{ id: 'link-test', profile_id: id, label: 'Мой сайт', url: 'https://example.com', icon_key: 'website', position: 0, is_visible: true, is_sensitive: false }]
   const patches: Record<string, unknown>[] = []
   const uploads: Buffer[] = []
   let savedImage: Buffer | null = null
@@ -35,7 +35,7 @@ export async function mockLayout(page: Page, failUpload = false, displayName = '
       return route.fulfill({ status: 204 })
     }
     if (name === 'profile_links' && request.method() === 'POST') { links = request.postDataJSON(); return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(links) }) }
-    const data = name === 'profiles' ? profile : name === 'profile_links' ? links : []
+    const data = name === 'profiles' ? profile : name === 'profile_links' ? links : name === 'profile_contacts' ? options.contacts ?? [] : []
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify(data) })
   })
   await page.route('**/storage/v1/**', async route => {

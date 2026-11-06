@@ -1,0 +1,23 @@
+name: SpaceWeb sealed source transfer
+on:
+  push:
+    branches: [infra/sweb-migration]
+    paths: [.github/workflows/sweb-source.yml, deploy/sweb-source/**]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  seal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Seal source credentials to owner VPS recipient
+        env:
+          BEGET_FTP_HOST: ${{ secrets.BEGET_FTP_HOST }}
+          BEGET_FTP_USER: ${{ secrets.BEGET_FTP_USER }}
+          BEGET_FTP_PASSWORD: ${{ secrets.BEGET_FTP_PASSWORD }}
+          BEGET_FTP_DIR: ${{ secrets.BEGET_FTP_DIR }}
+        run: python3 deploy/sweb-source/seal.py

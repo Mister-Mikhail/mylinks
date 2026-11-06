@@ -1,0 +1,29 @@
+name: Package MyLinks for SpaceWeb
+on:
+  push:
+    branches: [infra/sweb-migration]
+    paths: [.github/workflows/sweb-package.yml, deploy/sweb-source/package.py]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      VITE_SUPABASE_URL: https://loykiawbqdkitndqkegk.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_GjGkSeQ5okx58Tphh7Hfrw_6psgCioE
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Build checked application
+        run: npm ci && npm run build
+      - name: Prepare immutable bundle transfer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 deploy/sweb-source/package.py

@@ -28,3 +28,12 @@
 - Merge only after one successful full CI run on the final version, then give a short acceptance report. Main deployment builds and uploads without repeating e2e.
 - Do not publish the application or change its audience without explicit owner approval.
 
+
+## Design skills and UI quality in Codex
+
+- Project-scoped design skills are vendored under `.agents/skills/`. When implementing or reviewing UI, **open the relevant `SKILL.md` directly** instead of relying solely on skill-catalog auto-discovery (which can be incomplete in Codex Cloud).
+- Read `.agents/skills/mobile-native/SKILL.md` for mobile browsers and touch; `break-ui/SKILL.md` for realistic extreme content; `gestures/SKILL.md` for drag/swipe/reorder/avatar input; `emil-design-eng/SKILL.md` for UI polish.
+- Read `animate/SKILL.md` when adding motion and `animation-performance/SKILL.md` when optimizing animation. `prototype/SKILL.md` is for explicitly requested isolated alternatives, not unprompted production rewrites. `learn-taste/SKILL.md` is only for owner-approved design rules.
+- Maintain consistent spacing, typography, radii, components, icons and states. Prefer fast responsive interfaces, reduced-motion support, clean mobile input and no distracting animations. Do not alter owner-approved design or features simply because a skill recommends it.
+- For UI changes, perform or report mobile (e.g. 390px) and desktop (e.g. 1280px) review, long/empty data, focus and interaction states, and regression/performance checks; distinguish performed tests from unavailable real-device checks.
+- Consult `docs/UI_QUALITY_CHECKLIST.md` before UI review. These skills never replace the product rules, testing requirements, approval flow or secrets protections above.

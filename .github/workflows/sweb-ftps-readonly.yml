@@ -1,0 +1,49 @@
+name: Beget secure FTPS source preflight (read only)
+on:
+  push:
+    branches: [infra/sweb-migration]
+    paths: [.github/workflows/sweb-ftps-readonly.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Test verified FTPS access without transferring or modifying files
+        env:
+          BEGET_FTP_HOST: ${{ secrets.BEGET_FTP_HOST }}
+          BEGET_FTP_USER: ${{ secrets.BEGET_FTP_USER }}
+          BEGET_FTP_PASSWORD: ${{ secrets.BEGET_FTP_PASSWORD }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, socket, ssl, ftplib, urllib.parse
+          host=os.environ.get("BEGET_FTP_HOST","").strip()
+          user=os.environ.get("BEGET_FTP_USER","").strip()
+          passwd=os.environ.get("BEGET_FTP_PASSWORD","")
+          host=host.removeprefix("ftp://").removeprefix("ftps://").split("/")[0]
+          print("FTPS_SECRET_PRESENT",bool(host and user and passwd),flush=True)
+          if not (host and user and passwd): raise SystemExit(2)
+          try:
+            with socket.create_connection((host,21),timeout=12):
+              print("FTPS_TCP21_OPEN",flush=True)
+          except Exception as e:
+            print("FTPS_TCP21_FAILED",type(e).__name__,flush=True)
+            raise SystemExit(3)
+          ftp=ftplib.FTP_TLS(context=ssl.create_default_context(), timeout=15)
+          try:
+            ftp.connect(host,21)
+            ftp.auth()
+            ftp.login(user,passwd)
+            ftp.prot_p()
+            items=ftp.nlst()
+            print("FTPS_AUTHENTICATED",flush=True)
+            print("SOURCE_ROOT_ENTRY_COUNT",len(items),flush=True)
+            ftp.quit()
+          except Exception as e:
+            print("FTPS_AUTH_FAILED",type(e).__name__,flush=True)
+            raise SystemExit(4)
+          
+          PY

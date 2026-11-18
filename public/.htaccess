@@ -16,6 +16,8 @@ AddType font/woff2 .woff2
   # Beget terminates TLS at its proxy before forwarding to Apache.
   RewriteCond %{HTTP:X-Forwarded-Proto} !=https
   RewriteRule .* https://%{SERVER_NAME}%{REQUEST_URI} [R=301,L]
+  # Serve a real favicon image instead of SPA HTML for /favicon.ico.
+  RewriteRule ^favicon\.ico$ /icons/app-192.png [R=302,L]
   # Static folders: real files or a real 404, never the app page
   RewriteRule ^(?:assets|icons|sounds|fonts|admin)/ - [L]
   # Preview images are PNGs served directly on this domain, without redirects.
